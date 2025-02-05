@@ -63,13 +63,6 @@ class LLM1(Scene):
 
     def construct(self):
 
-        # Create a full-screen rectangle
-        background = Rectangle(
-            width=100, height=100, color="#ECE7E2",fill_color="#ECE7E2", fill_opacity=1
-        )
-        background.move_to(ORIGIN)
-        self.add(background)
-
         a1 = (
             RoundedRectangle(stroke_width=50, fill_opacity=1, width=3)
             .set_fill(GREEN, opacity=1)  # Fully opaque fill
