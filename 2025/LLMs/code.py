@@ -161,3 +161,61 @@ class LLM1(Scene):
         self.play(ReplacementTransform(a.copy(), grouped_text[5][-2:]), run_time=0.3)
 
         self.wait(2)
+
+
+
+
+class LLM2(Scene):
+
+    def construct(self):
+
+        background = Rectangle(
+            width=100, height=100, color="#ECE7E2",fill_color="#ECE7E2", fill_opacity=1
+        )
+        background.move_to(ORIGIN)
+        self.add(background)
+
+
+        brain1 = ImageMobject('brain_1.png')
+        brain2 = ImageMobject('brain_2.png')
+        baby = ImageMobject('baby.png').scale(1.25)
+
+        self.play(GrowFromCenter(baby))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*4.5))
+
+        brain1.next_to(baby, RIGHT, buff=3).shift(RIGHT*0.9)
+        self.play(GrowFromCenter(brain1))
+
+        arrow = Arrow(start=baby.get_right()+LEFT*0.8, end=brain1.get_left()+RIGHT*0.15, stroke_width=6).set_color(BLACK)
+        self.play(GrowArrow(arrow))
+
+        self.wait(2)
+
+        brain2.move_to(brain1)
+
+        book = ImageMobject('book.png').scale(0.5).next_to(arrow,UP).shift(UP*1+RIGHT*0.16)
+        self.play(GrowFromCenter(book), run_time=0.5)
+        self.play(book.animate.move_to(brain1).scale(0.000001))
+        ball = ImageMobject('ball.png').scale(0.5).next_to(arrow,DOWN).shift(DOWN*1+RIGHT*0.16)
+        self.play(GrowFromCenter(ball), run_time=0.5)
+        self.play(ball.animate.move_to(brain1).scale(0.000001))
+        school = ImageMobject('school.png').scale(0.4).next_to(arrow,UP).shift(UP*1+RIGHT*0.16)
+        self.play(GrowFromCenter(school), run_time=0.5)
+        self.play(school.animate.move_to(brain1).scale(0.000001))
+        dog = ImageMobject('dog.png').scale(0.5).next_to(arrow,DOWN).shift(DOWN*1+RIGHT*0.16)
+        self.play(GrowFromCenter(dog), run_time=0.5)
+        self.play(dog.animate.move_to(brain1).scale(0.000001))
+
+
+        self.wait(2)
+        self.play(FadeIn(brain2), FadeOut(brain1))
+
+        self.wait(2)
+
+
+
+
+
