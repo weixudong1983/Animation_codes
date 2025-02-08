@@ -2,6 +2,33 @@ from manimlib import *
 import itertools as it
 
 
+
+
+class Example(Scene):
+
+    def construct(self):
+        
+        llm = Text("Language Models -> Text -> GPT-3").set_color(BLACK).shift(UP*2.68)
+        images = Text("Images -> Dall-3").set_color(BLACK).next_to(llm,DOWN, buff=0.7)
+        videos = Text("Videos -> Sora").set_color(BLACK).next_to(images,DOWN, buff=0.7)
+        audio = Text("Audio -> Whisper").set_color(BLACK).next_to(videos,DOWN, buff=0.7)
+        mm = Text("Multimodel Models-> Gemini").set_color(BLACK).next_to(audio,DOWN, buff=0.7)
+        self.play(ShowCreation(llm))
+        self.wait(2)
+        self.play(ShowCreation(images))
+        self.wait(2)            
+        self.play(ShowCreation(videos))
+        self.wait(2)
+        self.play(ShowCreation(audio))
+        self.wait(2)
+        self.play(ShowCreation(mm)) 
+        self.wait(2)
+
+
+
+
+
+
 class LLM(Scene):
 
     def construct(self):
