@@ -364,6 +364,256 @@ class LLM3(Scene):
 
 
 
+class  GPU(Scene):
+
+    def construct(self):
+        
+        gpu = ImageMobject("gpu.png").scale(0.6).shift(LEFT*0.15+UP*0.65)
+        data = ImageMobject("data.png").scale(0.6).next_to(gpu, LEFT).shift(LEFT*0.8)
+        algo = ImageMobject("algorithms.png").scale(0.6).next_to(gpu, RIGHT).shift(RIGHT)
+
+        self.play(GrowFromCenter(gpu), GrowFromCenter(data), GrowFromCenter(algo))
+
+        gpu_text = Text("GPU").next_to(gpu, DOWN, buff=1).set_color(BLACK)
+        data_text = Text("Data").next_to(data, DOWN, buff=1).set_color(BLACK)
+        algo_text = Text("Algorithms").next_to(algo, DOWN, buff=1).set_color(BLACK)
+        self.play(Write(gpu_text), Write(data_text), Write(algo_text))
+
+        self.wait(2)
+
+        self.play(Indicate(data))
+        self.wait()
+
+
+        # Create number plane with custom config
+        axes = NumberPlane(
+            x_range=(0, 6, 1),  # Changed to start from 0
+            y_range=(0, 4, 1),
+            width=12,
+            height=8,
+            background_line_style={
+                "stroke_opacity": 0
+            },
+            axis_config={
+                "stroke_color": BLACK,
+                "stroke_width": 4,
+                "include_tip": False,
+                "color": BLACK,
+            }
+        ).scale(0.7).shift(LEFT*14)
+        
+        # Function for converting the x coordinate to year
+        def x_to_year(x):
+            return 1980 + (x * 10)
+        
+        # Function for converting the y coordinate to data value
+        def y_to_value(y):
+            return y * 100
+
+        # Create x-axis labels
+        x_labels = VGroup()
+        for x in range(0, 6):  # Changed to start from 0
+            year = x_to_year(x)
+            label = Text(str(year)).scale(0.4).set_color(BLACK)  # Fixed color
+            label.next_to(axes.c2p(x, 0), DOWN * 0.5)
+            x_labels.add(label)
+
+        # Create y-axis labels
+        y_labels = VGroup()
+        for y in range(0, 5):
+            value = y_to_value(y)
+            label = Text(str(value)).scale(0.4).set_color(BLACK)  # Fixed color
+            label.next_to(axes.c2p(0, y), LEFT * 0.5)
+            y_labels.add(label)
+
+        # Create axis labels
+        x_axis_label = Text("Year").scale(0.5).set_color(BLACK)  # Fixed color
+        x_axis_label.next_to(axes.c2p(5, 0), RIGHT * 0.5)
+        
+        y_axis_label = Text("Data (Arbitrary Units)").scale(0.5).set_color(BLACK)  # Fixed color
+        y_axis_label.next_to(axes.c2p(0, 4), UP * 0.5)
+
+        # Define exponential growth function
+        def exp_growth(x):
+            t = x_to_year(x)
+            return (np.exp(0.08 * (t - 1980)) - 1) / (np.exp(0.08 * (2025 - 1980)) - 1) * 4
+
+        # Create graph
+        graph = axes.get_graph(
+            exp_growth,
+            x_range=(0, 4.5),  # Changed to start from 0
+            color=BLUE_E,  # Keep graph blue
+            stroke_width=5
+        )
+
+
+        # Create dot for animation
+        dot = Dot().set_color("#FF0000").scale(1.33)  # Fixed color to RED
+        dot.move_to(axes.input_to_graph_point(0, graph))  # Changed to start from 0
+
+        # Animation sequence
+        self.add(axes)
+        x_labels.shift(DOWN*0.37+RIGHT*0.4)
+        y_axis_label.shift(UP*0.33)
+        x_axis_label.shift(RIGHT*2)
+        
+        self.play(self.camera.frame.animate.shift(LEFT*14))
+
+
+        self.play(
+            Write(x_labels),
+            Write(y_labels),
+            Write(x_axis_label),
+            Write(y_axis_label)
+        )
+        self.wait(0.5)
+        
+        self.play(ShowCreation(graph),)
+        self.wait(0.5)
+
+        self.add(dot)
+        self.play(MoveAlongPath(dot, graph), run_time=3, rate_func=linear)
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*14))
+        self.wait()
+        self.play(Indicate(gpu))
+        self.play(self.camera.frame.animate.shift(RIGHT*14))
+
+        temp = gpu.copy().shift(RIGHT*11+DOWN*0.9).scale(0.9).shift(LEFT*0.5)
+        
+        cpu = ImageMobject("cpu.png").move_to(temp)
+        self.play(GrowFromCenter(cpu))
+        cpu_text = Text("CPU").next_to(cpu, DOWN,).set_color(BLACK).shift(DOWN*0.4)
+        self.play(Write(cpu_text))
+
+        # Create a group of squares (each is a "problem" block)
+        problem_squares = VGroup(*[
+            Rectangle(width=3,height=1, color=BLACK, stroke_width=6, fill_color=YELLOW, fill_opacity=1)
+            for _ in range(6)
+        ])
+        # Arrange them in a vertical stack with a small gap between each
+        problem_squares.arrange(DOWN, buff=0)
+        # Optionally, move the entire group to the right edge of the frame
+        problem_squares.next_to(cpu, RIGHT, buff=4.2)
+    
+        # Animate the drawing (creation) of the squares
+        self.play(ShowCreation(problem_squares))
+
+        for i in range(6):
+            label = Text(f"Task {i+1}", font_size=40).set_color(BLACK)
+            label.move_to(problem_squares[i].get_center())
+            self.play(Write(label), run_time=0.1)
+        self.wait(2)
+
+        arrow = Arrow(start=cpu.get_right(), end=problem_squares[0].get_left(), color=BLACK, stroke_width=12)
+        self.play(GrowArrow(arrow))
+        self.play(problem_squares[0].animate.set_fill(GREEN))
+
+        for i in range(1,6):
+            self.play(arrow.animate.become(Arrow(start=cpu.get_right(), end=problem_squares[i].get_left(), color=BLACK, stroke_width=12)), run_time=0.5)
+            self.play(problem_squares[i].animate.set_fill(GREEN), run_time=0.5)
+        self.wait(2)
+
+
+        temp_a = []
+
+        for i in range(6):
+            temp_a.append(problem_squares[i].animate.set_fill(YELLOW))
+
+
+        self.play(FadeOut(Group(cpu, arrow)), GrowFromCenter(temp),
+                  *[i for i in temp_a])
+        
+        self.play(Transform(cpu_text, Text("GPU").move_to(cpu_text).set_color(BLACK).shift(UP*0.8)))
+        
+        self.wait(2)
+
+
+
+        # Create curvy arrows from GPU to each task
+        curves = []
+        for i in range(6):
+            # Calculate control points for bezier curve
+            start = temp.get_right()
+            end = problem_squares[i].get_left()
+            
+            # Create control points for smooth curve
+            control1 = start + RIGHT * 2 + UP * (1 - i * 0.4)
+            control2 = end + LEFT * 2 + UP * (1 - i * 0.4)
+            
+            # Create the curve
+            curve = CubicBezier(
+                a0=start,
+                h0=control1,
+                h1=control2,
+                a1=end,
+                color=BLACK,
+                stroke_width=4
+            )
+            curves.append(curve)
+
+        # Animate the creation of curves
+        self.play(*[ShowCreation(curve) for curve in curves])
+        self.wait(1)
+
+
+
+        # Create flowing dots to represent data/computation
+        for _ in range(1):  
+            flowing_dots = []
+            fading_dots = []
+            for curve in curves:
+                dot = Dot(radius=0.15).set_color("#00FF00")
+                dot.move_to(curve.get_start())  # Use get_start() method
+                flowing_dots.append(dot)
+                fading_dots.append(FadeOut(dot))
+
+            # Add all dots to scene
+            self.add(*flowing_dots)
+
+
+            # Animate dots along their respective curves
+            self.play(
+                *[MoveAlongPath(dot, curve) for dot, curve in zip(flowing_dots, curves)],
+                run_time=1.5,
+                rate_func=linear
+            )
+
+            # Change task colors to indicate processing
+            self.play(
+                *[square.animate.set_fill(GREEN) for square in problem_squares],
+                run_time=0.9
+            )
+
+            self.play(*fading_dots)
+            
+
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(LEFT*14))
+
+        self.wait(1)
+        
+        self.play(Indicate(algo))
+
+        self.wait()
+
+
+
+
+
+        self.embed()
+
+
+
+
+
+
+
+
+
 class NeuralNetworkMobject(VGroup):
     def __init__(
             self,
@@ -543,5 +793,8 @@ class NeuralNetworkMobject(VGroup):
                 label.move_to(neuron)
                 self.hidden_labels.add(label)
         self.add(self.hidden_labels)
+
+
+
 
 
