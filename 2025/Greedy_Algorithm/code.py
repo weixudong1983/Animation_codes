@@ -193,4 +193,128 @@ class Greedy(Scene):
 
 
 
-        self.embed()
+class Knapsack(Scene):
+
+    def construct(self):
+        
+        bag = ImageMobject("sack.png").scale(0.8).shift(DOWN*1.92).shift(LEFT*0.49)
+        self.play(GrowFromCenter(bag))
+        weight = Text("6 - 3").set_color(BLACK).scale(1.5).next_to(bag, RIGHT).shift(RIGHT*0.2)
+        self.play(Write(weight[0]))
+        self.wait(2)
+
+        orange = ImageMobject("banana.png").scale(0.6).to_edge(UP)
+        fish1 = ImageMobject("fish.png").scale(0.6).next_to(orange, RIGHT)
+        grapes = ImageMobject("grapes.png").scale(0.7).next_to(orange, LEFT)
+        grapes.shift(LEFT*1.1)
+        orange.shift(LEFT*0.46)
+
+        self.play(GrowFromCenter(orange), GrowFromCenter(fish1), GrowFromCenter(grapes))
+        self.wait(1)
+
+        grape_text = Text("{3,9}").set_color(BLACK).next_to(grapes, DOWN)
+        orange_text = Text("{2,5}").set_color(BLACK).next_to(orange, UP).shift(DOWN+RIGHT*0.45)
+        fish_text = Text("{2,4}").set_color(BLACK).next_to(fish1, DOWN)
+
+        self.play(Write(grape_text), Write(orange_text), Write(fish_text))
+
+        self.wait(2)
+
+        arrow = Arrow(grape_text[1].get_bottom()+DOWN*2, grape_text[1].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")
+        self.play(GrowArrow(arrow))
+        self.wait(2)
+
+        self.play(arrow.animate.become(Arrow(grape_text[3].get_bottom()+DOWN*2, grape_text[3].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")))
+
+        self.wait(2)
+
+        self.play(grapes.animate.next_to(bag, UP).shift(DOWN*2.2).scale(0.0001), run_time=1.77)
+
+        self.wait(1)
+
+        self.play(TransformFromCopy(grape_text[1], weight[1:]))
+
+        self.wait()
+        self.play(weight.animate.become(Text("3").set_color(BLACK).scale(1.5).next_to(bag, RIGHT).shift(RIGHT*0.2)))
+
+        profit_text = Text("9").set_color(BLACK).next_to(bag, LEFT).scale(1.5).shift(LEFT*0.6)
+        self.play(TransformFromCopy(grape_text[-2],profit_text))
+
+        self.play(FadeOut(grape_text),)
+        self.play(arrow.animate.become(Arrow(orange_text[1].get_bottom()+DOWN*2, orange_text[1].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")))
+        self.play(arrow.animate.become(Arrow(orange_text[1].get_bottom()+DOWN*2, orange_text[3].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")))
+        self.wait(1)
+
+        self.play(arrow.animate.become(Arrow(fish_text[1].get_bottom()+DOWN*2, fish_text[1].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")))
+        self.play(arrow.animate.become(Arrow(fish_text[1].get_bottom()+DOWN*2, fish_text[3].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")))
+
+        self.wait(2)
+
+        self.play(FadeOut(arrow),
+        orange.animate.next_to(bag, UP).shift(DOWN*2.2).scale(0.0001),)
+
+        self.wait(1)
+
+        weight2 = Text("-2").set_color(BLACK).scale(1.5).next_to(weight, RIGHT)
+        self.play(TransformFromCopy(orange_text[1], weight2))
+
+        self.wait(1)
+
+        weight3 = Text("1").set_color(BLACK).scale(1.5).move_to(Group(weight, weight2), RIGHT).shift(LEFT*0.6)
+
+        self.play(ReplacementTransform(VGroup(weight, weight2), weight3))
+        self.wait(1)
+
+
+
+        self.play(profit_text.animate.shift(LEFT*2.2))
+        temp = Text("+ 5").next_to(profit_text, RIGHT).set_color(BLACK).scale(1.5).shift(RIGHT*0.6)
+        self.play(TransformFromCopy(orange_text[-2], temp))
+
+        self.wait(1)
+
+        profit = Text("14").set_color(BLACK).move_to(Group(profit_text, temp)).scale(1.5).shift(RIGHT*0.2)
+
+        self.play(ReplacementTransform(VGroup(profit_text, temp), profit))
+        self.play(FadeOut(orange_text))
+
+        self.wait(1)
+
+        fish_1 = ImageMobject("fish_1.png").scale(0.6).to_edge(UP)
+        fish_2 = ImageMobject("fish_2.png").scale(0.6).next_to(fish_1, RIGHT)
+
+        Group(fish_2, fish_1).move_to(fish1, RIGHT)
+
+        arrow = Arrow(fish_text[1].get_bottom()+DOWN*2, fish_text[1].get_bottom()+DOWN*0.1, stroke_width=5).set_color("#FF0000")
+        self.play(GrowArrow(arrow))
+        self.wait(2)
+
+        self.play(FadeOut(fish1), FadeIn(fish_1), FadeIn(fish_2))
+        self.wait(1)
+
+        self.play(fish_1.animate.next_to(bag, UP).shift(DOWN*2.2).scale(0.0001),)
+        self.wait(1)
+
+        self.play(arrow.animate.rotate(PI/2, ).shift(DOWN*1.2))
+
+        self.wait()
+        self.play(FadeOut(weight3))
+        self.wait()
+
+        self.play(arrow.animate.rotate(PI/2).shift(LEFT*7.8+UP*1.43))
+        self.wait()
+        self.play(profit.animate.shift(LEFT*1.7))
+        temp = Text("+ 2").next_to(profit, RIGHT).set_color(BLACK).scale(1.5).shift(RIGHT*0.5)
+        self.play(TransformFromCopy(fish_text[-2], temp))
+
+        self.wait(1)
+
+        profit_last = Text("16").set_color(BLACK).move_to(Group(profit, temp)).scale(1.5).shift(RIGHT)
+
+        self.play(ReplacementTransform(VGroup(profit, temp), profit_last))
+        self.play(FadeOut(fish_text), FadeOut(arrow),FadeOut(fish_2))
+        self.play(self.camera.frame.animate.shift(DOWN*1.8+LEFT).scale(0.8))
+
+        self.wait(2)
+
+      
