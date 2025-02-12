@@ -317,4 +317,316 @@ class Knapsack(Scene):
 
         self.wait(2)
 
-      
+PURE_RED = "#FF0000"
+
+class Example(Scene):
+
+    def construct(self):
+
+        self.camera.frame.shift(RIGHT*1.8)
+
+        array = Array(array_size=5).shift(UP*2.4)
+        array.append_element(self, "10")
+        array.append_element(self, "25")
+        array.append_element(self, "40")
+        array.append_element(self, "50")
+        array.append_element(self, "30")
+
+        for i in range(5):
+            array.square_contents[i]
+
+        array1 = Array(array_size=5).next_to(array, DOWN, buff=0)
+        BLUE = TEAL_B
+        array1.append_element1(self, "60", color=BLUE)
+        array1.append_element1(self, "100", color=BLUE)
+        array1.append_element1(self, "120", color=BLUE)
+        array1.append_element1(self, "140", color=BLUE)
+        array1.append_element1(self, "150", color=BLUE)
+
+        for i in range(5):
+            array1.square_contents[i]
+
+        self.play(ShowCreation(array), *[ShowCreation(array.square_contents[i]) for i in range(5)])
+        self.wait(2)
+        self.play(ShowCreation(array1), *[ShowCreation(array1.square_contents[i]) for i in range(5)])
+        self.wait(2)
+        n = Text("N = 5").set_color(BLACK).next_to(array, RIGHT).shift(RIGHT*1.75)
+        w = Text("W = 70").set_color(BLACK).next_to(n,DOWN).shift(DOWN*0.64)
+
+        self.play(Write(n))
+        self.wait(2)
+        self.play(Write(w))
+        self.wait(2)
+
+        a = Tex(r"\frac{60}{10}").set_color(BLACK).next_to(array1.square_contents[0], DOWN).scale(1.34).shift(DOWN*0.3)
+        b = Tex(r"\frac{100}{25}").set_color(BLACK).next_to(array1.square_contents[1], DOWN).scale(1.34).shift(DOWN*0.3)
+        c = Tex(r"\frac{120}{40}").set_color(BLACK).next_to(array1.square_contents[2], DOWN).scale(1.34).shift(DOWN*0.3)
+        d = Tex(r"\frac{140}{70}").set_color(BLACK).next_to(array1.square_contents[3], DOWN).scale(1.34).shift(DOWN*0.3)
+        e = Tex(r"\frac{150}{30}").set_color(BLACK).next_to(array1.square_contents[4], DOWN).scale(1.34).shift(DOWN*0.3)
+
+        self.play(TransformFromCopy(array1.square_contents[0][1], a[:2]),
+                  TransformFromCopy(array1.square_contents[1][1], b[:3]),
+                  TransformFromCopy(array1.square_contents[2][1], c[:3]),
+                  TransformFromCopy(array1.square_contents[3][1], d[:3]),
+                  TransformFromCopy(array1.square_contents[4][1], e[:3]),
+                  )
+        
+        self.play(FadeIn(Group(a[2], b[3], c[3], d[3], e[3])))
+
+        self.play(TransformFromCopy(array.square_contents[0][1], a[3:]),
+                  TransformFromCopy(array.square_contents[1][1], b[4:]),
+                  TransformFromCopy(array.square_contents[2][1], c[4:]),
+                  TransformFromCopy(array.square_contents[3][1], d[4:]),
+                  TransformFromCopy(array.square_contents[4][1], e[4:]),
+                  )
+        
+        self.wait(2)
+
+        self.play(a.animate.become(Text("6").set_color(BLACK).move_to(a).scale(0.8).shift(UP*0.3)),
+                  b.animate.become(Text("4").set_color(BLACK).move_to(b).scale(0.8).shift(UP*0.3)),
+                  c.animate.become(Text("3").set_color(BLACK).move_to(c).scale(0.8).shift(UP*0.3)),
+                  d.animate.become(Text("2.8").set_color(BLACK).move_to(d).scale(0.8).shift(UP*0.3)),
+                  e.animate.become(Text("5").set_color(BLACK).move_to(e).scale(0.8).shift(UP*0.3)))
+        
+        self.wait(2)
+        
+        a1, b1, c1, d1, e1 = a.copy().shift(DOWN), b.copy().shift(DOWN), c.copy().shift(DOWN), d.copy().shift(DOWN), e.copy().shift(DOWN)
+
+        self.play(TransformFromCopy(a, a1),
+                  TransformFromCopy(b, b1),
+                  TransformFromCopy(c, c1),
+                  TransformFromCopy(d, d1),
+                  TransformFromCopy(e, e1),
+                  )
+        
+        temp_b = b1.get_center()
+        temp_c = c1.get_center()
+        temp_d = d1.get_center()
+        temp_e = e1.get_center()
+
+        self.play(
+            e1.animate.move_to(temp_b),
+            b1.animate.move_to(temp_c),
+            c1.animate.move_to(temp_d),
+            d1.animate.move_to(temp_e),  
+                  )
+        
+        self.wait(2)
+
+        profit = Text("profit = 0").set_color(BLACK).to_edge(DOWN).shift(UP*0.2+RIGHT*1.6)
+        self.play(Write(profit))
+        self.wait(2)
+
+        circle = Circle(radius=0.4, stroke_color="#0000FF", stroke_width=6).move_to(a1)
+        self.play(ShowCreation(circle))
+        self.wait(1)
+        self.play(circle.animate.move_to(a))
+
+        self.wait(1)
+
+
+        rect = SurroundingRectangle(profit, color="#0000FF", stroke_width=6).scale(1.3)
+        self.play(ReplacementTransform(circle, rect))
+        self.wait(1)    
+
+        self.play(profit.animate.become(Text("profit = 60").set_color(BLACK).move_to(profit)), run_time=0.5)
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(w, color="#0000FF", stroke_width=6).scale(1.2)))
+        self.wait()
+        self.play(w.animate.become(Text("W = 60").set_color(BLACK).move_to(w)), run_time=0.5)
+        self.wait()
+
+        circle = Circle(radius=0.4, stroke_color="#0000FF", stroke_width=6).move_to(e1)
+        self.play(Transform(rect, circle))
+        self.wait()
+        self.play(rect.animate.move_to(e))
+        self.wait(2)
+
+        rect1 = SurroundingRectangle(profit, color="#0000FF", stroke_width=6).scale(1.23)
+        self.play(ReplacementTransform(rect, rect1))
+        self.wait(1)
+        self.play(profit.animate.become(Text("profit = 210").set_color(BLACK).move_to(profit)), run_time=0.5)
+        self.wait(2)
+
+        self.play(Transform(rect1, SurroundingRectangle(w, color="#0000FF", stroke_width=6).scale(1.23)))
+        self.wait()
+        self.play(w.animate.become(Text("W = 30").set_color(BLACK).move_to(w)), run_time=0.5)
+        self.wait()
+
+        circle = Circle(radius=0.4, stroke_color="#0000FF", stroke_width=6).move_to(b1)
+        self.play(Transform(rect1, circle))
+        self.wait()
+        self.play(Transform(rect1, Circle(radius=0.4, stroke_color="#0000FF", stroke_width=6).move_to(b)))
+        self.wait(2)
+
+
+        rect = SurroundingRectangle(profit, color="#0000FF", stroke_width=6).scale(1.23)
+        self.play(ReplacementTransform(rect1, rect))
+        self.wait(1)
+        self.play(profit.animate.become(Text("profit = 310").set_color(BLACK).move_to(profit)), run_time=0.5)
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(w, color="#0000FF", stroke_width=6).scale(1.23)))
+        self.wait()
+        self.play(w.animate.become(Text("W = 5").set_color(BLACK).move_to(w)), run_time=0.5)
+        self.wait(1)
+
+        circle = Circle(radius=0.4, stroke_color="#0000FF", stroke_width=6).move_to(c1)
+        self.play(Transform(rect, circle))
+        self.wait()
+        self.play(Transform(rect, Circle(radius=0.4, stroke_color="#0000FF", stroke_width=6).move_to(c)))
+        self.wait(2)
+
+        temp = Text("3 * 5").set_color(BLACK).next_to(w, DOWN, buff=1.5)
+        self.play(TransformFromCopy(c, temp[0]))
+        self.play(FadeIn(temp[1]), TransformFromCopy(w[-1], temp[-1]))
+        self.wait(1)
+        self.play(temp.animate.become(Text("15").set_color(BLACK).move_to(temp)), run_time=0.5)
+        self.wait(1)
+
+        rect1 = SurroundingRectangle(profit, color="#0000FF", stroke_width=6).scale(1.23)
+        self.play(ReplacementTransform(rect, rect1))
+        self.wait(1)
+        self.play(profit.animate.become(Text("profit = 325").set_color(BLACK).move_to(profit)), FadeOut(temp),run_time=0.5)
+        self.wait(2)
+
+        self.play(Transform(rect1, SurroundingRectangle(w, color="#0000FF", stroke_width=6).scale(1.23)))
+        self.wait()
+        self.play(w.animate.become(Text("W = 0").set_color(BLACK).move_to(w)), run_time=0.5)
+        self.wait(3)
+
+        rect = SurroundingRectangle(profit, color="#00FF00", stroke_width=9).scale(1.23)
+        self.play(ReplacementTransform(rect1, rect))
+
+
+        self.wait(2)
+
+
+
+
+
+        
+
+
+
+        self.embed()
+
+
+
+
+
+
+class Array(VGroup):
+    def __init__(self, array_size=5, **kwargs):
+        super().__init__(**kwargs)
+        self.array_size = array_size
+        self.square_contents = [None] * array_size
+        self.array_group = self.create_array()
+        self.add(self.array_group)
+
+    def create_element(self, text):
+        square = Square(side_length=1.3, fill_opacity=1, fill_color=BLACK, color=BLACK).set_color(BLACK)
+        text = Text(text, font_size=44, color=BLACK).set_color(BLACK)
+        return VGroup(square, text)
+
+    def create_array(self):
+        squares = VGroup(*[Square(side_length=1.3, color=PURE_RED, stroke_width=6).set_color(BLACK) for _ in range(self.array_size)])
+        squares.arrange(RIGHT, buff=0)
+
+        return VGroup(squares)
+
+    def update_element(self, scene, index, new_value):
+        if 0 <= index < self.array_size:
+            new_square = Square(side_length=1.3, fill_opacity=1, fill_color=YELLOW_C, color=DARK_BLUE)
+            new_number = Text(str(new_value), color=BLACK)
+            new_square.add(new_number)
+            new_square.move_to(self.array_group[0][index].get_center())
+            if self.square_contents[index] is None:
+                scene.play(FadeIn(new_square))
+            else:
+                scene.play(Transform(self.square_contents[index], new_square))
+            self.square_contents[index] = new_square
+        else:
+            scene.play(Indicate(self.array_group, color=RED))
+            print(f"Index {index} is out of bounds")
+
+    def append_element(self, scene, value, color=YELLOW):
+        for i, square in enumerate(self.array_group[0]):
+            if self.square_contents[i] is None:
+                new_square = Square(side_length=1.3, fill_opacity=1, fill_color=color, color=BLACK,
+                                    stroke_width=6)
+                number = Text(str(value), color=BLACK).set_z_index(1).set_color(BLACK)
+                new_square1 = VGroup(new_square, number)
+                new_square1.move_to(square.get_center())
+                self.square_contents[i] = new_square1
+                break
+        else:
+            scene.play(Indicate(self.array_group, color=RED))
+
+    def append_element1(self, scene, value, color=YELLOW):
+        for i, square in enumerate(self.array_group[0]):
+            if self.square_contents[i] is None:
+                new_square = Square(side_length=1.3, fill_opacity=1, fill_color=color, color=BLACK,
+                                    stroke_width=6)
+                number = Text(str(value), color=BLACK).set_z_index(1).set_color(BLACK).scale(0.85)
+                new_square1 = VGroup(new_square, number)
+                new_square1.move_to(square.get_center())
+                self.square_contents[i] = new_square1
+                break
+        else:
+            scene.play(Indicate(self.array_group, color=RED))
+
+
+    def add_element(self, scene, value, color=YELLOW):
+        for i, square in enumerate(self.array_group[0]):
+            if self.square_contents[i] is None:
+                new_square = Square(side_length=1.3, fill_opacity=1, fill_color=color, color=BLACK,
+                                    stroke_width=6)
+                number = Text(str(value), color=BLACK, font_size=50).set_z_index(1).set_color(BLACK)
+                new_square1 = VGroup(new_square, number)
+                new_square1.move_to(square.get_center())
+                self.square_contents[i] = new_square1
+                scene.play(FadeIn(new_square1))
+                break
+        else:
+            scene.play(Indicate(self.array_group, color=RED))
+
+    def pop_element(self, scene):
+        for i in range(self.array_size - 1, -1, -1):
+            if self.square_contents[i] is not None:
+                scene.play(FadeOut(self.square_contents[i]))
+                self.square_contents[i] = None
+                break
+        else:
+            scene.play(Indicate(self.array_group, color=RED))
+
+    def delete_from_front(self, scene):
+        if self.square_contents[0] is not None:
+            scene.play(FadeOut(self.square_contents[0]))
+            self.square_contents[0] = None
+            animations = []
+            for i in range(1, self.array_size):
+                if self.square_contents[i] is not None:
+                    animations.append(
+                        self.square_contents[i].animate.move_to(self.array_group[0][i - 1].get_center())
+                    )
+                    self.square_contents[i - 1] = self.square_contents[i]
+                    self.square_contents[i] = None
+            if animations:
+                scene.play(*animations)
+        else:
+            scene.play(Indicate(self.array_group, color=RED))
+
+    def create_new_array(self, scene, new_size):
+        new_array = Array(array_size=new_size)
+        new_array.next_to(self, DOWN, buff=0.7)
+        scene.play(ShowCreation(new_array))
+        return new_array
+
+    def transfer_elements_to_new_array(self, scene, new_array):
+        for i, content in enumerate(self.square_contents):
+            if content is not None:
+                scene.play(Transform(content, new_array.array_group[0][i]))
+                new_array.square_contents[i] = content
+                self.square_contents[i] = None       
