@@ -635,6 +635,66 @@ class DP4(Scene):
 
 
 
+class Optimised_code(Scene):
+
+    def construct(self):
+        
+        code = Text("""
+def fib(n):
+    if n <= 1:
+        return n
+    
+    prev2 = 0  
+    prev1 = 1  
+    
+    for i in range(2, n+1):
+        current = prev1 + prev2  
+        prev2 = prev1  
+        prev1 = current 
+    
+    return prev1  
+        """).set_color_by_text_to_color_map({
+            "def": ORANGE,
+            "fib": PURE_RED,
+            "return": ORANGE,
+            "if": ORANGE,
+            "else": ORANGE,
+            "for": ORANGE,
+            "in": ORANGE,
+            "range": ORANGE,
+
+           }).scale(0.8)
+
+
+        self.play(ShowCreation(code))
+
+        rect = SurroundingRectangle(code[:10], color=PURE_GREEN, stroke_width=7).scale(1.2)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(code[10:24], color=PURE_GREEN, stroke_width=7).scale(1.2)))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(code[24:38], color=PURE_GREEN, stroke_width=7).scale(1.2)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(code[38:57], color=PURE_GREEN, stroke_width=7).scale(1.2)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(code[57:76], color=PURE_GREEN, stroke_width=7).scale(1.2)))
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(code[76:100], color=PURE_GREEN, stroke_width=7).scale(1.2)))
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(code[100:], color=PURE_GREEN, stroke_width=7).scale(1.2)))
+        self.wait(2)
+
+        self.play(Uncreate(rect))
+
+        self.wait(2)
+
+
 
 
 
