@@ -516,6 +516,122 @@ def fib(n):
 
 
 
+class DP4(Scene):
+
+    def construct(self):
+
+        title = Text("Dynamic Programming").to_edge(UP).scale(1.3).shift(DOWN*0.65).set_color(GREEN)
+        self.play(Write(title))
+
+        self.wait(1)
+
+        definition = Text("""
+        A problem-solving technique where a complex problem
+        is broken down into simpler, overlapping subproblems,
+        and the solutions to these subproblems are stored and
+        reused to avoid redundant computations.
+        """).next_to(title, DOWN).scale(0.6)
+
+        self.play(Write(definition))
+
+        self.wait(2)
+
+        first = Text("• Memoization (Top Down)").shift(UP).next_to(definition, DOWN, buff=0.8)
+        self.play(Write(first))
+
+        self.wait(2)
+
+        second = Text("• Tabulation (Bottom Up)").next_to(first, DOWN, buff=0.8)
+        self.play(Write(second))
+
+        self.wait(2)
+
+
+        self.play(FadeOut(VGroup(first, second, definition,)))
+
+        first = Text("1. Overlapping Subproblems").next_to(title, DOWN, buff=0.8)
+        self.play(ShowCreation(first))
+
+        self.wait(2)
+
+        second = Text("2. Optimal Substructure").move_to(first)
+        self.play(ReplacementTransform(first, second))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(DOWN*0.7))
+
+
+        a = Circle(radius=1.5, color=RED, fill_color=RED, fill_opacity=1).next_to(second, DOWN, buff=1.4)
+        self.play(GrowFromCenter(a))
+
+        self.wait(2)
+
+        b = Circle(radius=0.5, color=RED, fill_color=RED, fill_opacity=1).next_to(a, LEFT, buff=0)
+        c = Circle(radius=0.5, color=RED, fill_color=RED, fill_opacity=1).next_to(a, RIGHT, buff=0)
+        d = Circle(radius=0.5, color=RED, fill_color=RED, fill_opacity=1).next_to(a, ORIGIN, buff=0)
+        e = Circle(radius=0.5, color=RED, fill_color=RED, fill_opacity=1).next_to(a, UP, buff=0).shift(DOWN*0.5)
+        f = Circle(radius=0.5, color=RED, fill_color=RED, fill_opacity=1).next_to(a, DOWN, buff=0).shift(UP*0.5)
+
+        self.play(
+            ReplacementTransform(a.copy(), b),
+            ReplacementTransform(a.copy(), c),  
+            ReplacementTransform(a.copy(), d),
+            ReplacementTransform(a.copy(), e),
+            ReplacementTransform(a, f),
+        )
+
+        self.wait(2)
+
+        a.set_fill(TEAL)
+
+        self.play(
+            b.animate.set_color(TEAL).set_fill(TEAL),
+            c.animate.set_color(TEAL).set_fill(TEAL),
+            d.animate.set_color(TEAL).set_fill(TEAL),
+            e.animate.set_color(TEAL).set_fill(TEAL),
+            f.animate.set_color(TEAL).set_fill(TEAL),
+        )
+
+        self.wait(2)
+
+        a = Circle(radius=1.5, color=TEAL, fill_color=TEAL, fill_opacity=1).next_to(second, DOWN, buff=1.4).set_color(TEAL)
+
+
+        self.play(
+            ReplacementTransform(b, a),
+            ReplacementTransform(c, a),
+            ReplacementTransform(d, a),
+            ReplacementTransform(e, a),
+            ReplacementTransform(f, a),
+
+        )
+
+
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(a, second, title)), self.camera.frame.animate.shift(RIGHT*13))
+
+        text = Text("""
+        1. Fibonacci Numbers
+        2. Longest Common Subsequence
+        3. 0/1 Knapsack Problem
+        4. Matrix Chain Multiplication
+        5. Coin Change Problem
+        6. Staircase Problem
+        7. Travelling Salesman Problem
+
+        
+        """).shift(RIGHT*13+DOWN*0.5)
+
+        self.play(ShowCreation(text[:18]))
+
+        self.wait(2)
+
+        self.play(ShowCreation(text[18:]))
+
+        self.wait(2)
+
+
 
 
 
