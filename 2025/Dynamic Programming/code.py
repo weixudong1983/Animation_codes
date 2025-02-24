@@ -349,7 +349,177 @@ print(fib(n, dp))
          self.wait(2)
 
 
-         
+
+
+
+class DP_TABLUTAION(Scene):
+
+    def construct(self):
+
+        text = Text("fib(5)").to_edge(UP).shift(DOWN*0.5).scale(1.4)
+        text[:3].set_color(PURE_RED)
+        self.play(ShowCreation(text))
+
+        array = Array(array_size=6).shift(DOWN*0.82)
+        array.append_element(self, "0")
+        array.append_element(self, "0")
+        array.append_element(self, "0")
+        array.append_element(self, "0")
+        array.append_element(self, "0")
+        array.append_element(self, "0")
+        self.wait(2)
+
+        self.play(ShowCreation(array), *[ShowCreation(array.square_contents[i]) for i in range(6)])
+        self.wait(2)
+
+        self.play(array.square_contents[0][0].animate.set_fill(BLUE))
+        self.wait(2)
+        self.play(array.square_contents[0][0].animate.set_fill(YELLOW))
+        self.wait(1)
+        self.play(array.square_contents[1][0].animate.set_fill(BLUE))
+        self.wait(1)
+        self.play(array.square_contents[1][1].animate.become(Text("1", color=BLACK).set_color(BLACK).scale(1.3*1.2).move_to(array.square_contents[1])))
+        self.wait()
+        self.play(array.square_contents[1][0].animate.set_fill(YELLOW))
+        self.wait(1)
+
+
+
+        i = Text("i").next_to(array.square_contents[2], DOWN, buff=0.66).scale(1.23)
+        self.play(Write(i))
+
+
+        self.wait()
+        self.play(array.square_contents[2][0].animate.set_fill(BLUE))
+        brace = Brace(VGroup(array.square_contents[1], array.square_contents[0]), UP, buff=0.38)
+        self.play(GrowFromCenter(brace))
+        self.wait()
+        self.play(array.square_contents[2][1].animate.become(Text("1", color=BLACK).set_color(BLACK).scale(1.3*1.2).move_to(array.square_contents[2])))
+        self.play(array.square_contents[2][0].animate.set_fill(YELLOW))
+        self.play(i.animate.next_to(array.square_contents[3], DOWN, buff=0.66))
+        
+        
+
+
+        self.play(array.square_contents[3][0].animate.set_fill(BLUE))
+        self.play(brace.animate.become(Brace(VGroup(array.square_contents[1], array.square_contents[2]), UP, buff=0.38)))
+
+        self.wait()
+        self.play(array.square_contents[3][1].animate.become(Text("2", color=BLACK).set_color(BLACK).scale(1.3*1.2).move_to(array.square_contents[3])))
+        self.play(array.square_contents[3][0].animate.set_fill(YELLOW))
+        self.play(i.animate.next_to(array.square_contents[4], DOWN, buff=0.66))
+
+        self.play(array.square_contents[4][0].animate.set_fill(BLUE))
+        self.play(brace.animate.become(Brace(VGroup(array.square_contents[3], array.square_contents[2]), UP, buff=0.38)))
+
+        self.wait(1)
+        self.play(array.square_contents[4][1].animate.become(Text("3", color=BLACK).set_color(BLACK).scale(1.3*1.2).move_to(array.square_contents[4])))
+        self.play(array.square_contents[4][0].animate.set_fill(YELLOW))
+        self.play(i.animate.next_to(array.square_contents[5], DOWN, buff=0.66))
+
+
+        self.play(array.square_contents[5][0].animate.set_fill(BLUE))
+        self.play(brace.animate.become(Brace(VGroup(array.square_contents[4], array.square_contents[3]), UP, buff=0.38)))
+
+        self.wait(1)
+        self.play(array.square_contents[5][1].animate.become(Text("5", color=BLACK).set_color(BLACK).scale(1.3*1.2).move_to(array.square_contents[5])))
+        self.play(array.square_contents[5][0].animate.set_fill(PINK))
+
+        self.play(FadeOut(i), FadeOut(brace))
+
+        self.wait(2)
+
+
+        self.play(self.camera.frame.animate.shift(LEFT*2.3))
+
+        first = Text("fib(0)").to_edge(DOWN).shift(LEFT*6.3).shift(UP*0.12)
+        first[:3].set_color(PURE_RED)
+        second = Text("fib(1)").next_to(first, UP, buff=0.5)
+        second[:3].set_color(PURE_RED)
+        third = Text("fib(2)").next_to(second, UP, buff=0.5)
+        third[:3].set_color(PURE_RED)
+        fourth = Text("fib(3)").next_to(third, UP, buff=0.5)
+        fourth[:3].set_color(PURE_RED)
+        fifth = Text("fib(4)").next_to(fourth, UP, buff=0.5)
+        fifth[:3].set_color(PURE_RED)
+        sixth = Text("fib(5)").next_to(fifth, UP, buff=0.5)
+        sixth[:3].set_color(PURE_RED)
+
+
+        self.play(Write(first))
+        self.wait()
+        self.play(Write(second))
+        self.wait()
+        self.play(Write(third), Write(fourth), Write(fifth), Write(sixth))
+
+        self.wait(1)
+
+        arrow = Arrow(first.get_bottom(), sixth.get_top(), stroke_width=9).set_color(ORANGE).shift(LEFT*2)
+        self.play(GrowArrow(arrow))
+        self.wait(2)
+
+        self.play(FadeOut(arrow), FadeOut(first), FadeOut(second), FadeOut(third), FadeOut(fourth), FadeOut(fifth), FadeOut(sixth),
+                  self.camera.frame.animate.shift(LEFT*17))
+        
+        self.wait(1)
+
+        text = """
+
+
+def fib(n):
+    if n <= 1:
+        return n
+
+    dp = [0] * (n + 1) 
+    dp[0] = 0 
+    dp[1] = 1
+    for i in range(2, n + 1):
+        dp[i] = dp[i - 1] + dp[i - 2]
+
+    return dp[n]
+
+
+
+"""
+
+        code = Text(text).set_color_by_text_to_color_map({
+            "def": ORANGE,
+            "fib": PURE_RED,
+            "return": ORANGE,
+            "if": ORANGE,
+            "else": ORANGE,
+            "range": ORANGE,
+            "in": ORANGE,
+            "dp": YELLOW_C,
+            "for": ORANGE,
+            "\n": PURE_GREEN,}).shift(LEFT*19).scale(0.8).shift(LEFT*0.5).scale(1.1)
+        
+
+        self.play(Write(code[:10]))
+        self.wait(1)
+        self.play(Write(code[10:24]))
+        self.wait(2)
+        self.play(Write(code[24:36]))
+        self.wait(2)
+        self.play(Write(code[36:50]))
+        self.wait(2)
+        self.play(Write(code[50:90]))
+        self.wait(2)
+
+        self.play(Write(code[90:]))
+
+        self.wait(2)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
