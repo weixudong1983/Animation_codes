@@ -65,19 +65,15 @@ class Knapsack(Scene):
 
 
 
-
-
-from manimlib import *
-
 class KnapsackTable(Scene):
     def construct(self):
         # Define parameters
-        capacity = 9
+        capacity = 7
         num_items = 5
         
         # Example item values and weights
-        values = [0, 20, 15, 30, 60, 70]  # Item 0 is a placeholder
-        weights = [0, 2, 1, 2, 3, 4]      # Item 0 is a placeholder
+        values = [0, 50, 40, 70, 80, 10]  # Item 0 is a placeholder
+        weights = [0, 3,2, 4, 5, 1]      # Item 0 is a placeholder
         
         # Cell size
         cell_width = 0.8
@@ -95,9 +91,8 @@ class KnapsackTable(Scene):
         
         # Add rows for weights and values
         for i in range(1, num_items + 1):
-            weight_text = Text(f"{weights[i]}", font_size=22)
-            value_text = Text(f"{values[i]}", font_size=22)
-            row = VGroup(weight_text, value_text)
+            weight_text = Text(f"item {i}: {weights[i]}  {values[i]}", font_size=22)
+            row = VGroup(weight_text)
             row.arrange(RIGHT, buff=0.5)
             item_table.add(row)
         
@@ -157,34 +152,28 @@ class KnapsackTable(Scene):
         title = Text("Knapsack Problem (Capacity = 9, 5 items)", font_size=34)
         title.to_edge(UP, buff=0.5)
         
-        # Create a section title for items
-        items_title = Text("Items:", font_size=24)
-        items_title.next_to(item_table, UP, buff=0.3)
-        items_title.align_to(item_table, LEFT)
 
-        items_title.scale(1.4)
         item_table.scale(1.4)
 
-        table.shift(LEFT*1.1+DOWN*0.5)
+        table.shift(LEFT*0.5+DOWN*0.5)
 
 
-        item_table.shift(DOWN*1.4+RIGHT*0.3)
+        item_table.shift(DOWN*0.94+RIGHT*0.3)
 
-        items_title.shift(DOWN*0.5+RIGHT*0.3)
-
-        value_header.shift(LEFT*0.2)
-        
+        value_header.shift(RIGHT*1.7)
+        weight_header.next_to(value_header, LEFT, buff=0.7)
 
         
         
         # Animation sequence
         self.play(Write(title))
-        self.play(Write(items_title))
         self.play(FadeIn(item_table))
         self.play(ShowCreation(table))
 
         self.wait(2)
 
+        rect =SurroundingRectangle(item_table[1], color=YELLOW, stroke_width=7).scale(1.234)
+        self.play(ShowCreation(rect))
 
 
         
@@ -195,10 +184,12 @@ class KnapsackTable(Scene):
         
         # Fill the DP table
         for i in range(1, num_items + 1):
+            if i>=2:
+                self.play(Transform(rect, SurroundingRectangle(item_table[i], color=YELLOW, stroke_width=7).scale(1.234)))
             for j in range(1, capacity + 1):
                 # Highlight current cell
                 current_cell = cells[(i, j)]
-                self.play(current_cell.animate.set_fill(BLUE, opacity=0.3), run_time=0.3)
+                self.play(current_cell.animate.set_fill(BLUE, opacity=0.39), run_time=1)
                 
                 if weights[i] <= j:
                     # Two options: include or exclude current item
@@ -209,9 +200,9 @@ class KnapsackTable(Scene):
                     above_cell = cells[(i-1, j)]
                     prev_cell = cells[(i-1, j-weights[i])] if j-weights[i] >= 0 else None
                     
-                    self.play(above_cell.animate.set_fill(GREEN, opacity=0.3), run_time=0.7)
+                    self.play(above_cell.animate.set_fill(GREEN, opacity=0.3), run_time=1)
                     if prev_cell:
-                        self.play(prev_cell.animate.set_fill(YELLOW, opacity=0.3), run_time=0.7)
+                        self.play(prev_cell.animate.set_fill(YELLOW, opacity=0.3), run_time=1)
                     
                     # Update current cell value
                     dp[i][j] = max(value1, value2)
@@ -219,7 +210,7 @@ class KnapsackTable(Scene):
                     new_text.move_to(current_cell.get_center())
                     
                     # Add the new text directly to the scene
-                    self.play(FadeIn(new_text), run_time=0.3)
+                    self.play(FadeIn(new_text), run_time=0.9)
                     cell_texts[(i, j)] = new_text
                     
                     # Reset cell colors
@@ -235,14 +226,14 @@ class KnapsackTable(Scene):
                 else:
                     # Just take the value from above
                     above_cell = cells[(i-1, j)]
-                    self.play(above_cell.animate.set_fill(GREEN, opacity=0.3), run_time=0.7)
+                    self.play(above_cell.animate.set_fill(GREEN, opacity=0.35), run_time=1)
                     
                     dp[i][j] = dp[i-1][j]
                     new_text = Text(str(dp[i][j]), font_size=22)
                     new_text.move_to(current_cell.get_center())
                     
                     # Add the new text directly to the scene
-                    self.play(FadeIn(new_text), run_time=0.3)
+                    self.play(FadeIn(new_text), run_time=1)
                     cell_texts[(i, j)] = new_text
                     
                     # Reset above cell color
@@ -262,3 +253,62 @@ class KnapsackTable(Scene):
         )
         
         self.wait(2)
+
+        self.play(cells[(4,7)].animate.set_fill(YELLOW, opacity=0.5))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(item_table[4], color=YELLOW, stroke_width=7).scale(1.234)),
+            cells[(4,7)].animate.set_fill(RED, opacity=0.5),
+            cells[(5,7)].animate.set_fill(YELLOW, opacity=0),
+            )
+        
+        self.wait()
+
+        self.play(cells[(3,7)].animate.set_fill(YELLOW, opacity=0.5))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(item_table[3], color=YELLOW, stroke_width=7).scale(1.234)),
+            cells[(3,7)].animate.set_fill(RED, opacity=0.5),
+            cells[(4,7)].animate.set_fill(YELLOW, opacity=0),
+            )
+        
+        self.wait()
+
+        self.play(cells[(2,7)].animate.set_fill(YELLOW, opacity=0.5))
+        self.wait(2)
+
+        self.play(
+            cells[(3,7)].animate.set_fill(GREEN, opacity=0.5),
+            cells[(2,7)].animate.set_fill(GREEN, opacity=0),
+            )
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(item_table[2], color=YELLOW, stroke_width=7).scale(1.234)),
+            cells[(2,3)].animate.set_fill(RED, opacity=0.5),
+            )
+        self.wait(1)
+
+        self.play(cells[(1,3)].animate.set_fill(YELLOW, opacity=0.5))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(item_table[1], color=YELLOW, stroke_width=7).scale(1.234)),
+            cells[(1,3)].animate.set_fill(RED, opacity=0.5),
+            cells[(2,3)].animate.set_fill(RED, opacity=0),
+            )
+        self.wait()
+
+        self.play(cells[(0,3)].animate.set_fill(YELLOW, opacity=0.5))
+
+        self.wait(2)
+
+        self.play(
+            cells[(0,3)].animate.set_fill(RED, opacity=0),
+            cells[(1,3)].animate.set_fill(GREEN, opacity=0.5),
+            Uncreate(rect)
+        )
+
+        self.wait(2)
+
