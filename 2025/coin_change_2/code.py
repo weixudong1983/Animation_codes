@@ -178,8 +178,71 @@ class Coins1(Scene):
 
 
 
+from manimlib import *
+PURE_RED = "#FF0000"
+
+class code(Scene):
+
+    def construct(self):
+        
+        text = """
+ def countWays(coins, target):
+ 
+    dp = [0] * (target + 1)  
+    dp[0] = 1  
+
+    for coin in coins:  
+        for amount in range(coin, target + 1):
+          
+            dp[amount] += dp[amount - coin]  
+
+    return dp[target] 
 
 
+"""
+
+        code = Text(text).set_color_by_text_to_color_map({
+            "def": ORANGE,
+            "float": ORANGE,
+            "if": ORANGE,
+            "return": ORANGE,
+            "range":PURE_RED,
+            "for":ORANGE,
+            "in":ORANGE,
+            "inf":YELLOW,
+            "else":ORANGE,
+            "min":PURE_RED,
+            "coin":WHITE,
+            "countWays": PURE_RED,
+            "1":GREEN
+
+           }).scale(0.726)
+        
+        self.play(ShowCreation(code))
 
         self.embed()
+
+        rect = SurroundingRectangle(code[:27]).scale(1.02)
+
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(code[27:50]).scale(1.02)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(code[51:66]).scale(1.02)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(code[66:98]).scale(1.02)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(code[98:125]).scale(1.02)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(code[125:]).scale(1.02)))
+        self.wait(2)
+
+        self.play(Uncreate(rect))
+
+
+
+
+    
 
