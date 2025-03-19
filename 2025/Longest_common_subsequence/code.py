@@ -398,3 +398,256 @@ class LongestCommonSubsequence(Scene):
                 self.wait(0.5)  # Pause between each step of the path
         
         self.wait(2)  # Final pause before the animation ends
+
+
+class LongestCommonSubsequenceBacktracking(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(1.06).shift(UP*0.18)
+        # DP table setup
+        s2 = "abcdef"
+        s1 = "aacf"
+        
+        n, m = len(s1), len(s2)
+        cell_size = 0.65
+        table = VGroup()
+        
+        # Create cells for the table
+        cells = {}
+        for i in range(n + 1):
+            for j in range(m + 1):
+                cell = Square(side_length=cell_size)
+                cell.set_stroke(WHITE, 2)
+                cell.move_to(RIGHT * j * cell_size + DOWN * i * cell_size)
+                table.add(cell)
+                cells[(i, j)] = cell
+        
+        # Add row and column headers
+        row_headers = VGroup()
+        for i in range(n + 1):
+            if i == 0:
+                char = ""  # Empty set symbol for initial row
+            else:
+                char = s1[i-1]
+            label = Text(char, font_size=24)
+            label.next_to(cells[(i, 0)], LEFT, buff=0.2)
+            row_headers.add(label)
+        
+        col_headers = VGroup()
+        for j in range(m + 1):
+            if j == 0:
+                char = ""  # Empty set symbol for initial column
+            else:
+                char = s2[j-1]
+            label = Text(char, font_size=24)
+            label.next_to(cells[(0, j)], UP, buff=0.2)
+            col_headers.add(label)
+        
+        # Center the table
+        table_group = VGroup(table, row_headers, col_headers)
+        table_group.center()
+        table_group.scale(1.5)
+
+        table_group.shift(UP*1.1)
+        
+        
+        # Initialize the dp table values and calculate them
+        dp_values = {}
+        dp_texts = {}
+        
+        # Initialize with zeros
+        for i in range(n + 1):
+            for j in range(m + 1):
+                dp_values[(i, j)] = 0
+                
+        # Fill the dp table without animation
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if s1[i-1] == s2[j-1]:
+                    dp_values[(i, j)] = 1 + dp_values[(i-1, j-1)]
+                else:
+                    dp_values[(i, j)] = max(dp_values[(i-1, j)], dp_values[(i, j-1)])
+        
+        # Create and display all values at once
+        for i in range(n + 1):
+            for j in range(m + 1):
+                text = Text(str(dp_values[(i, j)]), font_size=34)
+                text.move_to(cells[(i, j)].get_center())
+                dp_texts[(i, j)] = text
+        
+        # Add all elements to the scene at once
+        self.add(table, row_headers, col_headers)
+        for text in dp_texts.values():
+            self.add(text)
+
+        
+        # Create black background for explanation text
+        explanation_bg = Rectangle(
+            width=11,
+            height=1.37,
+            fill_color=BLACK,
+            fill_opacity=0.8,
+            stroke_width=2,
+            stroke_color=YELLOW
+        )
+        explanation_bg.to_edge(DOWN, buff=0.5)
+        self.add(explanation_bg)
+        
+        # Explanation text area
+        current_explanation = None
+        
+        # Function to update explanation
+        def update_explanation(text):
+            nonlocal current_explanation
+            new_explanation = Text(text, font_size=34)
+            new_explanation.move_to(explanation_bg.get_center())
+            if current_explanation:
+                self.play(ReplacementTransform(current_explanation, new_explanation))
+            else:
+                self.play(Write(new_explanation))
+            current_explanation = new_explanation
+            self.wait(1)  # Pause to let viewers read explanation
+        
+        # Highlight the final result first
+        final_cell = cells[(n, m)]
+        final_value = dp_texts[(n, m)]
+        
+        self.play(
+            final_cell.animate.set_fill(PURPLE, opacity=0.5),
+            final_value.animate.scale(1.5),
+            run_time=1
+        )
+        
+        final_text = f"LCS Length: {dp_values[(n, m)]}"
+        update_explanation(final_text)
+        self.wait(1)
+        
+        # Now start backtracking from bottom right
+        lcs = []
+        i, j = n, m
+        path_cells = []
+        arrows = []
+        
+        update_explanation("Backtracking to find the actual LCS")
+        self.wait(1)
+        
+        # Create highlight rectangles once and reuse them
+        row_rect = SurroundingRectangle(row_headers[1], color=YELLOW)  # Initialize with position 1
+        col_rect = SurroundingRectangle(col_headers[1], color=YELLOW)  # Initialize with position 1
+        self.add(row_rect, col_rect)
+        
+        while i > 0 and j > 0:
+            # Highlight current cell being considered
+            self.play(
+                cells[(i, j)].animate.set_fill(YELLOW, opacity=0.7),
+                run_time=0.7
+            )
+            
+            # Transform rectangles to current position
+            self.play(
+                Transform(row_rect, SurroundingRectangle(row_headers[i], color=YELLOW)),
+                Transform(col_rect, SurroundingRectangle(col_headers[j], color=YELLOW)),
+                run_time=0.5
+            )
+            
+            # Compare characters for the current position
+            if s1[i-1] == s2[j-1]:
+                # Characters match, move diagonally and add to LCS
+                lcs.append(s1[i-1])
+                path_cells.append((i, j))
+                
+                # Change color of rectangles to green for matching characters
+                self.play(
+                    row_rect.animate.set_color(GREEN),
+                    col_rect.animate.set_color(GREEN),
+                    run_time=0.5
+                )
+                
+                update_explanation(f"Characters match: {s1[i-1]} = {s2[j-1]}\nAdd to LCS and move diagonally")
+                
+                # Show diagonal arrow
+                arrow = Arrow(
+                    cells[(i, j)].get_center(),
+                    cells[(i-1, j-1)].get_center(),
+                    buff=0.1,
+                    color=GREEN
+                )
+                self.play(ShowCreation(arrow), run_time=0.7)
+                arrows.append(arrow)
+                
+                # Move to diagonal cell
+                i -= 1
+                j -= 1
+                
+            elif dp_values[(i-1, j)] > dp_values[(i, j-1)]:
+                # Move up
+                update_explanation(f"Moving up: {dp_values[(i-1, j)]} > {dp_values[(i, j-1)]}")
+                
+                # Change color of rectangles to red for non-matching characters
+                self.play(
+                    row_rect.animate.set_color(RED),
+                    col_rect.animate.set_color(RED),
+                    run_time=0.5
+                )
+                
+                # Show up arrow
+                arrow = Arrow(
+                    cells[(i, j)].get_center(),
+                    cells[(i-1, j)].get_center(),
+                    buff=0.1,
+                    color=BLUE
+                )
+                self.play(ShowCreation(arrow), run_time=0.7)
+                arrows.append(arrow)
+                
+                i -= 1
+                
+            else:
+                # Move left
+                update_explanation(f"Moving left: {dp_values[(i, j-1)]} >= {dp_values[(i-1, j)]}")
+                
+                # Change color of rectangles to red for non-matching characters
+                self.play(
+                    row_rect.animate.set_color(RED),
+                    col_rect.animate.set_color(RED),
+                    run_time=0.5
+                )
+                
+                # Show left arrow
+                arrow = Arrow(
+                    cells[(i, j)].get_center(),
+                    cells[(i, j-1)].get_center(),
+                    buff=0.1,
+                    color=BLUE
+                )
+                self.play(ShowCreation(arrow), run_time=0.7)
+                arrows.append(arrow)
+                
+                j -= 1
+        
+        lcs = lcs[::-1]  # Reverse to get the correct order
+        
+        # Final result
+        update_explanation(f"Longest Common Subsequence: {''.join(lcs)}")
+        
+        # Fade out rectangles
+        self.play(
+            FadeOut(row_rect),
+            FadeOut(col_rect),
+            run_time=0.7
+        )
+        
+        # Fade out all arrows
+        self.play(*[FadeOut(arrow) for arrow in arrows], run_time=1)
+        
+        # Reset all cell colors first
+        self.play(*[cell.animate.set_fill(opacity=0) for cell in cells.values()], run_time=0.7)
+        
+        # Highlight all cells in the path with PURPLE
+        for pos in path_cells:
+            self.play(
+                cells[pos].animate.set_fill(PURPLE, opacity=0.8),
+                run_time=0.5
+            )
+        
+        self.wait(2)  # Final pause
