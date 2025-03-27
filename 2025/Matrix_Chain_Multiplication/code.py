@@ -1,4 +1,152 @@
 from manimlib import *
+
+class MatrixChainMultiplication(Scene):
+
+    def construct(self):
+
+        a = Text("A").scale(2.7).shift(LEFT*3.5+UP*2.3)
+        b = Text("B").scale(2.7).next_to(a, RIGHT, buff=2.5)
+        c = Text("C").scale(2.7).next_to(b, RIGHT, buff=2.5)
+
+        self.play(ShowCreation(a), ShowCreation(b), ShowCreation(c))
+
+        text1 = Text("10 x 30").next_to(a, DOWN, buff=0.7).set_color(YELLOW).scale(0.6)
+        text2 = Text("30 x 5").next_to(b, DOWN, buff=0.7).set_color(YELLOW).scale(0.6)
+        text3 = Text("5 x 60").next_to(c, DOWN, buff=0.7).set_color(YELLOW).scale(0.6)
+
+        self.play(ShowCreation(text1), ShowCreation(text2), ShowCreation(text3))
+
+        self.wait(2)
+
+        star1 = Text("*").scale(2).next_to(a, RIGHT, buff=0.7).shift(RIGHT*0.2)
+        star2 = Text("*").scale(2).next_to(b, RIGHT, buff=0.7).shift(RIGHT*0.2)
+
+        self.play(GrowFromCenter(star1), GrowFromCenter(star2))
+
+        self.wait(2)
+
+
+
+        brace1 = Brace(VGroup(text1, text2), DOWN, buff=0.66)
+        brace2 = Brace(VGroup(text3), DOWN, buff=0.66)
+
+        self.play(GrowFromCenter(brace1))
+        self.wait()
+        self.play(GrowFromCenter(brace2))
+
+        self.wait(2)
+
+        self.play(
+            Transform(brace1, Brace(VGroup(text1), DOWN, buff=0.66)),
+            Transform(brace2, Brace(VGroup(text2, text3), DOWN, buff=0.66)),
+            )
+        
+        self.wait(2)
+        self.play(FadeOut(VGroup(brace1, brace2)))
+        self.wait(1)
+
+
+
+
+
+        first = Text("A(BC) = 9000 + 18000").scale(1.2).shift(DOWN*2.6)
+        self.play(ShowCreation(first[:6]))
+        self.wait()
+
+        self.play(GrowFromCenter(brace2))
+        self.wait()
+        temp = Text("30 x 5 x 60").next_to(brace2, DOWN, buff=0.6)
+        
+        self.play(
+            TransformFromCopy(text2[0:2], temp[0:2]),
+            FadeIn(temp[2]),
+            TransformFromCopy(text2[-1] ,temp[3]), TransformFromCopy(text3[0], temp[3]),
+            FadeIn(temp[4]),
+            TransformFromCopy(text3[-2:], temp[5:])
+            )
+        
+        self.wait(2)
+
+        self.play(ReplacementTransform(temp, first[6:10]))
+        self.wait(2)
+
+        text4 = Text("30 x 60").scale(0.7).move_to(VGroup(text2, text3)).set_color(YELLOW)
+        self.play(ReplacementTransform(VGroup(text2, text3), text4))
+        self.wait(1)
+
+        self.play(Transform(brace2, Brace(VGroup(text1, text3), DOWN, buff=0.7).shift(RIGHT*0.25)))
+        self.wait(2)
+
+        temp = Text("10 x 30 x 60").next_to(brace2, DOWN, buff=0.6)
+        
+        self.play(
+            TransformFromCopy(text1[0:2], temp[0:2]),
+            FadeIn(temp[2]),
+            TransformFromCopy(text1[-2:] ,temp[3:5]), TransformFromCopy(text4[0:2], temp[3:5]),
+            FadeIn(temp[5]),
+            TransformFromCopy(text4[-2:], temp[6:])
+            )
+        
+        self.wait(1)
+        self.play(ReplacementTransform(temp, first[11:]), FadeIn(first[10]))
+
+        text2 = Text("30 x 5").next_to(b, DOWN, buff=0.7).set_color(YELLOW).scale(0.6)
+        text3 = Text("5 x 60").next_to(c, DOWN, buff=0.7).set_color(YELLOW).scale(0.6)
+
+        self.play(FadeOut(brace2), FadeOut(text4),ShowCreation(text2), ShowCreation(text3))
+
+        self.wait()
+
+        second = Text("A(BC) = 27000").scale(1.4).move_to(first)
+        self.play(TransformMatchingTex(first, second), run_time=0.5)
+
+        self.play(second.animate.shift(UP*1.4))
+
+        self.wait(2)
+
+        first = Text("(AB)C = 4500").scale(1.4).next_to(second, DOWN, buff=0.7)
+        self.play(Write(first))
+
+        self.wait(2)
+
+        rect = SurroundingRectangle(first, color=GREEN, stroke_width=9).scale(1.25)
+        self.play(ShowCreation(rect))
+
+
+        self.play(self.camera.frame.animate.shift(RIGHT*16))
+
+        a = Text("A B C D").shift(RIGHT*16).scale(2.6)
+        self.play(ShowCreation(a))
+        self.wait(2)
+
+        b = Text("((AB)C)D").scale(2.6).move_to(a)
+        c = Text("(AB)(CD)").scale(2.6).move_to(b)
+        d = Text("(A(BC))D").scale(2.6).move_to(c)
+        e = Text("((AB)C)D").scale(2.6).move_to(d)
+        f = Text("A((BC)D)").scale(2.6).move_to(e)
+        g = Text("A(B(CD))").scale(2.6).move_to(f)
+
+
+        self.play(TransformMatchingTex(a,b), run_time=0.5)
+        self.wait()
+        self.play(TransformMatchingTex(b,c), run_time=0.5)
+        self.wait()
+
+        self.play(TransformMatchingTex(c,d), run_time=0.5)
+        self.wait()
+
+        self.play(TransformMatchingTex(d,e), run_time=0.5)
+        self.wait()
+
+        self.play(TransformMatchingTex(e,f), run_time=0.5)
+
+        self.wait()
+
+        self.play(TransformMatchingTex(f,g), run_time=0.5)
+
+        self.wait(3)
+
+
 BLUE, YELLOW = YELLOW, BLUE
 
 
