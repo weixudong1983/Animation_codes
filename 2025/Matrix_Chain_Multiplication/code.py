@@ -1,4 +1,6 @@
 from manimlib import *
+BLUE, YELLOW = YELLOW, BLUE
+
 
 class MatrixMultiplication(Scene):
 
@@ -12,8 +14,8 @@ class MatrixMultiplication(Scene):
         self.play(Write(matrix1), Write(matrix2))
         self.wait(1)
 
-        text_1 = Text("2 x 3").next_to(matrix1, DOWN).shift(DOWN*0.3).scale(0.77)
-        text_2 = Text("3 x 2").next_to(matrix2, DOWN).shift(DOWN*0.3).scale(0.77)
+        text_1 = Text("2 x 3").next_to(matrix1, DOWN).shift(DOWN*0.3).scale(0.77).set_color(BLUE)
+        text_2 = Text("3 x 2").next_to(matrix2, DOWN).shift(DOWN*0.3).scale(0.77).set_color(BLUE)
 
         self.play(Write(text_1))
         self.wait(2)
@@ -34,7 +36,7 @@ class MatrixMultiplication(Scene):
         self.play(Write(matrix3.get_brackets()))
         self.wait()
 
-        text_3 = Text("2 x 2").next_to(matrix3, DOWN).shift(DOWN*0.1).scale(0.77)
+        text_3 = Text("2 x 2").next_to(matrix3, DOWN).shift(DOWN*0.1).scale(0.77).set_color(BLUE)
         self.play(TransformFromCopy(text_1[0], text_3[0]), TransformFromCopy(text_2[-1], text_3[2]), FadeIn(text_3[1]),
                   self.camera.frame.animate.scale(1.1).shift(DOWN*0.16))
         
@@ -213,8 +215,8 @@ class MatrixMultiplication(Scene):
 
         self.wait(1)
 
-        rect_1 = SurroundingRectangle(text_1).scale(1.1)
-        rect_2 = SurroundingRectangle(text_2).scale(1.1)
+        rect_1 = SurroundingRectangle(text_1, color=RED).scale(1.1)
+        rect_2 = SurroundingRectangle(text_2, color=RED).scale(1.1)
        
         self.play(ShowCreation(rect_1), ShowCreation(rect_2))
 
@@ -236,8 +238,8 @@ class MatrixMultiplication(Scene):
 
         self.play(ShowCreation(a), ShowCreation(b))
 
-        text1 = Text("p x q").next_to(a, DOWN+RIGHT).set_color(YELLOW)
-        text2 = Text("q x r").next_to(b, DOWN+RIGHT).set_color(YELLOW)
+        text1 = Text("p x q").next_to(a, DOWN+RIGHT).set_color(BLUE)
+        text2 = Text("q x r").next_to(b, DOWN+RIGHT).set_color(BLUE)
 
         self.play(ShowCreation(text1), ShowCreation(text2))
         self.wait(2)
@@ -248,7 +250,22 @@ class MatrixMultiplication(Scene):
         self.wait(2)
 
 
-        final = Text("p x q x r").next_to(text1, DOWN).shift(DOWN*2+RIGHT*2).scale(2)
+        dimention = Text("p x r").next_to(text1, DOWN, buff=0.7).scale(1.4).shift(DOWN*0.7+LEFT*1.8)
+
+        self.play(TransformFromCopy(text1[0], dimention[0]))
+        self.play(FadeIn(dimention[1]))
+        self.play(TransformFromCopy(text2[-1], dimention[-1]))
+        self.wait(2)
+
+        rect = SurroundingRectangle(dimention, color=PINK, stroke_width=8).scale(1.3)
+        self.play(ShowCreation(rect))
+        rect_text = Text("Dimention").next_to(rect, RIGHT, buff=1.4)
+        self.play(Write(rect_text))
+        self.wait(2)
+
+
+
+        final = Text("p x q x r").next_to(text1, DOWN).shift(DOWN*2+RIGHT*2).scale(1.2).shift(LEFT*3.9+DOWN)
 
 
         self.play(TransformFromCopy(text1[0], final[0]))
@@ -261,18 +278,10 @@ class MatrixMultiplication(Scene):
 
         rect = SurroundingRectangle(final, color=PINK, stroke_width=7).scale(1.35)
         self.play(ShowCreation(rect))
+        self.wait()
+
+        rect_text = Text("Number of Operations").scale(0.9).next_to(rect, RIGHT, buff=0.5)
+        self.play(Write(rect_text))
 
 
         self.wait(2)
-
-
-    
-
-
-
-
-
-
-
-
-
