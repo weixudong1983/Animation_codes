@@ -346,3 +346,77 @@ class First(Scene):
         rect = SurroundingRectangle(conclusion_text, color=GREEN, stroke_width=9).scale(1.29)
         self.play(ShowCreation(rect))
         self.wait(2)
+
+
+
+class Second(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.87)
+        # Data for each number: [number, divisors, count]
+        number_data = [
+            [1, "1", 1],
+            [2, "1, 2", 2],
+            [3, "1, 3", 2],
+            [4, "1, 2, 4", 3],
+            [5, "1, 5", 2],
+            [6, "1, 2, 3, 6", 4],
+            [7, "1, 7", 2],
+            [8, "1, 2, 4, 8", 4],
+            [9, "1, 3, 9", 3]
+        ]
+        
+        # Create a group to hold divisor displays
+        divisor_displays = VGroup()
+        
+        # Create displays for each number
+        for number, divisors, count in number_data:
+            is_odd = count % 2 == 1
+            color = YELLOW if is_odd else BLUE
+            
+            # Format: "n → divisors (count)" with arrow notation and more space before bracket
+            display_text = Tex(
+                f"{number} \\rightarrow {divisors}",
+                f"\\quad ({count}{'- odd' if is_odd else '- even'})",
+                font_size=36
+            )
+            
+            # Color the count part
+            display_text[1].set_color(color)
+            divisor_displays.add(display_text)
+        
+        # Arrange displays vertically with less spacing
+        divisor_displays.arrange(DOWN, buff=0.3, aligned_edge=LEFT)
+        divisor_displays.move_to(ORIGIN)
+        
+        # Play animations to show each number and its divisors
+        for display in divisor_displays:
+            self.play(FadeIn(display), run_time=0.5)
+            self.wait(2)
+        
+        self.wait(2)
+
+        rect1 = SurroundingRectangle(divisor_displays[0], color=GREEN_C, stroke_width=3).scale(1.15)
+        rect2 = SurroundingRectangle(divisor_displays[3], color=GREEN_C, stroke_width=3).scale(1.15)
+        rect3 = SurroundingRectangle(divisor_displays[-1], color=GREEN_C, stroke_width=3).scale(1.15)
+        self.play(ShowCreation(rect1), ShowCreation(rect2), ShowCreation(rect3))
+        self.wait(2)
+
+        self.clear()
+
+        text = Text("Number of Perfect Squares", font_size=45).move_to(UP*1.7)
+        self.play(Write(text))
+        self.wait()
+
+        a = Tex(r"\left\lfloor \sqrt{n} \right\rfloor").next_to(text, DOWN, buff=0.5).shift(DOWN*1.26).scale(2.2)
+        self.play(Write(a))
+        self.wait(2)
+
+        b = Tex(r"\left\lfloor \sqrt{6} \right\rfloor").move_to(a).scale(2.2)
+        self.play(TransformMatchingTex(a, b), run_time=0.5)
+
+        self.wait(2)
+
+        c = Text("2").scale(2.2).move_to(b)
+        self.play(TransformMatchingTex(b, c), run_time=0.5)
+        self.wait(2)
