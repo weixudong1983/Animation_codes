@@ -240,3 +240,109 @@ class BulbSwitcherProblem(Scene):
         self.play(Write(final_text))
         self.wait(2)
 
+
+
+
+class First(Scene):
+    def construct(self):
+        # Create the main bulb
+        bulb = Bulb(radius=0.7)
+        bulb.scale(1.2)
+        bulb.move_to(UP * 1.9)  # Move bulb up to avoid overlap
+
+        self.add(bulb)
+
+
+        Current = Text("Current:", font_size=64).next_to(bulb, DOWN, buff=1.2).shift(LEFT*1.3)
+
+
+        off = Text("OFF", font_size=64).next_to(Current, RIGHT, buff=0.5)
+        self.play(Write(off), Write(Current))
+        self.wait(1)
+
+        on = Text("ON", font_size=64).move_to(off)
+
+        toggle = Text("TOGGLE = 1", font_size=54).next_to(Current, DOWN, buff=1).shift(RIGHT*1.1)
+        
+        
+        self.play(
+            bulb.turn_on(),
+            ReplacementTransform(off, on), 
+            Write(toggle)
+            )
+        
+        self.wait(2)
+
+        toggle1 = Text("TOGGLE = 2", font_size=54).next_to(Current, DOWN, buff=1).shift(RIGHT*1.1)
+        
+        off = Text("OFF", font_size=64).next_to(Current, RIGHT, buff=0.5)
+        self.play(
+            bulb.turn_off(),
+            ReplacementTransform(on, off), 
+            ReplacementTransform(toggle, toggle1 )
+            )
+        
+        self.wait(2)
+
+        toggle = Text("TOGGLE = 3", font_size=54).next_to(Current, DOWN, buff=1).shift(RIGHT*1.1)
+        on = Text("ON", font_size=64).move_to(off)  
+     
+        
+        self.play(
+            bulb.turn_on(),
+            ReplacementTransform(off, on), 
+            ReplacementTransform(toggle1, toggle )
+            )
+        
+        self.wait(2)
+
+
+        toggle1 = Text("TOGGLE = 4", font_size=54).next_to(Current, DOWN, buff=1).shift(RIGHT*1.1)
+
+        off = Text("OFF", font_size=64).next_to(Current, RIGHT, buff=0.5)
+
+        
+        self.play(
+            bulb.turn_off(),
+            ReplacementTransform(on, off), 
+            ReplacementTransform(toggle, toggle1 )
+            )
+        
+        self.wait(2)
+
+        toggle = Text("TOGGLE = 5", font_size=54).next_to(Current, DOWN, buff=1).shift(RIGHT*1.1)
+        on = Text("ON", font_size=64).move_to(off)  
+     
+        
+        self.play(
+            bulb.turn_on(),
+            ReplacementTransform(off, on), 
+            ReplacementTransform(toggle1, toggle )
+            )
+        
+        self.wait(2)
+
+        # Create conclusion text
+        conclusion_text = VGroup(
+            Text("Pattern:", font_size=36, weight=BOLD),
+            Text("• Even number of toggles → Bulb is OFF", font_size=32),
+            Text("• Odd number of toggles → Bulb is ON", font_size=32)
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.5)
+        
+        # Position the conclusion at the center
+        conclusion_text.move_to(ORIGIN)
+
+        self.play(
+       
+            FadeOut(Current),
+            FadeOut(toggle), 
+            FadeOut(bulb), 
+            FadeOut(off), 
+            FadeOut(on), 
+            FadeIn(conclusion_text)
+
+        )
+
+        rect = SurroundingRectangle(conclusion_text, color=GREEN, stroke_width=9).scale(1.29)
+        self.play(ShowCreation(rect))
+        self.wait(2)
