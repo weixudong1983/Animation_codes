@@ -330,3 +330,72 @@ class TCP(Scene):
 
 
         self.wait(3)
+
+
+
+class UDP(Scene):
+
+    def construct(self):
+
+        self.camera.frame.shift(UP*0.5+LEFT*0.2)
+
+        # Set up camera position
+        self.camera.frame.shift(DOWN * 0.5)
+        
+        # Create the main elements
+        computer = ImageMobject("computer.png").scale(0.6).shift(LEFT * 4.5)
+        server = ImageMobject("server.png").scale(0.8).shift(RIGHT * 4.5)
+
+        # Add labels
+        computer_label = Text("Sender", font_size=40).next_to(computer, DOWN, buff=0.74)
+        server_label = Text("Receiver", font_size=40).next_to(server, DOWN, buff=0.5)
+        
+        # Add elements to scene
+        self.play(FadeIn(computer), FadeIn(server))
+        self.play(Write(computer_label), Write(server_label))
+        
+        self.wait(3)
+
+        # Create UDP packet
+
+
+        rect_a = Rectangle(height=0.4, width=0.8, fill_color=YELLOW, fill_opacity=1, stroke_color=YELLOW)   
+        rect_b = Rectangle(height=0.4, width=0.8, fill_color=YELLOW, fill_opacity=1, stroke_color=YELLOW)
+        rect_c = Rectangle(height=0.4, width=0.8, fill_color=YELLOW, fill_opacity=1, stroke_color=YELLOW)
+        rect_d = Rectangle(height=0.4, width=0.8, fill_color=YELLOW, fill_opacity=1, stroke_color=YELLOW)
+
+        a = VGroup(rect_a, rect_b, rect_c, rect_d).arrange(RIGHT, buff=0)
+        a.next_to(computer, UP, buff=0.8)
+        self.play(GrowFromCenter(a), run_time=1)
+
+
+        # Animate the separation using .animate
+        self.play(
+            rect_b.animate.shift(RIGHT * 0.4),
+            rect_c.animate.shift(RIGHT * 0.8),
+            rect_d.animate.shift(RIGHT * 1.2),
+            run_time=1.5
+        )
+
+        self.play(a.animate.shift(LEFT*0.5))
+        
+        # Add red header rectangles to each segment
+        headers = VGroup()  # Create a VGroup to store all headers
+        for rect in a:
+            header = Rectangle(height=0.4, width=0.2, fill_color="#FF0000", fill_opacity=1, stroke_color="#FF0000",)
+            header.next_to(rect, RIGHT, buff=0)
+            headers.add(header)  # Add each header to the group
+            self.play(GrowFromCenter(header), run_time=0.5)
+        
+        self.wait(3)
+
+
+        self.play(VGroup(rect_a, headers[0]).animate.move_to(server).scale(0.8), run_time=1.5)
+        self.play(FadeOut(VGroup(rect_a, headers[0])), run_time=1)
+        self.play(VGroup(rect_b, headers[1]).animate.move_to(server).scale(0.8), run_time=1.5)
+        self.play(FadeOut(VGroup(rect_b, headers[1])), run_time=1)
+        self.play(VGroup(rect_c, headers[2]).animate.move_to(server).scale(0.8), run_time=1.5)
+        self.play(FadeOut(VGroup(rect_c, headers[2])), run_time=1)
+        self.play(VGroup(rect_d, headers[3]).animate.move_to(server).scale(0.8), run_time=1.5)
+        self.play(FadeOut(VGroup(rect_d, headers[3])), run_time=1)
+        self.wait(3)
