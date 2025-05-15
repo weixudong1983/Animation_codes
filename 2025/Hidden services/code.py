@@ -259,3 +259,101 @@ class TorNetworkAnimation(Scene):
         self.wait(10)
 
 
+class TCPvsUDPComparison(Scene):
+    def construct(self):
+
+        self.camera.frame.shift(DOWN*0.88)
+
+
+        # Title
+        # Create table headers
+        tcp_header = Text("TCP", font_size=40, color=BLUE)
+        tcp_header.move_to(LEFT * 3 + UP * 2)
+        
+        udp_header = Text("UDP", font_size=40, color=GREEN)
+        udp_header.move_to(RIGHT * 3 + UP * 2)
+        
+        divider_line = Line(
+            start=UP * 2,
+            end=DOWN * 4.45,
+            stroke_width=2
+        )
+        
+        # Create comparison points
+        comparisons = [
+            ["Connection-oriented", "Connectionless"],
+            ["Reliable data transfer", "Unreliable data transfer"],
+            ["Flow control", "No flow control"],
+            ["Congestion control", "No congestion control"],
+            ["Ordered packets", "Unordered packets"],
+            ["Error checking & correction", "Basic error checking only"],
+            ["Acknowledgment", "No acknowledgment"],
+            ["Retransmission of lost data", "No retransmission"],
+            ["Higher overhead", "Lower overhead"],
+            ["Slower speed", "Faster speed"]
+        ]
+        
+        # Create table rows
+        table_rows = VGroup()
+        tcp_items = VGroup()
+        udp_items = VGroup()
+        
+        for i, (tcp_feature, udp_feature) in enumerate(comparisons):
+            # TCP feature
+            tcp_text = Text(tcp_feature, font_size=24)
+            tcp_text.move_to(LEFT * 3 + DOWN * (i * 0.5 - 0.5))
+            tcp_items.add(tcp_text)
+            
+            # UDP feature
+            udp_text = Text(udp_feature, font_size=24)
+            udp_text.move_to(RIGHT * 3 + DOWN * (i * 0.5 - 0.5))
+            udp_items.add(udp_text)
+            
+            # Add to table rows
+            table_rows.add(VGroup(tcp_text, udp_text))
+        
+        # Animation sequence
+        self.play(ShowCreation(tcp_header), ShowCreation(udp_header))
+        self.play(ShowCreation(divider_line))
+        self.wait(0.5)
+
+
+        
+        # Animate the rows appearing
+        for i, row in enumerate(table_rows):
+            self.play(ShowCreation(row[0]), ShowCreation(row[1]), run_time=0.5)
+            self.wait(0.1)
+        
+        self.wait(1)
+        
+        # Highlight corresponding pairs to emphasize comparisons
+        for i in range(len(comparisons)):
+            self.play(
+                tcp_items[i].animate.set_color(YELLOW),
+                udp_items[i].animate.set_color(YELLOW),
+                run_time=0.7
+            )
+            self.wait(2)
+            self.play(
+                tcp_items[i].animate.set_color(WHITE),
+                udp_items[i].animate.set_color(WHITE),
+                run_time=0.5
+            )
+        
+        # Use cases
+        use_case_title = Text("Common Use Cases", font_size=36, color=YELLOW)
+        use_case_title.next_to(table_rows, DOWN, buff=0.8)
+        
+        tcp_uses = Text("Web, Email, File Transfer", font_size=28, color=BLUE)
+        tcp_uses.next_to(use_case_title, DOWN, buff=0.5).shift(LEFT * 3)
+        
+        udp_uses = Text("Streaming, Gaming, VoIP", font_size=28, color=GREEN)
+        udp_uses.next_to(use_case_title, DOWN, buff=0.5).shift(RIGHT * 3)
+        
+        self.play(ShowCreation(use_case_title))
+        self.play(ShowCreation(tcp_uses), ShowCreation(udp_uses))
+        
+        self.wait(2)
+        
+
+        self.wait(1)
