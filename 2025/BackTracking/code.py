@@ -240,3 +240,43 @@ class BackTrackingDemo(Scene):
 
         self.wait(2)
 
+
+
+class CombinationSum(Scene):
+    def construct(self):
+
+        title = Text("Combination Sum | Leetcode 39", font_size=48, color=PURE_RED).to_edge(UP).shift(DOWN*0.44)
+        self.play(Write(title))
+
+        text = Text("[2, 3, 5]").scale(1.3).shift(LEFT*2.75 + UP*0.5)
+        self.play(Write(text))
+        self.wait(2)
+
+        target = Text("Target: 8", font_size=36, color=PURE_BLUE).next_to(text, RIGHT, buff=1).scale(1.5*1.1).shift(RIGHT)
+        self.play(Write(target))
+        self.wait(2)
+
+
+        text1 = Text("Repitition is allowed", font_size=36, color=PURE_GREEN).next_to(target, DOWN).scale(1.45).shift(DOWN*0.89 + LEFT*2.55)
+        self.play(Write(text1))
+        text2 = Text("Order does not matter", font_size=36, color=PURE_GREEN).next_to(text1, DOWN).scale(1.45).shift(DOWN*0.49)
+        self.play(Write(text2))
+
+        self.wait(2)
+
+        self.play(FadeOut(text1), FadeOut(text2))
+        
+
+
+
+        text1 = Text("2 + 2 + 2 + 2", font_size=36, color=PURE_GREEN).next_to(text, DOWN).scale(1.7).shift(DOWN*1.55+RIGHT*2.59)        
+        self.play(Write(text1))
+        self.wait(2)
+        text2 = Text("2 + 3 + 3", font_size=36, color=PURE_GREEN).move_to(text1).scale(1.7)
+        self.play(TransformMatchingTex(text1, text2), run_time=0.5)
+        self.wait(1)
+
+        text1 = Text("3 + 5", font_size=36, color=PURE_GREEN).move_to(text2).scale(1.7)
+        self.play(TransformMatchingTex(text2, text1), run_time=0.5)
+        self.wait(2)
+
