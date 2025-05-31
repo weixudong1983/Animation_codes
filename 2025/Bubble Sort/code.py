@@ -25,6 +25,7 @@ class BubbleSortAnimation(Scene):
         buff_between = 0.2
         total_width = len(array) * rect_width + (len(array) - 1) * buff_between
         start_x = -total_width / 2 + rect_width / 2
+        array_y_pos = -0.3  # Consistent Y position for array
         
         for i, value in enumerate(array):
             rect = RoundedRectangle(
@@ -37,7 +38,7 @@ class BubbleSortAnimation(Scene):
                 fill_opacity=0.8
             )
             x_pos = start_x + i * (rect_width + buff_between)
-            rect.move_to([x_pos, 0, 0])
+            rect.move_to([x_pos, array_y_pos, 0])
             
             text = Text(str(value), font_size=37, weight=BOLD, color=BLACK)
             text.move_to(rect.get_center())
@@ -62,15 +63,8 @@ class BubbleSortAnimation(Scene):
         brace = None
         brace_text = None
         
-        # Create comparison brace (initially empty)
-        comparison_brace = None
-        comparison_brace_text = None
-        
-        # Status text position (moved up by UP*0.12)
-        status_y = -2.8 + 0.12
-        status_text = Text("Starting bubble sort...", font_size=39, color=WHITE, weight=BOLD)  # Increased font size by 5
-        status_text.move_to([0, status_y, 0])
-        self.play(ShowCreation(status_text), run_time=0.8)
+        # Create comparison group (initially empty)
+        comparison_group = None
         
         self.wait(1)
         
@@ -84,60 +78,45 @@ class BubbleSortAnimation(Scene):
             # Show detailed text animations only for first pass
             show_detailed_text = (pass_number == 1)
             
-            if show_detailed_text:
-                # Update status text for new pass
-                pass_status = Text(f"Bubbling largest element to the end", 
-                                 font_size=39, color=YELLOW, weight=BOLD)  # Increased font size by 5
-                pass_status.move_to([0, status_y, 0])
-                self.play(Transform(status_text, pass_status), run_time=0.8)
-                self.wait(0.5)
-            
             # Compare adjacent elements
             for j in range(n - i - 1):
                 # Create comparison brace for the two elements being compared
-                comparing_group = Group(rectangles[j], rectangles[j + 1])
-                new_comparison_brace = Brace(comparing_group, DOWN, buff=0.1)
-                new_comparison_brace_text = Text("Comparing", font_size=26, weight=BOLD, color=BLUE)
-                new_comparison_brace_text.next_to(new_comparison_brace, DOWN, buff=0.1)
+                comparing_elements = Group(rectangles[j], rectangles[j + 1])
+                new_comparison_brace = Brace(comparing_elements, DOWN, buff=0.3)
+                new_comparison_text = Text("Comparing", font_size=26, weight=BOLD, color=BLUE)
+                new_comparison_text.next_to(new_comparison_brace, DOWN, buff=0.2)
+                new_comparison_group = VGroup(new_comparison_brace, new_comparison_text).next_to(comparing_elements, DOWN, buff=0.3)
                 
                 # Highlight the two elements being compared using fill color
                 self.play(
                     rectangles[j].animate.set_fill(PURPLE, opacity=0.9),
                     rectangles[j + 1].animate.set_fill(PURPLE, opacity=0.9),
-                    run_time=0.3 if show_detailed_text else 0.25
+                    run_time=0.4 if show_detailed_text else 0.4
                 )
                 
-                # Show or update comparison brace
-                if comparison_brace is None:
-                    comparison_brace = new_comparison_brace
-                    comparison_brace_text = new_comparison_brace_text
+                # Show or update comparison group
+                if comparison_group is None:
+                    comparison_group = new_comparison_group
                     self.play(
-                        ShowCreation(comparison_brace),
-                        ShowCreation(comparison_brace_text),
-                        run_time=0.5 if show_detailed_text else 0.25
+                        ShowCreation(comparison_group),
+                        run_time=0.5 if show_detailed_text else 0.5
                     )
                 else:
+                    # Move comparison group to new position
+
                     self.play(
-                        Transform(comparison_brace, new_comparison_brace),
-                        Transform(comparison_brace_text, new_comparison_brace_text),
-                        run_time=0.3 if show_detailed_text else 0.15
+                        comparison_group.animate.next_to(comparing_elements, DOWN, buff=0.3),
+                        run_time=0.5 if show_detailed_text else 0.5
                     )
                 
                 if show_detailed_text:
-                    compare_status = Text(f"Comparing {array[j]} and {array[j + 1]}", 
-                                        font_size=39, color=BLUE, weight=BOLD)  # Increased font size by 5
-                    compare_status.move_to([0, status_y, 0])
-                    self.play(Transform(status_text, compare_status), run_time=0.5)
+                    self.wait(0.3)
+                else:
+                    self.wait(0.1)
                 
                 # Check if swap is needed
                 if array[j] > array[j + 1]:
                     swapped = True
-                    
-                    if show_detailed_text:
-                        swap_status = Text(f"{array[j]} > {array[j + 1]}, swapping!", 
-                                         font_size=39, color=PURPLE, weight=BOLD)  # Increased font size by 5
-                        swap_status.move_to([0, status_y, 0])
-                        self.play(Transform(status_text, swap_status), run_time=0.5)
                     
                     # Lift both elements
                     lift_height = 1.2
@@ -150,26 +129,26 @@ class BubbleSortAnimation(Scene):
                         rate_func=smooth
                     )
                     
-                    # Calculate target positions for swap
+                    # Calculate target positions for swap (maintaining array_y_pos)
                     target_j = start_x + (j + 1) * (rect_width + buff_between)
                     target_j_plus_1 = start_x + j * (rect_width + buff_between)
                     
                     # Swap positions horizontally
                     self.play(
-                        rectangles[j].animate.move_to([target_j, lift_height, 0]),
-                        texts[j].animate.move_to([target_j, lift_height, 0]),
-                        rectangles[j + 1].animate.move_to([target_j_plus_1, lift_height, 0]),
-                        texts[j + 1].animate.move_to([target_j_plus_1, lift_height, 0]),
+                        rectangles[j].animate.move_to([target_j, array_y_pos + lift_height, 0]),
+                        texts[j].animate.move_to([target_j, array_y_pos + lift_height, 0]),
+                        rectangles[j + 1].animate.move_to([target_j_plus_1, array_y_pos + lift_height, 0]),
+                        texts[j + 1].animate.move_to([target_j_plus_1, array_y_pos + lift_height, 0]),
                         run_time=1.2 if show_detailed_text else 0.6,
                         rate_func=smooth
                     )
                     
-                    # Lower both elements
+                    # Lower both elements back to consistent array position
                     self.play(
-                        rectangles[j].animate.move_to([target_j, 0, 0]),
-                        texts[j].animate.move_to([target_j, 0, 0]),
-                        rectangles[j + 1].animate.move_to([target_j_plus_1, 0, 0]),
-                        texts[j + 1].animate.move_to([target_j_plus_1, 0, 0]),
+                        rectangles[j].animate.move_to([target_j, array_y_pos, 0]),
+                        texts[j].animate.move_to([target_j, array_y_pos, 0]),
+                        rectangles[j + 1].animate.move_to([target_j_plus_1, array_y_pos, 0]),
+                        texts[j + 1].animate.move_to([target_j_plus_1, array_y_pos, 0]),
                         run_time=0.8 if show_detailed_text else 0.4,
                         rate_func=smooth
                     )
@@ -181,10 +160,9 @@ class BubbleSortAnimation(Scene):
                     
                 else:
                     if show_detailed_text:
-                        no_swap_status = Text(f"{array[j]} ≤ {array[j + 1]}, no swap needed", 
-                                            font_size=39, color=GREEN, weight=BOLD)  # Increased font size by 5
-                        no_swap_status.move_to([0, status_y, 0])
-                        self.play(Transform(status_text, no_swap_status), run_time=0.5)
+                        self.wait(0.3)
+                    else:
+                        self.wait(0.1)
                 
                 # Reset fill colors to original
                 self.play(
@@ -207,39 +185,30 @@ class BubbleSortAnimation(Scene):
             
             # Update brace to show sorted portion
             if i == 0:
-                # Create initial brace for the first sorted element
-                brace = Brace(rectangles[sorted_pos], DOWN, buff=0.2)
+                # Create initial brace for the first sorted element - positioned ABOVE elements
+                brace = Brace(rectangles[sorted_pos], UP, buff=0.3)
                 brace_text = Text("Sorted", font_size=28, weight=BOLD, color=GREEN)
-                brace_text.next_to(brace, DOWN, buff=0.2)
-                self.play(ShowCreation(brace), ShowCreation(brace_text), run_time=1 if show_detailed_text else 0.5)
+                brace_text.next_to(brace, UP, buff=0.1)
+                brace_group = VGroup(brace, brace_text)
+                self.play(ShowCreation(brace_group), run_time=1 if show_detailed_text else 0.5)
             else:
-                # Expand brace to include newly sorted elements
+                # Expand brace to include newly sorted elements using ReplacementTransform
                 sorted_group = Group(*rectangles[sorted_pos:])
-                new_brace = Brace(sorted_group, DOWN, buff=0.2)
+                new_brace = Brace(sorted_group, UP, buff=0.3)
                 new_brace_text = Text("Sorted", font_size=28, weight=BOLD, color=GREEN)
-                new_brace_text.next_to(new_brace, DOWN, buff=0.2)
+                new_brace_text.next_to(new_brace, UP, buff=0.1)
+                new_brace_group = VGroup(new_brace, new_brace_text)
                 
                 self.play(
-                    Transform(brace, new_brace),
-                    Transform(brace_text, new_brace_text),
+                    ReplacementTransform(brace_group, new_brace_group),
                     run_time=0.8 if show_detailed_text else 0.4
                 )
+                brace_group = new_brace_group
+                brace = new_brace
+                brace_text = new_brace_text
             
             if show_detailed_text:
-                # End of pass status
-                if swapped:
-                    pass_complete_status = Text(f"Pass {pass_number} complete! Largest element bubbled to position {sorted_pos}", 
-                                              font_size=39, color=GREEN, weight=BOLD)  # Increased font size by 5
-                else:
-                    pass_complete_status = Text(f"Pass {pass_number} complete! No swaps made - array is sorted!", 
-                                              font_size=39, color=GOLD, weight=BOLD)  # Increased font size by 5
-                pass_complete_status.move_to([0, status_y, 0])
-                self.play(Transform(status_text, pass_complete_status), run_time=0.8)
                 self.wait(1)
-                
-                # Fade out the status text after first iteration
-                self.play(FadeOut(status_text), run_time=0.8)
-                status_text = None
             else:
                 self.wait(0.3)
             
@@ -247,32 +216,29 @@ class BubbleSortAnimation(Scene):
             if not swapped:
                 break
         
-        # Remove comparison brace after sorting is complete
-        if comparison_brace is not None:
-            self.play(FadeOut(comparison_brace), FadeOut(comparison_brace_text), run_time=0.5)
+        # Remove comparison group after sorting is complete
+        if comparison_group is not None:
+            self.play(FadeOut(comparison_group), run_time=0.5)
         
         # Mark any remaining elements as sorted
         for k in range(n - i - 1):
-            if rectangles[k].fill_opacity < 0.5:  # Not already marked as sorted
+            if rectangles[k].fill_color != GREEN:  # Not already marked as sorted
                 self.play(rectangles[k].animate.set_fill(GREEN, opacity=0.8), run_time=0.3)
         
         # Final celebration
         final_status = Text("Array Successfully Sorted! 🎉", 
-                          font_size=37, color=GOLD, weight=BOLD)  # Increased font size by 5
-        final_status.move_to([0, status_y, 0])
-        if status_text is None:
-            self.play(ShowCreation(final_status), run_time=1)
-        else:
-            self.play(Transform(status_text, final_status), run_time=1)
+                          font_size=37, color=GOLD, weight=BOLD).set_color(GOLD_C)
+        final_status.move_to([0, -2, 0]).shift(DOWN*0.22)
+        self.play(ShowCreation(final_status), run_time=1)
         
-        # Final brace for complete array
-        complete_brace = Brace(Group(*rectangles), DOWN, buff=0.2)
-        complete_brace_text = Text("Completely Sorted", font_size=20, weight=BOLD, color=GOLD)
-        complete_brace_text.next_to(complete_brace, DOWN, buff=0.2)
+        # Final brace for complete array using ReplacementTransform
+        final_brace = Brace(Group(*rectangles), UP, buff=0.3)
+        final_brace_text = Text("Sorted", font_size=28, weight=BOLD, color=GREEN)
+        final_brace_text.next_to(final_brace, UP, buff=0.1)
+        final_brace_group = VGroup(final_brace, final_brace_text)
         
         self.play(
-            Transform(brace, complete_brace),
-            Transform(brace_text, complete_brace_text),
+            ReplacementTransform(brace_group, final_brace_group),
             run_time=1.2
         )
         
