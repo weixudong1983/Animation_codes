@@ -289,3 +289,193 @@ class ANDGateWithRealisticBulbs(Scene):
         self.play(FadeOut(highlight_rect), run_time=0.5)
 
         self.wait(3)
+
+
+class NOTGateWithRealisticBulbs(Scene):
+
+    def construct(self):
+
+        self.camera.frame.shift(RIGHT*1.8 + UP*0.845).scale(0.92)
+
+        # Create the NOT gate symbol (triangle with circle)
+        # Triangle body
+        triangle_points = [
+            LEFT * 1.0,
+            RIGHT * 1.0 + UP * 0.0,
+            LEFT * 1.0 + UP * 1.0,
+            LEFT * 1.0 + DOWN * 1.0,
+            LEFT * 1.0
+        ]
+        
+        triangle = Polygon(
+            LEFT * 1.0 + UP * 0.8,
+            LEFT * 1.0 + DOWN * 0.8,
+            RIGHT * 0.8,
+            stroke_width=3
+        )
+        triangle.set_stroke(WHITE, width=3)
+        triangle.set_fill(opacity=0)
+        
+        # Small circle (bubble) at the output
+        bubble = Circle(radius=0.15)
+        bubble.set_stroke(WHITE, width=3)
+        bubble.set_fill(opacity=0)
+        bubble.next_to(triangle, RIGHT, buff=0)
+        
+        # Combine triangle and bubble
+        not_gate_body = VGroup(triangle, bubble)
+        
+        # Input line - single input for NOT gate
+        input_line = Line(LEFT * 2.5, LEFT * 1.0, stroke_width=3)
+        input_line.set_stroke(WHITE, width=3)
+        
+        # Output line - connecting from bubble to output bulb
+        output_line = Line(RIGHT * 1.1, RIGHT * 2.8, stroke_width=3)
+        output_line.set_stroke(WHITE, width=3)
+        
+        # Create realistic input and output bulbs
+        input_bulb = Bulb(radius=0.25)
+        output_bulb = Bulb(radius=0.25)
+        
+        # Position and rotate bulbs
+        # Input bulb rotated 90 degrees to align horizontally with input line
+        input_bulb.rotate(PI/2)
+        input_bulb.move_to(LEFT * 2.9)
+        
+        # Output bulb rotated 90 degrees to align horizontally with output line
+        output_bulb.rotate(-PI/2)
+        output_bulb.move_to(RIGHT * 3.2)
+        
+        # Labels
+        input_label = Text("A", font_size=24, color=WHITE).next_to(input_bulb, LEFT, buff=0.3)
+        output_label = Text("Y", font_size=24, color=WHITE).next_to(output_bulb, RIGHT, buff=0.3)
+        
+        # Truth table positioned on the right - NOT gate truth table
+        truth_table_title = Text("Truth Table", font_size=21, color=WHITE)
+        
+        # NOT gate truth table: output is opposite of input
+        table_data = [
+            ["A", "Y"],
+            ["0", "1"],
+            ["1", "0"]
+        ]
+        
+        # Create truth table with proper alignment
+        table_group = VGroup()
+        table_center_x = 5.5
+        row_height = 0.6
+        
+        for i, row in enumerate(table_data):
+            row_group = VGroup()
+            for j, cell in enumerate(row):
+                cell_text = Text(cell, font_size=26, color=WHITE)
+                # Center each column properly (only 2 columns for NOT gate)
+                cell_x = table_center_x + (j - 0.5) * 0.8
+                cell_y = 1.5 - i * row_height
+                cell_text.move_to(RIGHT * cell_x + UP * cell_y)
+                row_group.add(cell_text)
+            table_group.add(row_group)
+        
+        # Scale up the entire table group
+        table_group.scale(1.4).shift(RIGHT*0.75 + DOWN*0.5)
+        
+        # Position truth table title
+        truth_table_title.next_to(table_group, UP, buff=0.8).scale(1.4)
+
+        # Gate name
+        gate_name = Text("NOT gate", font_size=50, color=WHITE, weight=BOLD).move_to(UP * 2.5)
+        
+        # Initial setup animations
+        self.play(ShowCreation(not_gate_body), run_time=2)
+        self.play(
+            ShowCreation(input_line),
+            ShowCreation(output_line),
+            run_time=1.5
+        )
+        
+        self.play(
+            Write(input_label),
+            Write(output_label),
+            Write(gate_name),
+            run_time=1
+        )
+        
+        self.play(
+            FadeIn(input_bulb),
+            FadeIn(output_bulb),
+            run_time=1
+        )
+
+        # Show truth table
+        self.play(Write(truth_table_title), run_time=1)
+        self.play(Write(table_group), run_time=2)
+        
+        self.wait(1)
+        
+        # Create a highlight rectangle for the truth table
+        highlight_rect = Rectangle(
+            width=1.6 * 1.4, height=0.5 * 1.4,
+            fill_color=TEAL_B, fill_opacity=0.05,
+            stroke_color=TEAL_B, stroke_width=7
+        )
+        # Position it at the first data row initially
+        highlight_rect.move_to(table_group[1])
+        
+        # Show the highlight rectangle
+        self.play(FadeIn(highlight_rect), run_time=0.3)
+        
+        # Demonstrate NOT gate logic: output is opposite of input
+        combinations = [
+            (False, True),   # 0 -> 1 (input off, output on)
+            (True, False)    # 1 -> 0 (input on, output off)
+        ]
+
+        for i, (input_state, output_state) in enumerate(combinations):
+            # Move highlight rectangle to current row (skip if it's already at the first row)
+            if i > 0:
+                self.play(
+                    highlight_rect.animate.move_to(table_group[2]),
+                    run_time=0.9
+                )
+            
+            # Prepare animations list
+            animations = []
+            
+            # Update input bulb and line
+            if input_state and not input_bulb.is_on:
+                animations.append(input_bulb.turn_on())
+                new_input_line = input_line.copy().set_stroke(YELLOW, width=5)
+                animations.append(Transform(input_line, new_input_line))
+            elif not input_state and input_bulb.is_on:
+                animations.append(input_bulb.turn_off())
+                new_input_line = input_line.copy().set_stroke(WHITE, width=3)
+                animations.append(Transform(input_line, new_input_line))
+            
+            # Update output bulb and line (opposite of input)
+            if output_state and not output_bulb.is_on:
+                animations.append(output_bulb.turn_on())
+                new_output_line = output_line.copy().set_stroke(GREEN, width=5)
+                animations.append(Transform(output_line, new_output_line))
+            elif not output_state and output_bulb.is_on:
+                animations.append(output_bulb.turn_off())
+                new_output_line = output_line.copy().set_stroke(WHITE, width=3)
+                animations.append(Transform(output_line, new_output_line))
+            
+            # Play all animations
+            if animations:
+                self.play(*animations, run_time=0.8)
+            else:
+                # For the first state (0->1), we need to show the initial state
+                # Input is off, output should be on
+                if not input_state and output_state:
+                    animations.append(output_bulb.turn_on())
+                    new_output_line = output_line.copy().set_stroke(GREEN, width=5)
+                    animations.append(Transform(output_line, new_output_line))
+                    self.play(*animations, run_time=0.8)
+            
+            self.wait(2)
+        
+        # Final cleanup
+        self.play(FadeOut(highlight_rect), run_time=0.5)
+
+        self.wait(3)
