@@ -1137,3 +1137,271 @@ class NORGateWithComponents(Scene):
 
         self.play(Write(symbol_labels), run_time=1.5)
         self.wait(3)
+
+
+class XNORGateWithComponents(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.77).shift(DOWN*1.6)
+
+        # Create the XOR gate symbol (additional arc before OR gate)
+        # Extra arc for XOR (positioned before the main OR gate)
+        xor_extra_arc = Arc(
+            radius=1.6,
+            start_angle=-PI/4,
+            angle=PI/2,
+            arc_center=np.array([-2.0, 0, 0]),  # Positioned further left
+            stroke_width=3
+        )
+        
+        # Create the OR gate symbol with correct structure
+        # Input arc (leftmost, where inputs A and B connect) - much straighter
+        input_arc = Arc(
+            radius=1.6,  # Larger radius makes it straighter
+            start_angle=-PI/4,  # Smaller angle range
+            angle=PI/2,         # Smaller angle range
+            arc_center=np.array([-1.6, 0, 0]),
+            stroke_width=3
+        )
+        
+        # Calculate the actual endpoints of the arc
+        arc_top_point = np.array([-1.6, 0, 0]) + 1.6 * np.array([np.cos(PI/4), np.sin(PI/4), 0])
+        arc_bottom_point = np.array([-1.6, 0, 0]) + 1.6 * np.array([np.cos(-PI/4), np.sin(-PI/4), 0])
+        
+        # Upper curved sword-like shape - curves outward then inward
+        upper_sword = VMobject()
+        upper_sword.set_points_smoothly([
+            arc_top_point,              # Top endpoint of the arc
+            np.array([0.6, 0.8, 0]),    # Control point - outward
+            np.array([2.0, 0, 0])       # Output tip
+        ])
+        
+        # Lower curved sword-like shape - curves outward then inward
+        lower_sword = VMobject()
+        lower_sword.set_points_smoothly([
+            arc_bottom_point,           # Bottom endpoint of the arc
+            np.array([0.6, -0.8, 0]),   # Control point - outward
+            np.array([2.0, 0, 0])       # Output tip
+        ])
+        
+        # Combine to form the XOR gate body (extra arc + OR gate)
+        xor_gate_body = VGroup(xor_extra_arc, input_arc, upper_sword, lower_sword).set_stroke(WHITE, width=3).move_to(LEFT * 2).scale(0.5).shift(LEFT*0.12)
+
+        # NOT gate (triangle + bubble)
+        triangle = Polygon(LEFT * 0.5 + UP * 0.4, LEFT * 0.5 + DOWN * 0.4, RIGHT * 0.4).set_stroke(WHITE, width=3).set_fill(opacity=0).move_to(RIGHT * 1.5)
+        
+        bubble_radius = 0.08
+        bubble_center = RIGHT * (1.56 + 0.4 + bubble_radius)
+        bubble = Circle(radius=bubble_radius).set_stroke(WHITE, width=3).set_fill(opacity=0).move_to(bubble_center)
+        not_gate_body = VGroup(triangle, bubble)
+
+        # Input lines - now connecting to the XOR gate (extra arc)
+        input_a_line = Line(LEFT * 3.5 + UP * 0.3, LEFT * 2.65 + UP * 0.3, stroke_width=3).set_stroke(WHITE, 3)
+        input_b_line = Line(LEFT * 3.5 + DOWN * 0.3, LEFT * 2.65 + DOWN * 0.3, stroke_width=3).set_stroke(WHITE, 3)
+
+        # Create bulbs
+        bulb_a = Bulb(radius=0.2)
+        bulb_b = Bulb(radius=0.2)
+        intermediate_bulb = Bulb(radius=0.15)
+        output_bulb = Bulb(radius=0.2)
+
+        # Position and rotate bulbs
+        bulb_a.rotate(PI / 2)
+        bulb_b.rotate(PI / 2)
+        intermediate_bulb.rotate(-PI / 2)
+        output_bulb.rotate(-PI / 2)
+
+        bulb_a.move_to(LEFT * 3.8 + UP * 0.3)
+        bulb_b.move_to(LEFT * 3.8 + DOWN * 0.3)
+        intermediate_bulb.move_to(LEFT * 0.15)
+        output_bulb.move_to(RIGHT * 3.8)
+
+        # Intermediate and output lines
+        intermediate_line_left = Line(LEFT * 1.4, intermediate_bulb.get_left(), stroke_width=3).set_stroke(WHITE, 3)
+        intermediate_line_right = Line(intermediate_bulb.get_right(), RIGHT * 1.06, stroke_width=3).set_stroke(WHITE, 3)
+        intermediate_line = VGroup(intermediate_line_left, intermediate_line_right)
+
+        output_line = Line(bubble.get_right(), RIGHT * 3.5, stroke_width=3).set_stroke(WHITE, 3)
+
+        # Labels
+        labels = VGroup(
+            Text("A", font_size=20, color=WHITE).next_to(bulb_a, LEFT, buff=0.2),
+            Text("B", font_size=20, color=WHITE).next_to(bulb_b, LEFT, buff=0.2),
+            Text("XOR", font_size=14, color=WHITE).next_to(intermediate_bulb, UP, buff=0.2),
+            Text("Y", font_size=20, color=WHITE).next_to(output_bulb, RIGHT, buff=0.2),
+            Text("XOR", font_size=18, color=WHITE).next_to(xor_gate_body, DOWN, buff=0.3),
+            Text("NOT", font_size=18, color=WHITE).next_to(not_gate_body, DOWN, buff=0.3)
+        )
+
+        # XNOR Truth Table
+        truth_table_title = Text("XNOR Truth Table", font_size=20, color=WHITE)
+        table_data = [["A", "B", "XOR", "Y"], ["0", "0", "0", "1"], ["0", "1", "1", "0"], ["1", "0", "1", "0"], ["1", "1", "0", "1"]]
+        table_group = VGroup()
+
+        for i, row in enumerate(table_data):
+            row_group = VGroup()
+            for j, cell in enumerate(row):
+                t = Text(cell, font_size=16, color=WHITE)
+                t.move_to(RIGHT * ((j - 1.5) * 0.8) + UP * (-2.5 - i * 0.4))
+                row_group.add(t)
+            table_group.add(row_group)
+
+        truth_table_title.next_to(table_group, UP, buff=0.3)
+
+        # Animation sequence
+        self.play(ShowCreation(xor_gate_body), ShowCreation(not_gate_body), run_time=2)
+
+        self.play(Write(labels[4]), Write(labels[5]), run_time=1)
+        self.play(
+            ShowCreation(input_a_line),
+            ShowCreation(input_b_line),
+            ShowCreation(intermediate_line_left),
+            ShowCreation(intermediate_line_right),
+            ShowCreation(output_line),
+            run_time=1.5
+        )
+        self.play(FadeIn(bulb_a), FadeIn(bulb_b), FadeIn(intermediate_bulb), FadeIn(output_bulb), run_time=1)
+        self.play(*[Write(label) for label in labels[:4]], run_time=1)
+        self.play(Write(truth_table_title), Write(table_group), run_time=2)
+
+        highlight_rect = Rectangle(width=2.6, height=0.32, fill_color=TEAL_B, fill_opacity=0.05, stroke_color=TEAL_B, stroke_width=3).move_to(table_group[1]).scale(1.1)
+        self.play(FadeIn(highlight_rect), run_time=0.3)
+
+        # XNOR gate combinations: XOR output is inverted by NOT gate
+        combinations = [(False, False, False, True), (False, True, True, False), (True, False, True, False), (True, True, False, True)]
+
+        for i, (a_state, b_state, xor_state, xnor_state) in enumerate(combinations):
+            if i > 0:
+                self.play(highlight_rect.animate.move_to(table_group[i + 1]), run_time=0.7)
+
+            animations = []
+
+            # Update input A
+            if a_state and not bulb_a.is_on:
+                animations += [bulb_a.turn_on(), Transform(input_a_line, input_a_line.copy().set_stroke(YELLOW, 5))]
+            elif not a_state and bulb_a.is_on:
+                animations += [bulb_a.turn_off(), Transform(input_a_line, input_a_line.copy().set_stroke(WHITE, 3))]
+
+            # Update input B
+            if b_state and not bulb_b.is_on:
+                animations += [bulb_b.turn_on(), Transform(input_b_line, input_b_line.copy().set_stroke(YELLOW, 5))]
+            elif not b_state and bulb_b.is_on:
+                animations += [bulb_b.turn_off(), Transform(input_b_line, input_b_line.copy().set_stroke(WHITE, 3))]
+
+            # Update XOR intermediate output
+            if xor_state and not intermediate_bulb.is_on:
+                animations.append(intermediate_bulb.turn_on())
+                animations.append(AnimationGroup(
+                    Transform(intermediate_line_left, intermediate_line_left.copy().set_stroke(YELLOW, 5)),
+                    Transform(intermediate_line_right, intermediate_line_right.copy().set_stroke(YELLOW, 5)),
+                    lag_ratio=0
+                ))
+            elif not xor_state and intermediate_bulb.is_on:
+                animations.append(intermediate_bulb.turn_off())
+                animations.append(AnimationGroup(
+                    Transform(intermediate_line_left, intermediate_line_left.copy().set_stroke(WHITE, 3)),
+                    Transform(intermediate_line_right, intermediate_line_right.copy().set_stroke(WHITE, 3)),
+                    lag_ratio=0
+                ))
+
+            # Update XNOR final output
+            if xnor_state and not output_bulb.is_on:
+                animations.append(output_bulb.turn_on())
+                animations.append(Transform(output_line, output_line.copy().set_stroke(GREEN, 5)))
+            elif not xnor_state and output_bulb.is_on:
+                animations.append(output_bulb.turn_off())
+                animations.append(Transform(output_line, output_line.copy().set_stroke(WHITE, 3)))
+
+            if animations:
+                self.play(*animations, run_time=0.8)
+            self.wait(1.8)
+
+        self.play(FadeOut(highlight_rect), run_time=0.5)
+        self.wait(2)
+
+        # Create clean XNOR gate symbol (XOR gate with NOT bubble at output)
+        # XOR gate part
+        clean_xor_extra_arc = Arc(
+            radius=1.6,
+            start_angle=-PI/4,
+            angle=PI/2,
+            arc_center=np.array([-2.0, 0, 0]),
+            stroke_width=4
+        )
+        
+        clean_input_arc = Arc(
+            radius=1.6,
+            start_angle=-PI/4,
+            angle=PI/2,
+            arc_center=np.array([-1.6, 0, 0]),
+            stroke_width=4
+        )
+        
+        clean_arc_top = np.array([-1.6, 0, 0]) + 1.6 * np.array([np.cos(PI/4), np.sin(PI/4), 0])
+        clean_arc_bottom = np.array([-1.6, 0, 0]) + 1.6 * np.array([np.cos(-PI/4), np.sin(-PI/4), 0])
+        
+        clean_upper_sword = VMobject()
+        clean_upper_sword.set_points_smoothly([
+            clean_arc_top,
+            np.array([0.6, 0.8, 0]),
+            np.array([2.0, 0, 0])
+        ])
+        
+        clean_lower_sword = VMobject()
+        clean_lower_sword.set_points_smoothly([
+            clean_arc_bottom,
+            np.array([0.6, -0.8, 0]),
+            np.array([2.0, 0, 0])
+        ])
+        
+        # NOT bubble at the tip
+        bubble_radius_clean = 0.12
+        bubble_center_clean = np.array([2.0 + bubble_radius_clean, 0, 0])
+        clean_bubble = Circle(radius=bubble_radius_clean).set_stroke(WHITE, width=4).set_fill(opacity=0).move_to(bubble_center_clean)
+        
+        # Complete XNOR gate symbol
+        xnor_gate_symbol = VGroup(clean_xor_extra_arc, clean_input_arc, clean_upper_sword, clean_lower_sword, clean_bubble).set_stroke(WHITE, width=4).move_to(ORIGIN).scale(0.8).shift(DOWN*1.5)
+
+        # Input and output lines for the symbol
+        symbol_input_a = Line(LEFT * 2.7 + UP * 0.5, LEFT * 0.97 + UP * 0.5, stroke_width=4).set_stroke(WHITE, 4).shift(DOWN*1.5)
+        symbol_input_b = Line(LEFT * 2.7 + DOWN * 0.5, LEFT * 0.97 + DOWN * 0.5, stroke_width=4).set_stroke(WHITE, 4).shift(DOWN*1.5)
+        symbol_output = Line(RIGHT * 1.24, RIGHT * 2.97, stroke_width=4).set_stroke(WHITE, 4).shift(DOWN*1.5)
+
+        # Labels for the symbol
+        symbol_labels = VGroup(
+            Text("A", font_size=24, color=WHITE).next_to(symbol_input_a, LEFT, buff=0.3),
+            Text("B", font_size=24, color=WHITE).next_to(symbol_input_b, LEFT, buff=0.3),
+            Text("Y", font_size=24, color=WHITE).next_to(symbol_output, RIGHT, buff=0.3),
+            Text("XNOR", font_size=44, color=WHITE).next_to(xnor_gate_symbol, DOWN, buff=0.7)
+        )
+
+        # Fade out truth table and all components
+        self.play(
+            FadeOut(truth_table_title),
+            FadeOut(table_group),
+            FadeOut(xor_gate_body),
+            FadeOut(not_gate_body),
+            FadeOut(input_a_line),
+            FadeOut(input_b_line),
+            FadeOut(intermediate_line_left),
+            FadeOut(intermediate_line_right),
+            FadeOut(output_line),
+            FadeOut(bulb_a),
+            FadeOut(bulb_b),
+            FadeOut(intermediate_bulb),
+            FadeOut(output_bulb),
+            FadeOut(labels),
+            run_time=0.77
+        )
+
+        self.play(
+            ShowCreation(xnor_gate_symbol),
+            ShowCreation(symbol_input_a),
+            ShowCreation(symbol_input_b),
+            ShowCreation(symbol_output),
+        )
+
+        self.play(Write(symbol_labels), run_time=1.5)
+        self.wait(3)
+
+
