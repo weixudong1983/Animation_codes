@@ -7,6 +7,192 @@ DARK_GREY = "#2E2E2E"
 YELLOW  = "#00FF00"
 GREEN  = "#00FF00"
 
+from manimlib import *
+import numpy as np
+
+GRAY = GREY
+LIGHT_GREY = GREY_A
+DARK_GREY = "#2E2E2E"
+YELLOW = "#00FF00"
+GREEN = "#00FF00"
+RED = "#FF0000"
+
+class Bulb(VMobject):
+    def __init__(self, radius=0.3, **kwargs):
+        super().__init__(**kwargs)
+        self.radius = radius
+        self.is_on = False
+        self.create_bulb()
+        
+    def create_bulb(self):
+        self.glass = Circle(radius=self.radius).set_stroke(WHITE, 2).set_fill(DARK_GREY, opacity=0.2)
+        self.base = Rectangle(height=self.radius * 0.6, width=self.radius * 0.5).set_fill(LIGHT_GREY).set_stroke(GREY, 1).next_to(self.glass, DOWN, buff=0)
+        self.screw = Rectangle(height=self.radius * 0.3, width=self.radius * 0.4).set_fill(GREY).set_stroke(DARK_GREY, 1).next_to(self.base, DOWN, buff=0)
+
+        self.filament = VMobject()
+        filament_points = [
+            np.array([-self.radius * 0.2, 0, 0]),
+            np.array([-self.radius * 0.08, self.radius * 0.2, 0]),
+            np.array([self.radius * 0.08, -self.radius * 0.2, 0]),
+            np.array([self.radius * 0.2, 0, 0])
+        ]
+        self.filament.set_points_as_corners(filament_points).set_stroke(LIGHT_GREY, 1.5).move_to(self.glass.get_center())
+
+        self.outer_glow = Circle(radius=self.radius * 1.3).set_fill(YELLOW, opacity=0).set_stroke(YELLOW, width=6, opacity=0).move_to(self.glass.get_center())
+        self.add(self.outer_glow, self.glass, self.base, self.screw, self.filament)
+
+    def turn_on(self):
+        if not self.is_on:
+            self.is_on = True
+            return AnimationGroup(
+                self.glass.animate.set_fill(YELLOW, opacity=0.6),
+                self.outer_glow.animate.set_fill(YELLOW, opacity=0.2).set_stroke(opacity=0.15),
+                self.filament.animate.set_stroke(YELLOW, width=2.5),
+                run_time=0.5
+            )
+        return Animation(Mobject())
+
+    def turn_off(self):
+        if self.is_on:
+            self.is_on = False
+            return AnimationGroup(
+                self.glass.animate.set_fill(DARK_GREY, opacity=0.2),
+                self.outer_glow.animate.set_fill(opacity=0).set_stroke(opacity=0),
+                self.filament.animate.set_stroke(LIGHT_GREY, width=1.5),
+                run_time=0.4
+            )
+        return Animation(Mobject())
+
+class NANDGateWithComponents(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.77).shift(DOWN*1.6)
+
+        left_line = Line(UP * 0.6, DOWN * 0.6, stroke_width=3)
+        top_line = Line(UP * 0.6, UP * 0.6 + RIGHT * 0.6, stroke_width=3)
+        bottom_line = Line(DOWN * 0.6, DOWN * 0.6 + RIGHT * 0.6, stroke_width=3)
+        arc = Arc(radius=0.6, start_angle=-PI / 2, angle=PI, arc_center=RIGHT * 0.6, stroke_width=3)
+        and_gate_body = VGroup(left_line, top_line, bottom_line, arc).set_stroke(WHITE, width=3).move_to(LEFT * 2)
+
+        triangle = Polygon(LEFT * 0.5 + UP * 0.4, LEFT * 0.5 + DOWN * 0.4, RIGHT * 0.4).set_stroke(WHITE, width=3).set_fill(opacity=0).move_to(RIGHT * 1.5)
+        
+        bubble_radius = 0.08
+        bubble_center = RIGHT * (1.56 + 0.4 + bubble_radius)
+        bubble = Circle(radius=bubble_radius).set_stroke(WHITE, width=3).set_fill(opacity=0).move_to(bubble_center)
+        not_gate_body = VGroup(triangle, bubble)
+
+        input_a_line = Line(LEFT * 3.5 + UP * 0.3, LEFT * 2.6 + UP * 0.3, stroke_width=3).set_stroke(WHITE, 3)
+        input_b_line = Line(LEFT * 3.5 + DOWN * 0.3, LEFT * 2.6 + DOWN * 0.3, stroke_width=3).set_stroke(WHITE, 3)
+
+        bulb_a = Bulb(radius=0.2)
+        bulb_b = Bulb(radius=0.2)
+        intermediate_bulb = Bulb(radius=0.15)
+        output_bulb = Bulb(radius=0.2)
+
+        bulb_a.rotate(PI / 2)
+        bulb_b.rotate(PI / 2)
+        intermediate_bulb.rotate(-PI / 2)
+        output_bulb.rotate(-PI / 2)
+
+        bulb_a.move_to(LEFT * 3.8 + UP * 0.3)
+        bulb_b.move_to(LEFT * 3.8 + DOWN * 0.3)
+        intermediate_bulb.move_to(LEFT * 0.15)
+        output_bulb.move_to(RIGHT * 3.8)
+
+        intermediate_line_left = Line(LEFT * 1.4, intermediate_bulb.get_left(), stroke_width=3).set_stroke(WHITE, 3)
+        intermediate_line_right = Line(intermediate_bulb.get_right(), RIGHT * 1.06, stroke_width=3).set_stroke(WHITE, 3)
+        intermediate_line = VGroup(intermediate_line_left, intermediate_line_right)
+
+        output_line = Line(bubble.get_right(), RIGHT * 3.5, stroke_width=3).set_stroke(WHITE, 3)
+
+        labels = VGroup(
+            Text("A", font_size=20, color=WHITE).next_to(bulb_a, LEFT, buff=0.2),
+            Text("B", font_size=20, color=WHITE).next_to(bulb_b, LEFT, buff=0.2),
+            Text("AND", font_size=14, color=WHITE).next_to(intermediate_bulb, UP, buff=0.2),
+            Text("Y", font_size=20, color=WHITE).next_to(output_bulb, RIGHT, buff=0.2),
+            Text("AND", font_size=18, color=WHITE).next_to(and_gate_body, DOWN, buff=0.3),
+            Text("NOT", font_size=18, color=WHITE).next_to(not_gate_body, DOWN, buff=0.3)
+        )
+
+        truth_table_title = Text("NAND Truth Table", font_size=20, color=WHITE)
+        table_data = [["A", "B", "AND", "Y"], ["0", "0", "0", "1"], ["0", "1", "0", "1"], ["1", "0", "0", "1"], ["1", "1", "1", "0"]]
+        table_group = VGroup()
+
+        for i, row in enumerate(table_data):
+            row_group = VGroup()
+            for j, cell in enumerate(row):
+                t = Text(cell, font_size=16, color=WHITE)
+                t.move_to(RIGHT * ((j - 1.5) * 0.8) + UP * (-2.5 - i * 0.4))
+                row_group.add(t)
+            table_group.add(row_group)
+
+        truth_table_title.next_to(table_group, UP, buff=0.3)
+
+        self.play(ShowCreation(and_gate_body), ShowCreation(not_gate_body), run_time=2)
+        self.play(Write(labels[4]), Write(labels[5]), run_time=1)
+        self.play(
+            ShowCreation(input_a_line),
+            ShowCreation(input_b_line),
+            ShowCreation(intermediate_line_left),
+            ShowCreation(intermediate_line_right),
+            ShowCreation(output_line),
+            run_time=1.5
+        )
+        self.play(FadeIn(bulb_a), FadeIn(bulb_b), FadeIn(intermediate_bulb), FadeIn(output_bulb), run_time=1)
+        self.play(*[Write(label) for label in labels[:4]], run_time=1)
+        self.play(Write(truth_table_title), Write(table_group), run_time=2)
+
+        highlight_rect = Rectangle(width=2.6, height=0.32, fill_color=TEAL_B, fill_opacity=0.05, stroke_color=TEAL_B, stroke_width=3).move_to(table_group[1]).scale(1.1)
+        self.play(FadeIn(highlight_rect), run_time=0.3)
+
+        combinations = [(False, False, False, True), (False, True, False, True), (True, False, False, True), (True, True, True, False)]
+
+        for i, (a_state, b_state, and_state, nand_state) in enumerate(combinations):
+            if i > 0:
+                self.play(highlight_rect.animate.move_to(table_group[i + 1]), run_time=0.7)
+
+            animations = []
+
+            if a_state and not bulb_a.is_on:
+                animations += [bulb_a.turn_on(), Transform(input_a_line, input_a_line.copy().set_stroke(YELLOW, 5))]
+            elif not a_state and bulb_a.is_on:
+                animations += [bulb_a.turn_off(), Transform(input_a_line, input_a_line.copy().set_stroke(WHITE, 3))]
+
+            if b_state and not bulb_b.is_on:
+                animations += [bulb_b.turn_on(), Transform(input_b_line, input_b_line.copy().set_stroke(YELLOW, 5))]
+            elif not b_state and bulb_b.is_on:
+                animations += [bulb_b.turn_off(), Transform(input_b_line, input_b_line.copy().set_stroke(WHITE, 3))]
+
+            if and_state and not intermediate_bulb.is_on:
+                animations.append(intermediate_bulb.turn_on())
+                animations.append(AnimationGroup(
+                    Transform(intermediate_line_left, intermediate_line_left.copy().set_stroke(YELLOW, 5)),
+                    Transform(intermediate_line_right, intermediate_line_right.copy().set_stroke(YELLOW, 5)),
+                    lag_ratio=0
+                ))
+            elif not and_state and intermediate_bulb.is_on:
+                animations.append(intermediate_bulb.turn_off())
+                animations.append(AnimationGroup(
+                    Transform(intermediate_line_left, intermediate_line_left.copy().set_stroke(WHITE, 3)),
+                    Transform(intermediate_line_right, intermediate_line_right.copy().set_stroke(WHITE, 3)),
+                    lag_ratio=0
+                ))
+
+            if nand_state and not output_bulb.is_on:
+                animations.append(output_bulb.turn_on())
+                animations.append(Transform(output_line, output_line.copy().set_stroke(GREEN, 5)))
+            elif not nand_state and output_bulb.is_on:
+                animations.append(output_bulb.turn_off())
+                animations.append(Transform(output_line, output_line.copy().set_stroke(WHITE, 3)))
+
+            if animations:
+                self.play(*animations, run_time=0.8)
+            self.wait(1.8)
+
+        self.play(FadeOut(highlight_rect), run_time=0.5)
+        self.wait(3)
+
+
 class Bulb(VMobject):
     """A class to represent a realistic-looking light bulb."""
     
