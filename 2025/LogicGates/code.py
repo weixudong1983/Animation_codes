@@ -665,3 +665,223 @@ class NOTGateWithRealisticBulbs(Scene):
         self.play(FadeOut(highlight_rect), run_time=0.5)
 
         self.wait(3)
+
+class ORGateWithRealisticBulbs(Scene):
+
+    def construct(self):
+
+        self.camera.frame.shift(RIGHT*2.4 + UP).scale(0.956)
+
+        # Create the OR gate symbol with correct structure:
+        # Left side: Input arc where both inputs connect
+        # Middle: Two curved sword-like shapes (top and bottom)
+        # Right side: Pointed tip where output emerges
+        
+        # Input arc (leftmost, where inputs A and B connect) - much straighter
+        input_arc = Arc(
+            radius=1.6,  # Larger radius makes it straighter
+            start_angle=-PI/4,  # Smaller angle range
+            angle=PI/2,         # Smaller angle range
+            arc_center=np.array([-1.6, 0, 0]),
+            stroke_width=4
+        )
+        
+        # Calculate the actual endpoints of the arc
+        arc_top_point = np.array([-1.6, 0, 0]) + 1.6 * np.array([np.cos(PI/4), np.sin(PI/4), 0])
+        arc_bottom_point = np.array([-1.6, 0, 0]) + 1.6 * np.array([np.cos(-PI/4), np.sin(-PI/4), 0])
+        
+        # Upper curved sword-like shape - curves outward then inward (mirrored)
+        upper_sword = VMobject()
+        upper_sword.set_points_smoothly([
+            arc_top_point,              # Top endpoint of the arc
+            np.array([0.6, 0.8, 0]),    # Control point - outward
+            np.array([2.0, 0, 0])       # Output tip
+        ])
+        
+        # Lower curved sword-like shape - curves outward then inward (mirrored)
+        lower_sword = VMobject()
+        lower_sword.set_points_smoothly([
+            arc_bottom_point,           # Bottom endpoint of the arc
+            np.array([0.6, -0.8, 0]),   # Control point - outward
+            np.array([2.0, 0, 0])       # Output tip
+        ])
+        
+        # Combine to form the OR gate body
+        or_gate_body = VGroup(input_arc, upper_sword, lower_sword).shift(LEFT*0.34)
+        or_gate_body.set_stroke(WHITE, width=3)
+        
+        # Input lines - connecting to the input arc
+        input_a_line = Line(LEFT * 1.8 + UP*0.5, LEFT * 0.43 + UP*0.5, stroke_width=3)
+        input_b_line = Line(LEFT * 1.8 + DOWN*0.5, LEFT * 0.43 + DOWN*0.5, stroke_width=3)
+        input_a_line.set_stroke(WHITE, width=3)
+        input_b_line.set_stroke(WHITE, width=3)
+        
+        # Output line - connecting from the pointed tip
+        output_line = Line(RIGHT * 2.0, RIGHT * 3.2, stroke_width=3).shift(LEFT*0.34)
+        output_line.set_stroke(WHITE, width=3)
+        
+        # Create realistic input and output bulbs
+        bulb_a = Bulb(radius=0.25)
+        bulb_b = Bulb(radius=0.25)
+        output_bulb = Bulb(radius=0.25)
+        
+        # Position and rotate bulbs
+        bulb_a.rotate(PI/2)  # Rotate 90 degrees
+        bulb_b.rotate(PI/2)  # Rotate 90 degrees
+        bulb_a.move_to(LEFT * 2.2 + UP * 0.5)
+        bulb_b.move_to(LEFT * 2.2 + DOWN * 0.5)
+        
+        # Output bulb rotated 90 degrees to align horizontally with output line
+        output_bulb.rotate(-PI/2)  # Rotate -90 degrees (opposite direction)
+        output_bulb.move_to(RIGHT * 3.6).shift(LEFT*0.34)
+        
+        # Input labels positioned better
+        input_a_label = Text("A", font_size=24, color=WHITE).next_to(bulb_a, LEFT, buff=0.3)
+        input_b_label = Text("B", font_size=24, color=WHITE).next_to(bulb_b, LEFT, buff=0.3)
+        output_label = Text("Y", font_size=24, color=WHITE).next_to(output_bulb, RIGHT, buff=0.3)
+        
+        # Truth table positioned on the right - OR gate truth table
+        truth_table_title = Text("Truth Table", font_size=24, color=WHITE)
+        truth_table_title.to_corner(UR).shift(LEFT * 0.5 + DOWN * 0.5)
+        
+        # OR gate truth table: output is 1 when at least one input is 1
+        table_data = [
+            ["A", "B", "Y"],
+            ["0", "0", "0"],
+            ["0", "1", "1"],
+            ["1", "0", "1"],
+            ["1", "1", "1"]
+        ]
+        
+        # Create truth table with proper alignment
+        table_group = VGroup()
+        table_center_x = 6.6
+        row_height = 0.54
+        
+        table_group.shift(DOWN*0.3)
+
+        for i, row in enumerate(table_data):
+            row_group = VGroup()
+            for j, cell in enumerate(row):
+                cell_text = Text(cell, font_size=22, color=WHITE)
+                cell_x = table_center_x + (j - 1) * 0.67
+                cell_y = 1.5 - i * row_height
+                cell_text.move_to(RIGHT * cell_x + UP * cell_y)
+                row_group.add(cell_text)
+            table_group.add(row_group)
+        
+        # Scale up the entire table group
+        table_group.scale(1.27)
+        
+        # Gate name - corrected to OR gate
+        gate_name = Text("OR Gate", font_size=50, color=WHITE, weight=BOLD).move_to(UP * 1.8).shift(UP*1.3)
+        
+        # Initial setup animations
+        self.play(ShowCreation(or_gate_body), run_time=2)
+        self.play(
+            ShowCreation(input_a_line),
+            ShowCreation(input_b_line),
+            ShowCreation(output_line),
+            run_time=1.5
+        )
+        
+        self.play(
+            Write(input_a_label),
+            Write(input_b_label),
+            Write(output_label),
+            Write(gate_name),
+            run_time=1
+        )
+        
+        self.play(
+            FadeIn(bulb_a),
+            FadeIn(bulb_b),
+            FadeIn(output_bulb),
+            run_time=1
+        )
+
+        truth_table_title.next_to(table_group, UP, buff=0.77).scale(1.3)
+
+        # Show truth table
+        self.play(Write(truth_table_title), run_time=1)
+        self.play(Write(table_group), run_time=2)
+        
+        self.wait(1)
+        
+        # Create a single highlight rectangle that will move between rows
+        highlight_rect = Rectangle(
+            width=1.8 * 1.35, height=0.45 * 1.35,
+            fill_color=TEAL_B, fill_opacity=0.05,
+            stroke_color=TEAL_B, stroke_width=7
+        )
+        # Position it at the first data row initially
+        highlight_rect.move_to(table_group[1])
+        
+        # Show the highlight rectangle
+        self.play(FadeIn(highlight_rect), run_time=0.3)
+        
+        # Demonstrate all combinations with bulbs - OR gate logic
+        combinations = [
+            (False, False, False),  # 0, 0 -> 0
+            (False, True, True),    # 0, 1 -> 1
+            (True, False, True),    # 1, 0 -> 1
+            (True, True, True)      # 1, 1 -> 1
+        ]
+
+        j = 2
+        
+        for i, (a_state, b_state, output_state) in enumerate(combinations):
+            # Move highlight rectangle to current row (skip if it's already at the first row)
+            if i > 0:
+                new_y = 1.5 - (i + 1) * row_height
+                self.play(
+                    highlight_rect.animate.move_to(table_group[j]),
+                    run_time=0.9
+                )
+
+                j += 1
+            
+            # Prepare animations list
+            animations = []
+            
+            # Update input A bulb and line
+            if a_state and not bulb_a.is_on:
+                animations.append(bulb_a.turn_on())
+                new_input_a_line = input_a_line.copy().set_stroke(YELLOW, width=5)
+                animations.append(Transform(input_a_line, new_input_a_line))
+            elif not a_state and bulb_a.is_on:
+                animations.append(bulb_a.turn_off())
+                new_input_a_line = input_a_line.copy().set_stroke(WHITE, width=3)
+                animations.append(Transform(input_a_line, new_input_a_line))
+            
+            # Update input B bulb and line
+            if b_state and not bulb_b.is_on:
+                animations.append(bulb_b.turn_on())
+                new_input_b_line = input_b_line.copy().set_stroke(YELLOW, width=5)
+                animations.append(Transform(input_b_line, new_input_b_line))
+            elif not b_state and bulb_b.is_on:
+                animations.append(bulb_b.turn_off())
+                new_input_b_line = input_b_line.copy().set_stroke(WHITE, width=3)
+                animations.append(Transform(input_b_line, new_input_b_line))
+            
+            # Update output bulb and line
+            if output_state and not output_bulb.is_on:
+                animations.append(output_bulb.turn_on())
+                new_output_line = output_line.copy().set_stroke(GREEN, width=5)
+                animations.append(Transform(output_line, new_output_line))
+            elif not output_state and output_bulb.is_on:
+                animations.append(output_bulb.turn_off())
+                new_output_line = output_line.copy().set_stroke(WHITE, width=3)
+                animations.append(Transform(output_line, new_output_line))
+            
+            # Play all animations
+            if animations:
+                self.play(*animations, run_time=0.8)
+            
+            self.wait(1.5)
+        
+        # Final cleanup
+        self.play(FadeOut(highlight_rect), run_time=0.5)
+
+        self.wait(3)
+
