@@ -319,3 +319,170 @@ class LineEquation(Scene):
         
         # Keep only the axes and line
         self.wait(1)
+
+
+class VisualRegression(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.5)
+
+        # Create axes
+        axes = Axes(
+            x_range=[0, 15],
+            y_range=[0, 8],
+            axis_config={"color": WHITE, "include_ticks": False, "include_numbers": False, "stroke_width": 4.2},
+        )
+        self.play(ShowCreation(axes))
+        x_label = Text("x").next_to(axes.x_axis, DOWN).shift(RIGHT * 7.6 + DOWN * 0.4).scale(1.6)
+        y_label = Text("y").next_to(axes.y_axis, UP).shift(UP * 0.33).scale(1.6)
+        self.play(Write(x_label), Write(y_label))
+        self.wait(1)
+
+        # Generate points
+        np.random.seed(42)
+        num_points = 16
+        x_coords = np.linspace(1, 14, num_points)
+        true_slope = 0.4
+        true_intercept = 1.5
+        noise = np.random.normal(0, 0.8, num_points)
+        y_coords = np.clip(true_slope * x_coords + true_intercept + noise, 0.5, 7.5)
+
+        # Create and show all dots in red
+        dots = VGroup(*[
+            Dot(point=axes.coords_to_point(xi, yi), radius=0.22).set_color(RED)
+            for xi, yi in zip(x_coords, y_coords)
+        ])
+        self.play(ShowCreation(dots), run_time=2)
+        self.wait(1)
+
+        # Split into training/testing and color
+        num_train = int(0.7 * num_points)
+        all_idx = np.arange(num_points)
+        test_idx = np.random.choice(all_idx, num_points - num_train, replace=False)
+        train_idx = np.setdiff1d(all_idx, test_idx)
+
+        self.play(*[dots[i].animate.set_color("#00FF00") for i in train_idx], run_time=1.5)
+        self.play(*[dots[i].animate.set_color("#3E4FFF") for i in test_idx], run_time=1.5)
+        self.wait(1.5)
+
+        # Create legend boxes with matching colors
+        training_box = Rectangle(width=3, height=1.5, color="#00FF00", fill_opacity=0.8)
+        training_text = Text("Training\n  70%", color=BLACK).scale(0.8)
+        training_group = VGroup(training_box, training_text).to_edge(UL).shift(UP * 1.5)
+        testing_box = Rectangle(width=3, height=1.5, color="#3E4FFF", fill_opacity=0.8)
+        testing_text = Text("Testing\n  30%", color=BLACK).scale(0.8)
+        testing_group = VGroup(testing_box, testing_text).next_to(training_group, DOWN, buff=0.5)
+        self.play(ShowCreation(training_group))
+        self.wait(0.5)
+        self.play(ShowCreation(testing_group))
+        self.wait(2)
+
+        # Remove test points for now
+        self.play(FadeOut(VGroup(*[dots[i] for i in test_idx])), FadeOut(VGroup(training_group, testing_group)), run_time=1.5)
+        self.wait(2)
+
+        # Keep only training
+        train_x = x_coords[train_idx]
+        train_y = y_coords[train_idx]
+
+        # Compute optimal slope and intercept from training data
+        x_mean = np.mean(train_x)
+        y_mean = np.mean(train_y)
+        numerator = np.sum((train_x - x_mean) * (train_y - y_mean))
+        denominator = np.sum((train_x - x_mean) ** 2)
+        optimal_slope = numerator / denominator
+        optimal_intercept = y_mean - optimal_slope * x_mean
+
+        # Trackers for line
+        slope_tracker = ValueTracker(0.2)
+        intercept_tracker = ValueTracker(2.0)
+
+        # Regression line
+        line = always_redraw(lambda: axes.get_graph(
+            lambda x: slope_tracker.get_value() * x + intercept_tracker.get_value(),
+            x_range=[0, 15], color=YELLOW, stroke_width=6
+        ).set_z_index(-1))
+
+        self.play(ShowCreation(line))
+        self.wait(1)
+
+        # Add MSE text
+        mse_display = always_redraw(lambda: Text(
+            f"MSE = {self.calculate_mse(train_x, train_y, slope_tracker.get_value(), intercept_tracker.get_value()):.3f}",
+            color=WHITE
+        ).scale(1.2).to_edge(UR).shift(UP + LEFT * 4.3))
+
+        # Create error lines one by one
+        error_lines = VGroup()
+        for xi, yi in zip(train_x, train_y):
+            y_pred = slope_tracker.get_value() * xi + intercept_tracker.get_value()
+            p_pred = axes.coords_to_point(xi, y_pred)
+            p_act = axes.coords_to_point(xi, yi)
+            line_seg = Line(p_pred, p_act, color=WHITE, stroke_width=2)
+            error_lines.add(line_seg)
+            self.play(ShowCreation(line_seg), run_time=0.3)
+
+        self.wait(1)
+
+        # Dynamic squares group using always_redraw
+        def squares_group():
+            unit_y = axes.coords_to_point(0,1)[1] - axes.coords_to_point(0,0)[1]
+            squares = VGroup()
+            for xi, yi in zip(train_x, train_y):
+                y_pred = slope_tracker.get_value() * xi + intercept_tracker.get_value()
+                p_pred = axes.coords_to_point(xi, y_pred)
+                p_act = axes.coords_to_point(xi, yi)
+                err = abs(yi - y_pred)
+                side = err * unit_y
+
+                if yi > y_pred:
+                    bl, br, tr, tl = p_pred, p_pred + RIGHT * side, p_act + RIGHT * side, p_act
+                else:
+                    bl, br, tr, tl = p_act, p_act + RIGHT * side, p_pred + RIGHT * side, p_pred
+
+                square = Polygon(bl, br, tr, tl, color=PURPLE, fill_color=PURPLE, fill_opacity=0.7, stroke_width=2)
+                squares.add(square)
+            return squares
+
+        self.wait(2)
+
+        self.add(mse_display)
+
+        error_squares = always_redraw(squares_group)
+
+        # Fade out lines and fade in dynamic squares together
+        self.play(FadeOut(error_lines), FadeIn(error_squares), run_time=2)
+        self.wait(1)
+
+        # Animate slope up
+        self.play(slope_tracker.animate.set_value(slope_tracker.get_value() + 0.4), run_time=2)
+        # Animate slope down
+        self.play(slope_tracker.animate.set_value(slope_tracker.get_value() - 0.3), run_time=2)
+        self.wait(1)
+        # Animate intercept up
+        self.play(intercept_tracker.animate.set_value(intercept_tracker.get_value() + 1.0), run_time=2)
+        # Animate intercept down
+        self.play(intercept_tracker.animate.set_value(intercept_tracker.get_value() - 1.5), run_time=2)
+        self.wait(1)
+        # Finally move to optimal slope/intercept
+        self.play(
+            slope_tracker.animate.set_value(optimal_slope),
+            intercept_tracker.animate.set_value(optimal_intercept),
+            run_time=3
+        )
+        self.wait(1)
+
+        # Fade out all squares and MSE
+        self.play(FadeOut(error_squares), FadeOut(mse_display), run_time=2)
+        self.wait(1)
+
+        # Fade out training points and fade in testing points
+        self.play(
+            FadeOut(VGroup(*[dots[i] for i in train_idx])),
+            FadeIn(VGroup(*[dots[i] for i in test_idx])),
+            run_time=2
+        )
+        self.wait(2)
+
+    def calculate_mse(self, xs, ys, slope, intercept):
+        preds = slope * xs + intercept
+        return np.mean((ys - preds) ** 2)
