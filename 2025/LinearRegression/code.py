@@ -209,3 +209,113 @@ class LinearRegressionIntro(Scene):
         self.play(ShowCreation(output_dot.scale(1.5)), run_time=0.8)
         
         self.wait(2)
+
+
+class LineEquation(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(1.5)
+        
+        # Create axes
+        axes = Axes(
+            x_range=[0, 15],
+            y_range=[0, 8],
+            axis_config={"color": WHITE, "include_ticks": False, "include_numbers": False, "stroke_width": 4.2},
+        )
+        
+        x_label = Text("x").next_to(axes.x_axis, DOWN).shift(RIGHT*7.6+DOWN*0.4).scale(1.6)
+        y_label = Text("y").next_to(axes.y_axis, UP).shift(UP*0.33).scale(1.6)
+        
+        self.play(ShowCreation(axes))
+        self.play(Write(x_label), Write(y_label))
+        self.wait(1)
+        
+        # Create the line equation y = mx + c
+        m_value = 0.5
+        c_value = 1.5
+        
+        # Create the line function (1/5 smaller range)
+        line = axes.get_graph(lambda x: m_value * x + c_value, color=YELLOW, stroke_width=6, x_range=[0, 15])
+        
+        # Create equation text (shifted more to the right)
+        equation = Tex("y = mx + c").scale(2.2).to_corner(UL).shift(RIGHT*2)
+        
+        # Show the line and equation
+        self.play(ShowCreation(line))
+        self.play(Write(equation))
+        self.wait(1)
+        
+        # Transform to beta version (using different variable names)
+        beta_equation = Tex(r"y = \beta_0 + \beta_1 x").scale(2.2).to_corner(UL).shift(RIGHT*2)
+        self.play(Transform(equation, beta_equation))
+        self.wait(1)
+        
+        # Transform back to y = mx + c form
+        original_equation = Tex("y = mx + c").scale(2.2).to_corner(UL).shift(RIGHT*2)
+        self.play(Transform(equation, original_equation))
+        self.wait(1)
+        
+        # Create a separate equation for highlighting to avoid indexing issues
+        highlight_equation = equation
+        
+        # Highlight the 'm' term with green rectangle
+        m_highlight = SurroundingRectangle(
+            highlight_equation[3], 
+            color="#00FF00",  # Pure green hex code
+            stroke_width=5.6,
+            buff=0.1
+        )
+        
+        self.play(ShowCreation(m_highlight))
+        self.wait(1)
+        
+        # Show how slope affects the line by changing angle
+        # Store original line
+        original_line = line.copy()
+        
+        # Create steeper line (1/5 smaller range)
+        steep_line = axes.get_graph(lambda x: 1.2 * x + c_value, color=YELLOW, stroke_width=6, x_range=[0, 15])
+        self.play(Transform(line, steep_line))
+        self.wait(1)
+        
+        # Create flatter line (1/5 smaller range)
+        flat_line = axes.get_graph(lambda x: 0.2 * x + c_value, color=YELLOW, stroke_width=6, x_range=[0, 15])
+        self.play(Transform(line, flat_line))
+        self.wait(1)
+        
+        # Back to original slope
+        self.play(Transform(line, original_line))
+        self.wait(1)
+        m_highlight1 = SurroundingRectangle(
+            highlight_equation[-1], 
+            color="#00FF00",  # Pure green hex code
+            stroke_width=5.6,
+            buff=0.1
+        )
+        self.play(Transform(m_highlight, m_highlight1))
+        
+        # Show the c term (y-intercept) with brace
+        # Find the y-intercept point
+        y_intercept_point = axes.coords_to_point(0, c_value)
+        origin_point = axes.coords_to_point(0, 0)
+        
+        # Create brace between origin and y-intercept
+        brace = Brace(
+            Line(origin_point, y_intercept_point),
+            direction=LEFT,
+            buff=0.2
+        ).shift(LEFT*0.2)
+        
+        brace_text = brace.get_text("c").scale(1.45).shift(LEFT*0.29)
+        
+        self.play(ShowCreation(brace))
+        self.play(Write(brace_text))
+        self.wait(2)
+        
+        # Fade out all texts and braces except the graph
+        fade_out_group = VGroup(equation, m_highlight, brace, brace_text,line )
+        self.play(FadeOut(fade_out_group))
+        self.wait(2)
+        
+        # Keep only the axes and line
+        self.wait(1)
