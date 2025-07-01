@@ -661,3 +661,137 @@ class MathRegressionSimple(Scene):
         )
 
         self.wait(2)
+
+
+class LinearRegressionMatrixClean(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.9)
+
+        # Long explicit equation
+        eq1 = Tex(r"y = m_1x_1 + m_2x_2 + \dots + m_nx_n + c").scale(1.2*1.1*1.1)
+        self.play(Write(eq1))
+        self.wait(1.5)
+        self.play(eq1.animate.shift(UP * 2.33))
+        self.wait(2)
+
+        # Matrix form
+        # Matrix equation
+
+        matrix_eq = Tex(
+    r"y = \begin{bmatrix} m_1 \\ m_2 \\ \cdot \\  \cdot \\ m_n \end{bmatrix}^T"
+    r"\begin{bmatrix} x_1 \\ x_2 \\ \cdot \\  \cdot \\ x_n \end{bmatrix} + c"
+).scale(1.1*1.1).next_to(eq1, DOWN, buff=1)
+
+
+        self.play(TransformFromCopy(eq1, matrix_eq))
+        self.wait(2)
+
+
+        # Compact matrix equation
+        compact_eq = Tex(
+            r"y = \mathbf{w}^T \mathbf{x} + c"
+        ).scale(1.7).next_to(matrix_eq, DOWN, buff=1)
+
+        self.play(TransformFromCopy(matrix_eq, compact_eq), self.camera.frame.animate.shift(DOWN * 2))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(DOWN*4.2))
+
+        self.wait(2)
+
+        # Start from single point equation (reusing compact_eq)
+        single_pred_eq = Tex(
+            r"\hat{y} = \mathbf{w}^T \mathbf{x} + c"
+        ).scale(1.5).next_to(compact_eq, DOWN, buff=1)
+
+        self.play(Write(single_pred_eq))
+        self.wait(2)
+
+
+        # Show stacked predictions
+        stacked_eq = Tex(
+    r"\begin{aligned}"
+    r"\hat{y}^{(1)} &= \mathbf{w}^T \mathbf{x}^{(1)} + c \\"
+    r"\hat{y}^{(2)} &= \mathbf{w}^T \mathbf{x}^{(2)} + c \\"
+    r"&\cdots \\"
+    r"\hat{y}^{(n)} &= \mathbf{w}^T \mathbf{x}^{(n)} + c"
+    r"\end{aligned}"
+).scale(1.1).move_to(single_pred_eq).shift(DOWN*1)
+        
+
+        self.play(ReplacementTransform(single_pred_eq, stacked_eq))
+        self.wait(3)
+
+        # Show vector form of predictions
+        vector_yhat = Tex(
+    r"\hat{\mathbf{y}} = X\mathbf{w} + c"
+).scale(1.7).move_to(stacked_eq)
+        
+        self.play(ReplacementTransform(stacked_eq, vector_yhat),self.camera.frame.animate.shift(DOWN*2.77))
+
+
+        m1 = Tex(
+    r"\hat{\mathbf{y}} = \begin{bmatrix} \hat{y}^{(1)} \\ \hat{y}^{(2)} \\ \cdots \\ \hat{y}^{(d)} \end{bmatrix}"
+).scale(1.3).next_to(vector_yhat, DOWN, buff=1).shift(LEFT*2.4+DOWN*0.5)
+
+        m2 = Tex(
+    r"X = \begin{bmatrix} (\mathbf{x}^{(1)})^T \\ (\mathbf{x}^{(2)})^T \\ \cdots \\ (\mathbf{x}^{(d)})^T \end{bmatrix}"
+).scale(1.1).next_to(m1, RIGHT, buff=1)
+        
+        self.play(FadeIn(m1), FadeIn(m2))
+
+
+        self.wait(2)
+
+        loss_eq = Tex(
+    r"L = \frac{1}{n}\sum_{i=1}^{n}(y^{(i)} - \hat{y}^{(i)})^2"
+).scale(1.8).move_to(VGroup(vector_yhat, m1, m2))
+        
+        self.play(ReplacementTransform(VGroup(vector_yhat,m1,m2), loss_eq),)
+
+        self.wait(2)
+
+        # Vector form loss equation
+        loss_vector_eq = Tex(
+    r"L = \frac{1}{n}\left\lVert \mathbf{y} - (X\mathbf{w} + c) \right\rVert^2"
+).scale(1.6).move_to(loss_eq)
+
+        self.play(ReplacementTransform(loss_eq, loss_vector_eq))
+        self.wait(3)
+
+
+
+        self.play(self.camera.frame.animate.shift(RIGHT*21))
+
+        title = Text("Gradient Descent", weight=BOLD).scale(1.2).to_edge(UP).shift(RIGHT*21+DOWN*9.5)
+
+        m_eq = Tex(r"w_{new} = w_{old} - \alpha \frac{\partial L}{\partial w}").next_to(title, DOWN, buff=0.7).scale(1.6).shift(DOWN*0.9)
+        c_eq = Tex(r"c_{new} = c_{old} - \alpha \frac{\partial L}{\partial c}").next_to(m_eq, DOWN, buff=0.7).scale(1.6).shift(DOWN*0.27)
+
+        self.play(ShowCreation(title))
+
+        self.wait(2)
+
+        self.play(
+            Write(m_eq),
+            Write(c_eq),
+            run_time=1
+        )
+
+        self.wait(2)
+
+
+        rect = SurroundingRectangle(m_eq[:4], color=YELLOW, stroke_width=5).scale(1.2)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(c_eq[:4], color=YELLOW, stroke_width=5).scale(1.2)))
+
+        self.wait(2)
+
+        self.play(Uncreate(rect))
+
+        self.wait(2)
