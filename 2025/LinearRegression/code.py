@@ -486,3 +486,178 @@ class VisualRegression(Scene):
     def calculate_mse(self, xs, ys, slope, intercept):
         preds = slope * xs + intercept
         return np.mean((ys - preds) ** 2)
+
+
+class MathRegressionSimple(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.5)
+
+        # Create axes
+        axes = Axes(
+            x_range=[0, 15],
+            y_range=[0, 8],
+            axis_config={"color": WHITE, "include_ticks": False, "include_numbers": False, "stroke_width": 4.2},
+        )
+        self.play(ShowCreation(axes))
+        x_label = Text("x").next_to(axes.x_axis, DOWN).shift(RIGHT * 7.6 + DOWN * 0.4).scale(1.6)
+        y_label = Text("y").next_to(axes.y_axis, UP).shift(UP * 0.33).scale(1.6)
+        self.play(Write(x_label), Write(y_label))
+        self.wait(1)
+
+        # Generate few points
+        np.random.seed(42)
+        num_points = 5
+        x_coords = np.linspace(2, 13, num_points)
+        true_slope = 0.4
+        true_intercept = 1.5
+        noise = np.random.normal(0, 0.6, num_points)
+        y_coords = np.clip(true_slope * x_coords + true_intercept + noise, 0.5, 7.5)
+
+        # Create and show all dots in green
+        dots = VGroup(*[
+            Dot(point=axes.coords_to_point(xi, yi), radius=0.24).set_color("#00FF00")
+            for xi, yi in zip(x_coords, y_coords)
+        ])
+        self.play(ShowCreation(dots), run_time=2)
+        self.wait(1)
+
+        # Line
+        slope_tracker = ValueTracker(0.1)
+        intercept_tracker = ValueTracker(3.6)
+        line = axes.get_graph(
+            lambda x: slope_tracker.get_value() * x + intercept_tracker.get_value(),
+            x_range=[0, 15], color=YELLOW, stroke_width=6
+        )
+        self.play(ShowCreation(line))
+        self.wait(1)
+
+        # Create error lines
+        error_lines = VGroup()
+        for xi, yi in zip(x_coords, y_coords):
+            y_pred = slope_tracker.get_value() * xi + intercept_tracker.get_value()
+            p_pred = axes.coords_to_point(xi, y_pred)
+            p_actual = axes.coords_to_point(xi, yi)
+            line_seg = Line(p_actual, p_pred, color=WHITE, stroke_width=4).set_color(RED)
+            error_lines.add(line_seg)
+
+        self.play(LaggedStartMap(ShowCreation, error_lines, lag_ratio=0.1))
+        self.wait(1)
+
+        # Create big residual texts with indices
+        residual_texts = VGroup()
+        for idx, (xi, yi) in enumerate(zip(x_coords, y_coords), start=1):
+            y_pred = slope_tracker.get_value() * xi + intercept_tracker.get_value()
+            tex = Tex(r"y_{%d} - \hat{y}_{%d}" % (idx, idx)).scale(1.5)
+            tex.move_to(axes.coords_to_point(xi, (yi + y_pred)/2)).shift(UP*2)
+            residual_texts.add(tex)
+
+        self.play(LaggedStartMap(Write, residual_texts, lag_ratio=0.1))
+        self.wait(2)
+
+        # Create one big MSE formula
+        mse_tex = Tex(
+            r"\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2"
+        ).scale(3.0).to_edge(UP).shift(DOWN*2.2)
+
+        title = Text("Loss Function", weight=BOLD).scale(2).to_edge(UP).shift(UP)
+
+        # Transform all residual texts into this final MSE formula
+        self.play(
+            *[ReplacementTransform(res_tex, mse_tex) for res_tex in residual_texts],
+            FadeOut(line),
+            FadeOut(error_lines),
+            FadeOut(axes),
+            FadeOut(dots),
+            FadeOut(x_label),
+            FadeOut(y_label),
+            FadeIn(title),
+            run_time=2
+        )
+        self.wait(3)
+
+        mse = Tex(
+            "L(m, c) = \\frac{1}{n} \\sum_{i=1}^{n} (y_i - (mx_i + c))^2"
+        )        .scale(2.6).move_to(mse_tex)
+
+        self.play(ReplacementTransform(mse_tex, mse))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(DOWN*3.88))
+
+        # Create Tex for each variable definition
+        x_def = Tex(r"x_{i}: Input\ variable\ (feature)")
+        y_def = Tex(r"y_{i}: True\ output\ (target)")
+        m_def = Tex(r"m: Slope\ (weight)")
+        c_def = Tex(r"c: Intercept\ (bias)")
+        n_def = Tex(r"n: Number\ of\ data\ points")
+
+        # Arrange vertically
+        defs = VGroup(x_def, y_def, m_def, c_def, n_def)
+        defs.arrange(DOWN, aligned_edge=LEFT, buff=0.3)
+        defs.scale(0.9*1.677).next_to(mse, DOWN, buff=2.1).shift(UP*0.75)
+
+        # Display
+        self.play(Write(defs))
+        self.wait(3)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*21))
+
+        title = Text("Gradient Descent", weight=BOLD).scale(2).to_edge(UP).shift(RIGHT*21+DOWN*2.3)
+
+        m_eq = Tex(r"m_{i} = m_{i-1} - \alpha \frac{\partial L}{\partial m}").next_to(title, DOWN, buff=0.7).scale(2.6).shift(DOWN*2)
+        c_eq = Tex(r"c_{i} = c_{i-1} - \alpha \frac{\partial L}{\partial c}").next_to(m_eq, DOWN, buff=0.7).scale(2.6).shift(DOWN*1.27)
+
+        self.play(ShowCreation(title))
+
+        self.wait(2)
+
+        self.play(
+            Write(m_eq),
+            Write(c_eq),
+            run_time=1
+        )
+
+        self.wait(2)
+
+        self.play(
+            m_eq[0:2].animate.set_color(YELLOW),
+            c_eq[0:2].animate.set_color(YELLOW),
+        )
+
+        self.wait(2)
+
+        self.play(
+            m_eq[0:2].animate.set_color(WHITE),
+            c_eq[0:2].animate.set_color(WHITE),
+            m_eq[3:7].animate.set_color(YELLOW),
+            c_eq[3:7].animate.set_color(YELLOW),
+        )
+
+        self.wait(2)
+
+        self.play(
+            m_eq[3:7].animate.set_color(WHITE),
+            c_eq[3:7].animate.set_color(WHITE),
+            m_eq[8].animate.set_color(YELLOW),
+            c_eq[8].animate.set_color(YELLOW),
+        )
+
+        self.wait(2)
+
+        self.play(
+            m_eq[8].animate.set_color(WHITE),
+            c_eq[8].animate.set_color(WHITE),
+            m_eq[9:].animate.set_color(YELLOW),
+            c_eq[9:].animate.set_color(YELLOW),
+        )
+
+        self.wait(2)
+
+        self.play(
+            m_eq[8].animate.set_color(WHITE),
+            c_eq[8].animate.set_color(WHITE),
+            m_eq[9:].animate.set_color(WHITE),
+            c_eq[9:].animate.set_color(WHITE),
+        )
+
+        self.wait(2)
