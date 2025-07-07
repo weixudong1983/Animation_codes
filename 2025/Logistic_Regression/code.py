@@ -204,3 +204,273 @@ class LogisticRegressionIntro(Scene):
         self.wait(2)
 
         self.wait(2)
+
+
+class LogsiticRegression(Scene):
+    def construct(self):
+
+        z = Text("z = wx + b").scale(1.9).shift(UP)
+
+        self.play(ShowCreation(z))
+
+        self.wait(2)
+
+        self.play(z[3].animate.set_color(YELLOW))
+
+        self.wait(2)
+
+        self.play(z[2].animate.set_color(YELLOW), z[3].animate.set_color(WHITE))
+
+        w = Text("weight").scale(1.5).next_to(z, DOWN, buff=1.5)
+        b = Text("bias").scale(1.5).next_to(z, DOWN, buff=1.5)
+
+        self.play(ShowCreation(w))
+
+        self.wait(2)
+
+        self.play(z[2].animate.scale(1.5))
+        self.wait(2)
+        self.play(z[2].animate.scale(1/1.5))
+        self.play(z[2].animate.scale(0.5))
+        
+        self.wait(2)
+
+
+        self.play(z[2].animate.scale((2)), )
+
+        self.play(z[2].animate.set_color(WHITE), Uncreate(w), z[-1].animate.set_color(YELLOW))
+        self.play(ShowCreation(b))
+
+        
+
+        self.wait(2)
+
+        self.play(Uncreate(b), z[-1].animate.set_color(WHITE),)
+
+        axes = Axes(
+            x_range=[0, 15],
+            y_range=[0, 8],
+            axis_config={"color": WHITE, "include_ticks": False, "include_numbers": False, "stroke_width": 4.2},
+        ).scale(0.75)
+        
+        x_label = Text("x").next_to(axes.x_axis, DOWN).shift(RIGHT*5.5+DOWN*0.1)
+        y_label = Text("z").next_to(axes.y_axis, UP)
+        
+        self.play(ReplacementTransform(z, axes), self.camera.frame.animate.shift(LEFT*0.14))
+        self.play(Write(x_label), Write(y_label))
+        self.wait(1)
+
+
+        # Create the line equation y = mx + c
+        m_value = 0.5
+        c_value = 1.5
+        
+        # Create the line function (1/5 smaller range)
+        line = axes.get_graph(lambda x: m_value * x + c_value, color=YELLOW, stroke_width=6, x_range=[0, 13])
+        
+
+        # Show the line and equation
+        self.play(ShowCreation(line))
+        self.wait(1)
+        
+
+        original_line = line.copy()
+        
+        # Create steeper line (1/5 smaller range)
+        steep_line = axes.get_graph(lambda x: 1.2 * x + c_value, color=YELLOW, stroke_width=6, x_range=[0, 13])
+        self.play(Transform(line, steep_line))
+        self.wait(1)
+        
+        # Create flatter line (1/5 smaller range)
+        flat_line = axes.get_graph(lambda x: 0.2 * x + c_value, color=YELLOW, stroke_width=6, x_range=[0, 13])
+        self.play(Transform(line, flat_line))
+        self.wait(1)
+        
+        # Back to original slope
+        self.play(Transform(line, original_line))
+        self.wait(1)
+
+        origin_point = axes.coords_to_point(0, 0)
+        
+        # Create brace between origin and y-intercept
+        brace =always_redraw(lambda: Brace(
+            Line(origin_point, line.get_start()),
+            direction=LEFT,
+            buff=0.2
+        ).shift(LEFT*0.06))
+        
+        brace_text = always_redraw(lambda: brace.get_text("b").scale(1).shift(LEFT*0.09))
+
+        self.play(ShowCreation(brace), Write(brace_text))
+
+        self.wait(2)
+
+        self.play(line.animate.shift(UP*2))
+        self.play(line.animate.shift(DOWN*2))
+
+        self.wait(2)
+
+        axes = Axes(
+            x_range=[-3, 3, 1],
+            y_range=[-0.5, 1.5, 0.5],
+            height=6,
+            width=8,
+            axis_config={"stroke_width": 6}
+        ).shift(RIGHT*15)
+
+        self.play(ShowCreation(axes), self.camera.frame.animate.shift(RIGHT*15+UP*0.4).scale(0.98))
+
+        x_label = Tex("z").next_to(axes.x_axis, DOWN).shift(RIGHT*4.5+DOWN*0.1).scale(1.6)
+        y_label = Tex(r"\sigma(z)").next_to(axes.y_axis, UP).scale(1.4).shift(UP*0.1)
+        
+        self.play(Write(x_label), Write(y_label))
+        self.wait(1)
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+        
+        # Show sigmoid curve
+        self.play(ShowCreation(sigmoid_curve))
+        self.wait(2)
+
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve1 = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-3*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve2 = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-1*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve3 = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2.5*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        self.play(Transform(sigmoid_curve, sigmoid_curve1))
+        self.play(Transform(sigmoid_curve, sigmoid_curve2))
+        self.play(Transform(sigmoid_curve, sigmoid_curve3))
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve1 = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-6*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve2 = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-0.6*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+
+        # Create sigmoid curve (decision boundary) with thick stroke
+        sigmoid_curve3 = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-1.5*x)),
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        self.play(Transform(sigmoid_curve, sigmoid_curve1))
+        self.play(Transform(sigmoid_curve, sigmoid_curve2))
+        self.play(Transform(sigmoid_curve, sigmoid_curve3))
+
+        self.wait(2)
+
+
+        # Create new axes for the final plot
+        final_axes = Axes(
+            x_range=[-3, 3, 1],
+            y_range=[-0.5, 1.5, 0.5],
+            height=6,
+            width=8,
+            axis_config={"stroke_width": 6}
+        ).shift(RIGHT*15)  # Same position as sigmoid_axes
+        
+        # New labels
+        x_final_label = Tex("x").next_to(final_axes.x_axis, DOWN).shift(RIGHT*4.5+DOWN*0.1).scale(1.6)
+        sigma_x_label = Tex(r"\sigma(wx+b)").next_to(final_axes.y_axis, UP).scale(1.4).shift(UP*0.1)
+        
+        # Create the final sigmoid curve as a function of x
+        final_sigmoid_curve = final_axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*(0.5*x + 1.5))),  # Using w=0.5, b=1.5 from earlier
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+        
+        # Transform the labels and curve
+        self.play(
+            Transform(x_label, x_final_label),
+            Transform(y_label, sigma_x_label),
+            Transform(sigmoid_curve, final_sigmoid_curve)
+        )
+        self.wait(3)
+        
+        final_sigmoid_curve1 = final_axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*(1.5*x + 2.5))),  # Using w=0.5, b=1.5 from earlier
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        final_sigmoid_curve2 = final_axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*(2.5*x - 0.5))),  # Using w=0.5, b=1.5 from earlier
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        final_sigmoid_curve3 = final_axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*(0.99*x - 3.5))),  # Using w=0.5, b=1.5 from earlier
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        final_sigmoid_curve4 = final_axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*(0*x + 4.5))),  # Using w=0.5, b=1.5 from earlier
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+        final_sigmoid_curve5 = final_axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-2*(-2*x + 0.5))),  # Using w=0.5, b=1.5 from earlier
+            x_range=[-3, 3],
+            color="#00FF00",
+            stroke_width=8
+        )
+
+
+        self.play(Transform(sigmoid_curve, final_sigmoid_curve1))
+        self.play(Transform(sigmoid_curve, final_sigmoid_curve2))
+        self.play(Transform(sigmoid_curve, final_sigmoid_curve3))
+        self.play(Transform(sigmoid_curve, final_sigmoid_curve4))
+        self.play(Transform(sigmoid_curve, final_sigmoid_curve5))
+
+        self.wait(2)
+
+        
