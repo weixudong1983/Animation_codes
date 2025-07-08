@@ -815,4 +815,151 @@ class LossFunction(Scene):
         self.play(ShowCreation(rect))
 
         self.wait(2)
+
+
+class Simulation(Scene):
+    def construct(self):
+        self.camera.frame.shift(DOWN * 0.2 + LEFT*0.5)
+
+        # Axes
+        axes = Axes(
+            x_range=[0, 100, 20],
+            y_range=[0, 1.1, 0.5],
+            height=6,
+            width=10,
+            axis_config={"stroke_width": 6, "include_tip": True},
+        )
+
+        x_label = Text("Amount Of Cholesterol", font_size=32).next_to(axes.x_axis, DOWN).shift(DOWN * 0.1).set_color(RED)
+        y_label = Text("Disease Probability", font_size=32).next_to(axes.y_axis, LEFT).rotate(PI / 2).shift(RIGHT * 1.77).set_color(GREEN)
+
+        self.play(ShowCreation(axes), Write(x_label), Write(y_label))
+        self.wait(1)
+
+        # Generate training data
+        np.random.seed(42)
+        n_points = 30
+
+        chol_low = np.random.uniform(10, 40, n_points // 2)
+        chol_high = np.random.uniform(60, 90, n_points // 2)
+
+        y_low = np.zeros(n_points // 2)  # Class 0
+        y_high = np.ones(n_points // 2)  # Class 1
+
+        cholesterol_values = np.concatenate([chol_low, chol_high])
+        labels = np.concatenate([y_low, y_high])
+
+        # Shuffle
+        indices = np.arange(n_points)
+        np.random.shuffle(indices)
+        cholesterol_values = cholesterol_values[indices]
+        labels = labels[indices]
+
+        data_points = []
+        for i in range(n_points):
+            x_coord = cholesterol_values[i]
+            y_coord = labels[i]
+
+            point_pos = axes.c2p(x_coord, y_coord)
+            dot = Dot(point_pos, radius=0.12, color=YELLOW).set_color(YELLOW)
+            data_points.append(dot)
+
+        self.play(
+            LaggedStart(
+                *[FadeIn(dot) for dot in data_points],
+                lag_ratio=0.05,
+                run_time=3
+            )
+        )
+
+        self.wait(1)
+
+        # Start with random sigmoid
+        sigmoid_curve = axes.get_graph(
+            lambda x: 1 / (1 + np.exp(-(0.1 * (x-15) - 3))),
+            x_range=[0, 100],
+            color="#00FF00",
+            stroke_width=8
+        )
+        self.play(ShowCreation(sigmoid_curve))
+        self.wait(0.5)
+
+        # Iterate step by step sigmoid improvements
+        sig_params = [
+            (0.12, 5),
+            (0.18, 7),
+            (0.23, 9),
+            (0.26, 11),
+            (0.38, 13),
+            
+
+        ]
+
+        for a, c in sig_params:
+            new_curve = axes.get_graph(
+                lambda x, a=a, c=c: 1 / (1 + np.exp(-a * ((x-15) - 50 + c))),
+                x_range=[0, 100],
+                color="#00FF00",
+                stroke_width=8
+            )
+            self.play(Transform(sigmoid_curve, new_curve), run_time=0.8)
+
+        self.wait(1.5)
+
+
+
+
+        # Fade out training dots
+        self.play(*[FadeOut(dot) for dot in data_points])
+        self.wait(1)
+
+
+
+        # Create regions divided by threshold 0.5
+        threshold_line = DashedLine(
+            start=axes.c2p(0, 0.5),
+            end=axes.c2p(100, 0.5),
+            color=WHITE,
+            stroke_width=2
+        )
         
+
+        self.play(
+            ShowCreation(threshold_line),
+        )
+        self.wait(1)
+        
+        dot = Dot(radius=0.2).set_color(YELLOW).move_to(axes.c2p(50, 0))
+        self.play(ShowCreation(dot))
+        
+        # Vertical dashed line from dot to curve
+        predicted_y = 1 / (1 + np.exp(-0.38 * ((50-15) - 50 + 13)))
+        curve_point = axes.c2p(50, predicted_y)
+        
+        vertical_line = DashedLine(
+            start=axes.c2p(50, 0),
+            end=curve_point,
+            color=BLUE,
+            stroke_width=3
+        ).set_z_index(-1)
+        
+        # Horizontal dashed line from curve to y-axis
+        horizontal_line = DashedLine(
+            start=curve_point,
+            end=axes.c2p(0, predicted_y),
+            color=BLUE,
+            stroke_width=5
+        ).set_z_index(-1)
+        
+        self.play(ShowCreation(vertical_line))
+
+        a = dot.copy().scale(0.7).set_color(RED).move_to(axes.c2p(50, predicted_y))
+        self.play(GrowFromCenter(a))
+
+        self.play(ShowCreation(horizontal_line))
+        
+        a = dot.copy().set_color("#eeff00").move_to(axes.c2p(0, predicted_y))
+
+        self.play(GrowFromCenter(a))
+
+        self.wait(2)
