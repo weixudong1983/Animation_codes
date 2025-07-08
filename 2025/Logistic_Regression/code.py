@@ -473,4 +473,346 @@ class LogsiticRegression(Scene):
 
         self.wait(2)
 
+
+class LossFunction(Scene):
+    def construct(self):
+        # Initial equations
+        true_y = Tex("y")
+        true_y.to_edge(UP).shift(DOWN*2).scale(2.2)
+        
+        # Predicted output
+        pred_y = Tex("\\hat{y} = \\sigma(wx + b)").next_to(true_y, DOWN, buff=1.3).scale(2.2).shift(DOWN)
+        
+        self.play(Write(true_y))
+        self.wait(2)
+        self.play(Write(pred_y))
+        self.wait(2)
+        
+        # Transform to MSE loss function
+        mse_loss = Tex("L = \\frac{1}{2}(y - \\hat{y})^2")
+        mse_loss.scale(2)
+        mse_loss.move_to(ORIGIN)
+        
+        # Animate transformation to MSE
+        self.play(
+            ReplacementTransform(VGroup(true_y, pred_y), mse_loss),
+        )
+        self.wait(2)
+        
+        # Substitute the sigmoid term
+        expanded_loss = Tex("L = \\frac{1}{2}(y - \\sigma(wx + b))^2")
+        expanded_loss.scale(2)
+        expanded_loss.move_to(ORIGIN)
+        
+        self.play(Transform(mse_loss, expanded_loss))
+        self.wait(2)
+
+        brace = Brace(mse_loss[8:-2], DOWN, buff=0.4)
+        temp = brace.get_text("MSE Loss Term").shift(DOWN*0.32).set_color("#FF0000")
+        
+        self.play(
+            GrowFromCenter(brace),
+            Write(temp)
+        )
+        self.wait(2)
+
+        # Create axes with proper range that matches the function
+        axes = Axes(
+            x_range=[0, 10, 2],
+            y_range=[0, 16, 2],  # Increased y-range for deeper valleys
+            height=6,
+            width=10,
+            axis_config={"stroke_width": 4, "include_tip": True}
+        ).shift(RIGHT*15)
+
+        self.play(ShowCreation(axes), self.camera.frame.animate.shift(RIGHT*15))
+        self.wait(1)
+        
+        # Create a curve
+        demo = axes.get_graph(
+            lambda x: func(x),
+            x_range=[0, 10],  # Reduced x-range to match axes
+            color=RED,
+            stroke_width=8
+        )
+        
+        # Show sigmoid curve
+        self.play(ShowCreation(demo))
+        self.wait(2)
+        
+        # Create a yellow dot that will roll down the curve
+        dot = Dot(radius=0.2).set_color(YELLOW)
+        # Start the dot at a peak (around x=4.7, which is near a local maximum)
+        start_x = 7.23
+        start_point = axes.c2p(start_x, func(start_x))
+        dot.move_to(start_point)
+        
+        # Show the dot appearing
+        self.play(FadeIn(dot))
+        self.wait(1)
+        
+        # Create a value tracker to animate the dot's position
+        x_tracker = ValueTracker(start_x)
+        
+        # Update function to keep the dot on the curve
+        def update_dot(mob):
+            x_val = x_tracker.get_value()
+            y_val = func(x_val)
+            new_point = axes.c2p(x_val, y_val)
+            mob.move_to(new_point)
+        
+        dot.add_updater(update_dot)
+        
+        # Animate the dot rolling down to a local minimum
+        # It will get stuck at the local minimum around x=6.3
+        self.play(
+            x_tracker.animate.set_value(4.5),
+            rate_func=smooth,
+            run_time=2
+        )
+        self.play(
+            x_tracker.animate.set_value(5.4),
+            rate_func=smooth,
+            run_time=1.2
+        )
+        self.wait(1)
+        
+        # Add a text label showing it's stuck at local minimum
+        stuck_text = Text("Stuck at Local Minimum!", font_size=36, color=YELLOW)
+        stuck_text.next_to(dot, UP, buff=1.5).shift(UP*1.5)
+        
+        self.play(Write(stuck_text))
+        self.wait(2)
+
+        arrow = Arrow(dot.get_center(), dot.get_center()+DOWN*1.4,stroke_width=7, color=YELLOW).set_color(GREEN).shift(DOWN*0.2).rotate(PI)
+
+        self.play(ShowCreation(arrow))
+
+        self.wait(2)
+
+        self.play(arrow.animate.shift(UP*0.99+LEFT*3.1).rotate(PI))
+
+        self.wait(2)
+
+        self.play(FadeOut(arrow), FadeOut(stuck_text), FadeOut(dot))
+
+        demo1 = axes.get_graph(
+            lambda x: (x-4)**2*0.6 + 1 ,
+            x_range=[0.5, 10],  # Reduced x-range to match axes
+            color=GREEN,
+            stroke_width=8
+        )
+
+        self.play(Transform(demo, demo1))
+        
+        self.wait(2)
+
+        # Create a new dot for the green function
+        dot2 = Dot(radius=0.2).set_color(RED)
+        # Start the dot at a higher point on the new function
+        start_x2 = 7.5
+        start_point2 = axes.c2p(start_x2, new_func(start_x2))
+        dot2.move_to(start_point2)
+        
+        # Show the new dot appearing
+        self.play(FadeIn(dot2))
+        self.wait(1)
+        
+        # Create a new value tracker for the second dot
+        x_tracker2 = ValueTracker(start_x2)
+        
+        # Update function to keep the dot on the new curve
+        def update_dot2(mob):
+            x_val = x_tracker2.get_value()
+            y_val = new_func(x_val)
+            new_point = axes.c2p(x_val, y_val)
+            mob.move_to(new_point)
+        
+        dot2.add_updater(update_dot2)
+        
+        # Animate the dot rolling down to the global minimum at x=4
+        self.play(
+            x_tracker2.animate.set_value(4.0),
+            rate_func=smooth,
+            run_time=3
+        )
+        self.wait(1)
+        
+        # Add a text label showing it reached the global minimum
+        success_text = Text("Reached Global Minimum!", font_size=36, color=GREEN)
+        success_text.next_to(dot2, UP, buff=1.5).shift(UP*1.5)
+        
+        self.play(Write(success_text))
+        self.wait(2)
+
+        self.play(FadeOut(success_text), FadeOut(dot2), FadeOut(mse_loss),
+                  self.camera.frame.animate.shift(LEFT*14.5+DOWN*0.15), FadeOut(temp), FadeOut(brace))
+        
+        # Create the TeX object
+        formula = Tex(
+            r"""
+            \begin{aligned}
+            y = 1 &\Longrightarrow L = -\log(\hat{y}) \\
+            y = 0 &\Longrightarrow L = -\log(1 - \hat{y})
+            \end{aligned}
+            """
+        ).shift(UP*2.3).scale(1.5)
+        
+
+        self.play(Write(formula))
+        self.wait(2)
+
+        arrow = Arrow(formula.get_right(), formula.get_right()+RIGHT*1.6, stroke_width=7, color=YELLOW).set_color(YELLOW).rotate(PI).shift(UP*0.57+LEFT*0.8)
+        self.play(ShowCreation(arrow))
+
+        self.wait(2)
+
+        # Correct axes
+        axes = Axes(
+            x_range=[0, 1.2, 1],
+            y_range=[0, 2,9],  
+            height=6,
+            width=10,
+            axis_config={"stroke_width": 4, "include_ticks": True, "include_tip": True }
+        ).next_to(formula, DOWN, buff=0.3).scale(0.6).shift(UP * 0.4 + RIGHT * 1)
+        
+        x_label = Tex(r"\hat{y}").next_to(axes.x_axis, DOWN).scale(1.2).shift(RIGHT * 3.5 + UP * 0.299)
+        y_label = Tex("Loss").next_to(axes.y_axis, UP).shift(LEFT * 0.83 + DOWN * 0.66).scale(1.1)
+        
+        self.play(ShowCreation(axes))
+        one = Tex("1").next_to(x_label, LEFT).shift(LEFT*1.1 + 0.082*DOWN)
+        self.play(Write(x_label), Write(y_label), Write(one))
+        self.wait(1)
+
+
+        log_graph = axes.get_graph(
+            lambda x: -np.log(x),
+            x_range=[0.1, 0.99],
+            color="#00DDFF",
+            stroke_width=6
+        )
+        
+        # Add the graph with animation
+        self.play(ShowCreation(log_graph))
+        self.wait(2)
+
+        # Create a new dot for the green function
+        dot2 = Dot(radius=0.2).set_color(YELLOW)
+        # Start the dot at a higher point on the new function
+        start_x2 = 0.5
+        start_point2 = axes.c2p(start_x2, -np.log(start_x2))
+        dot2.move_to(start_point2)
+        
+        # Show the new dot appearing
+        self.play(FadeIn(dot2))
+        self.wait(1)
+        
+        # Create a new value tracker for the second dot
+        x_tracker2 = ValueTracker(start_x2)
+        
+        # Update function to keep the dot on the new curve
+        def update_dot2(mob):
+            x_val = x_tracker2.get_value()
+            y_val = -np.log(x_val)
+            new_point = axes.c2p(x_val, y_val)
+            mob.move_to(new_point)
+        
+        dot2.add_updater(update_dot2)
+        
+        # Animate the dot rolling down to the global minimum at x=4
+        self.play(
+            x_tracker2.animate.set_value(0.98),
+            rate_func=smooth,
+            run_time=1.3
+        )
+        self.wait(2)  
+
+        self.play(
+            x_tracker2.animate.set_value(0.1),
+            rate_func=smooth,
+            run_time=1.3
+        )
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(dot2, log_graph)))
+        self.play(arrow.animate.shift(RIGHT+DOWN*1.1))
+
+        log_graph = axes.get_graph(
+            lambda x: -np.log(1-x),
+            x_range=[0, 0.92],
+            color="#00DDFF",
+            stroke_width=6
+        )
+        
+        # Add the graph with animation
+        self.play(ShowCreation(log_graph))
+        self.wait(2)
+
+        # Create a new dot for the green function
+        dot2 = Dot(radius=0.2).set_color(YELLOW)
+        # Start the dot at a higher point on the new function
+        start_x2 = 0.5
+        start_point2 = axes.c2p(start_x2, -np.log(1-start_x2))
+        dot2.move_to(start_point2)
+        
+        # Show the new dot appearing
+        self.play(FadeIn(dot2))
+        self.wait(1)
+        
+        # Create a new value tracker for the second dot
+        x_tracker2 = ValueTracker(start_x2)
+        
+        # Update function to keep the dot on the new curve
+        def update_dot2(mob):
+            x_val = x_tracker2.get_value()
+            y_val = -np.log(1-x_val)
+            new_point = axes.c2p(x_val, y_val)
+            mob.move_to(new_point)
+        
+        dot2.add_updater(update_dot2)
+        
+        # Animate the dot rolling down to the global minimum at x=4
+        self.play(
+            x_tracker2.animate.set_value(0.9),
+            rate_func=smooth,
+            run_time=1.3
+        )
+        self.wait(2)  
+
+        self.play(
+            x_tracker2.animate.set_value(0),
+            rate_func=smooth,
+            run_time=1.3
+        )
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(log_graph, dot2, axes, y_label, x_label, one, arrow)))
+
+        loss = Tex(
+    r"L(y, \hat{y}) = - \bigl[ y \log(\hat{y}) + (1 - y) \log(1 - \hat{y}) \bigr]"
+).scale(1.4).shift(DOWN*0.9+RIGHT*0.5)
+        
+        self.play(TransformFromCopy(formula, loss), self.camera.frame.animate.shift(UP*0.7))
+
+        self.wait(2)
+
+        cost = Tex(
+    r"J(w, b) = \frac{1}{m}\sum_{i=1}^m L(\hat{y}^{(i)}, y^{(i)})"
+).scale(1.6).move_to(loss)
+        
+        self.play(ReplacementTransform(loss, cost))
+
+        self.wait(2)
+
+        temp = Tex(
+    r"J(w, b) = -\frac{1}{m}\sum_{i=1}^m \Bigl[ y^{(i)} \log(\hat{y}^{(i)}) "
+    r"+ (1 - y^{(i)}) \log(1 - \hat{y}^{(i)}) \Bigr]"
+).move_to(cost)
+        
+        self.play(Transform(cost, temp))
+
+        rect = SurroundingRectangle(cost, color=YELLOW, stroke_width=5).scale(1.04)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
         
