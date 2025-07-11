@@ -1,5 +1,132 @@
 from manimlib import *
 
+class Example(Scene):
+    def construct(self):
+
+        self.camera.frame.shift(UP*0.7+LEFT*0.9).scale(0.8)
+
+
+
+        # Create larger 2x2 grid using rectangles
+        cell_size = 2
+        cells = VGroup()
+        for i in range(2):
+            for j in range(2):
+                rect = Square(side_length=cell_size)
+                rect.shift(RIGHT * j * cell_size + DOWN * i * cell_size)
+                cells.add(rect)
+
+        # Center whole matrix
+        cells.move_to(ORIGIN)
+        self.play(LaggedStartMap(ShowCreation, cells, lag_ratio=0.2))
+        self.wait(1)
+
+        # Add row and column labels
+        actual = Text("Actual").scale(0.8).next_to(cells, LEFT, buff=0.8).shift(LEFT)
+        actual.rotate(PI / 2)  # Rotate 90 degrees left
+
+        predicted = Text("Predicted").scale(0.7).next_to(cells, UP, buff=0.7)
+        predicted.shift(UP * 0.3)  # Move slightly up
+
+        actual_pos = Text("Cancer").scale(0.5).set_color(RED)
+        actual_neg = Text("No Cancer").scale(0.5).set_color(GREEN)
+        predicted_pos = Text("Cancer").scale(0.5).set_color(RED)
+        predicted_neg = Text("No Cancer").scale(0.5).set_color(GREEN)
+
+        # Positioning row labels
+        actual_pos.next_to(cells[0], LEFT, buff=0.3)
+        actual_neg.next_to(cells[2], LEFT, buff=0.3)
+
+        # Positioning column labels
+        predicted_pos.next_to(cells[0], UP, buff=0.3)
+        predicted_neg.next_to(cells[1], UP, buff=0.29)
+
+        self.play(Write(actual_pos), Write(actual_neg), Write(predicted_pos), Write(predicted_neg), Write(actual), Write(predicted))
+        self.wait(2)
+
+        # Fill TP cell with number
+        tp_fill = cells[0].copy().set_fill(color=GREEN, opacity=0.6)
+        tp_text = Text("85", font_size=60, color=WHITE).move_to(cells[0])
+        tp_label = Text("TP", font_size=24, color=WHITE).next_to(tp_text, DOWN, buff=0.2)
+        self.play(FadeIn(tp_fill), FadeIn(tp_text), FadeIn(tp_label), run_time=0.5)
+
+        # Fill FN cell with number
+        fn_fill = cells[1].copy().set_fill(color=RED, opacity=0.6)
+        fn_text = Text("15", font_size=60, color=WHITE).move_to(cells[1])
+        fn_label = Text("FN", font_size=24, color=WHITE).next_to(fn_text, DOWN, buff=0.2)
+        self.play(FadeIn(fn_fill), FadeIn(fn_text), FadeIn(fn_label), run_time=0.5)
+
+        # Fill FP cell with number
+        fp_fill = cells[2].copy().set_fill(color=ORANGE, opacity=0.6)
+        fp_text = Text("50", font_size=60, color=WHITE).move_to(cells[2])
+        fp_label = Text("FP", font_size=24, color=WHITE).next_to(fp_text, DOWN, buff=0.2)
+        self.play(FadeIn(fp_fill), FadeIn(fp_text), FadeIn(fp_label), run_time=0.5)
+
+        # Fill TN cell with number
+        tn_fill = cells[3].copy().set_fill(color=BLUE, opacity=0.6)
+        tn_text = Text("850", font_size=60, color=WHITE).move_to(cells[3])
+        tn_label = Text("TN", font_size=24, color=WHITE).next_to(tn_text, DOWN, buff=0.2)
+        self.play(FadeIn(tn_fill), FadeIn(tn_text), FadeIn(tn_label), run_time=0.5)
+
+        self.wait(2)
+
+        # Move camera and fade out labels
+        self.play(
+            self.camera.frame.animate.scale(1.2).shift(RIGHT*4.8+DOWN*0.35), 
+            FadeOut(VGroup(actual, predicted, actual_neg, actual_pos, predicted_neg, predicted_pos))
+        )
+
+
+
+        # Show calculations
+        calc_title = Text("Model Performance Metrics", font_size=36, color=BLUE).shift(RIGHT*6.5+UP*3.4)
+        self.play(Write(calc_title))
+        self.wait(1)
+
+        # Accuracy
+        accuracy_label = Text("Accuracy", font_size=32, color=YELLOW).shift(RIGHT*7+UP*1.5).shift(LEFT*2).scale(1.3)
+        accuracy_value = Text("93.5%", font_size=28, color=WHITE).next_to(accuracy_label, DOWN, buff=0.3).scale(1.3)
+        self.play(Write(accuracy_label), Write(accuracy_value))
+        self.wait(1)
+
+        # Precision
+        precision_label = Text("Precision", font_size=32, color=YELLOW).next_to(accuracy_label, RIGHT, buff=1.1).scale(1.3)
+        precision_value = Text("63.0%", font_size=28, color=WHITE).next_to(precision_label, DOWN, buff=0.2).scale(1.3)
+        self.play(Write(precision_label), Write(precision_value))
+        self.wait(1)
+
+        # Recall (Sensitivity)
+        recall_label = Text("Recall", font_size=32, color=YELLOW).scale(1.3).next_to(accuracy_label, DOWN, buff=1.2)
+        recall_value = Text("85.0%", font_size=28, color=WHITE).next_to(recall_label, DOWN, buff=0.2).scale(1.3)
+        self.play(Write(recall_label), Write(recall_value))
+        self.wait(1)
+
+        # Specificity
+        specificity_label = Text("Specificity", font_size=32, color=YELLOW).scale(1.3).next_to(recall_label, RIGHT, buff=0.7)
+        specificity_value = Text("94.4%", font_size=28, color=WHITE).next_to(specificity_label, DOWN, buff=0.2).scale(1.3)
+        self.play(Write(specificity_label), Write(specificity_value))
+        self.wait(1)
+
+        # F1-score
+        f1_label = Text("F1-Score", font_size=32, color=YELLOW).scale(1.3).next_to(VGroup(specificity_value, recall_value), DOWN, buff=0.8)
+        f1_value = Text("72.3%", font_size=28, color=WHITE).next_to(f1_label, DOWN, buff=0.3).scale(1.3)
+        self.play(Write(f1_label), Write(f1_value))
+        self.wait(2)
+
+        # Add interpretation box
+        interpretation = VGroup(
+            Text("Clinical Interpretation:", font_size=24, color=ORANGE),
+            Text("• High Specificity: Few false alarms", font_size=20, color=WHITE),
+            Text("• Good Sensitivity: Catches most cancers", font_size=20, color=WHITE),
+            Text("• Moderate Precision: Some false positives", font_size=20, color=WHITE)
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.3).shift(RIGHT*21).scale(1.75)
+
+        
+        self.play(LaggedStartMap(FadeIn, interpretation, lag_ratio=0.5), self.camera.frame.animate.shift(RIGHT*17))
+        self.wait(3)
+
+
+
 class ConfusionMatrixAnimation(Scene):
     def construct(self):
 
