@@ -1,5 +1,110 @@
 from manimlib import *
 
+class GeneralCase(Scene):
+    
+    def construct(self):
+
+        self.camera.frame.shift(UP*0.4).scale(0.57*0.9*0.9).shift(LEFT*0.5)
+
+        # Create general n x n matrix using Tex for proper subscripts
+        matrix_elements = [
+            [Tex("a_{11}", font_size=32), Tex("a_{12}", font_size=32), Tex("\\cdots", font_size=32), Tex("a_{1n}", font_size=32)],
+            [Tex("a_{21}", font_size=32), Tex("a_{22}", font_size=32), Tex("\\cdots", font_size=32), Tex("a_{2n}", font_size=32)],
+            [Tex("\\cdots", font_size=32), Tex("\\cdots", font_size=32), Tex("\\cdots", font_size=32), Tex("\\cdots", font_size=32)],
+            [Tex("a_{n1}", font_size=32), Tex("a_{n2}", font_size=32), Tex("\\cdots", font_size=32), Tex("a_{nn}", font_size=32)]
+        ]
+
+        # Create matrix with brackets
+        matrix = Matrix(matrix_elements, bracket_h_buff=0.1, bracket_v_buff=0.1)
+        matrix.scale(0.8)
+        
+        self.play(Write(matrix))
+        self.wait(1)
+
+        # Add labels using Text for regular text
+        actual = Text("Actual").scale(0.5).next_to(matrix, LEFT, buff=0.8).shift(LEFT*0.5)
+        actual.rotate(PI / 2)
+
+        predicted = Text("Predicted").scale(0.5).next_to(matrix, UP, buff=0.7)
+        predicted.shift(UP * 0.3)
+
+        # Add class labels using Tex for subscripts
+        class_labels_left = VGroup(
+            Tex("\\text{Class } 1", font_size=24),
+            Tex("\\text{Class } 2", font_size=24),
+            Tex("\\cdots", font_size=24),
+            Tex("\\text{Class } n", font_size=24)
+        ).arrange(DOWN, buff=0.4).next_to(matrix, LEFT, buff=0.3)
+
+        class_labels_top = VGroup(
+            Tex("\\text{Class } 1", font_size=24),
+            Tex("\\text{Class } 2", font_size=24),
+            Tex("\\cdots", font_size=24),
+            Tex("\\text{Class } n", font_size=24)
+        ).arrange(RIGHT, buff=0.4).next_to(matrix, UP, buff=0.3)
+        class_labels_top[2].shift(RIGHT*0.145)
+        class_labels_top[3].shift(RIGHT*0.34)
+        class_labels_top[0].shift(LEFT*0.2)
+        class_labels_top[1].shift(LEFT*0.0354)
+
+        actual.shift(RIGHT*0.72)
+        predicted.shift(DOWN*0.2)
+
+        self.play(
+            Write(actual), Write(predicted),
+            Write(class_labels_left), Write(class_labels_top)
+        )
+        self.wait(2)
+
+
+        # Move camera and fade out labels
+        self.play(
+            self.camera.frame.animate.scale(1.2).shift(RIGHT*1.8), 
+            FadeOut(VGroup(actual, predicted))
+        )
+
+        # Show general formulas
+        formula_title = Text("General Case", font_size=36, color=BLUE).scale(0.7).next_to(predicted, RIGHT, buff=0.8).shift(RIGHT*0.43)
+
+        self.wait(2)
+
+
+        # Accuracy formula
+        accuracy_label = Text("Accuracy", font_size=32, color=YELLOW).next_to(formula_title, DOWN).shift(DOWN*0.35).set_color(YELLOW)
+        accuracy_formula = Tex(r"\frac{\sum_{i=1}^{n} a_{ii}}{\sum_{i=1}^{n} \sum_{j=1}^{n} a_{ij}}", font_size=36).next_to(accuracy_label, DOWN, buff=0.44)
+        self.play(Write(accuracy_label), Write(accuracy_formula))
+        self.wait(2)
+        self.play( FadeOut(accuracy_formula))
+
+        # Precision formula (for class i)
+        precision_label = Text("Precision\n(Class i)", font_size=32, color=YELLOW).move_to(accuracy_label).set_color(YELLOW)
+        precision_formula = Tex(r"\frac{a_{ii}}{\sum_{j=1}^{n} a_{ji}}", font_size=36).next_to(precision_label, DOWN, buff=0.5)
+        self.play(ReplacementTransform(accuracy_label, precision_label), Write(precision_formula))
+        self.wait(2)
+        
+
+        self.play(FadeOut(precision_formula))
+
+        # Recall formula (for class i)
+        recall_label = Text(" Recall\n(Class i)", font_size=32, color=YELLOW).move_to(precision_label).set_color(YELLOW)
+        recall_formula = Tex(r"\frac{a_{ii}}{\sum_{j=1}^{n} a_{ij}}", font_size=36).next_to(recall_label, DOWN, buff=0.48)
+        self.play(ReplacementTransform(precision_label, recall_label), Write(recall_formula))
+        self.wait(2)
+
+        self.play(FadeOut(recall_formula))
+
+        # F1-score formula
+        f1_label = Text("F1-Score\n(Class i)", font_size=32, color=YELLOW).move_to(recall_label).set_color(YELLOW)
+        f1_formula = Tex(r"2 \times \frac{P_i \times R_i}{P_i + R_i}", font_size=36).next_to(f1_label, DOWN, buff=0.46)
+        self.play(ReplacementTransform(recall_label, f1_label), Write(f1_formula))
+        self.wait(2)
+
+        self.play(FadeOut(f1_label), FadeOut(f1_formula))
+
+
+        self.wait(2)
+
+
 class Example(Scene):
     def construct(self):
 
