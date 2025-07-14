@@ -29,7 +29,7 @@ class TrainingDemo(Scene):
         np.random.seed(10)
         x_values = np.array([
             # Well-spaced points across the range
-            1.5, 2.8, 4.2, 5.6, 7.0, 8.4, 9.8, 11.2, 12.6, 14.0,
+            1.5, 3.8, 4.2, 5.6, 7.0, 8.4, 9.8, 11.2, 12.6, 14.0,
             2.0, 3.5, 5.0, 6.5, 8.0, 9.5, 11.0, 12.5, 13.8,
             1.8, 3.2, 4.8, 6.2, 7.5, 9.0, 10.5, 12.0, 13.5,
             2.5, 4.0, 5.5, 7.2, 8.8, 10.2, 11.8, 13.2
@@ -37,7 +37,8 @@ class TrainingDemo(Scene):
         
         # Create a rough sinusoidal pattern with more variation and noise
         # Base pattern with multiple frequency components and random variations
-        y_base = 1.5 * np.sin(0.7 * x_values) + 0.8 * np.sin(1.2 * x_values) + 4
+        # RAISED Y-VALUES BY 0.5 as requested
+        y_base = 1.13 * np.sin(0.2 * x_values) + 0.8 * np.sin(1.2 * x_values) + 2.7  # Changed from 2.2 to 2.7
         y_values = y_base + np.random.normal(0, 0.5, size=len(x_values))  # More noise for roughness
         
         # Add some random outliers to make it less strictly sinusoidal
@@ -46,8 +47,8 @@ class TrainingDemo(Scene):
             if idx < len(y_values):
                 y_values[idx] += np.random.normal(0, 0.8)
         
-        # Keep y values within bounds
-        y_values = np.clip(y_values, 1, 7)
+        # Keep y values within bounds - adjusted for higher range
+        y_values = np.clip(y_values, 1.0, 5.7)  # Raised from (0.5, 5.2) to (1.0, 5.7)
         
         dots = VGroup(*[
             Dot(axes.coords_to_point(x_values[i], y_values[i]), radius=0.20*1.23).set_color(GREY_C)
@@ -132,89 +133,101 @@ class TrainingDemo(Scene):
             curve.set_points_smoothly(curve_points)
             return curve
         
-        # Training iterations - faster transforms
-        # Iteration 1: Start with a straight line (linear fit)
-        iteration1_fit_y = 4 + 0.1 * (curve_x - 7.5)  # Slight slope
+        # FIRST TRAINING PASS - 3 iterations (Poor fitting)
+        training_label_solo = Text("Training", weight=BOLD, color=GREEN).scale(1.5).set_color(GREEN).shift(RIGHT*0.8+UP*4)
+        self.play(FadeIn(training_label_solo))
+
+        
+        # Iteration 1: Completely wrong - flat line
+        iteration1_fit_y = np.full_like(curve_x, 3.0)  # Flat line, clearly not fitting
         current_curve = create_curve(iteration1_fit_y, DARK_BLUE, 10)
         self.play(ShowCreation(current_curve), run_time=1)
         self.wait(0.5)
         
-        # Iteration 2: Add some curvature but wrong frequency
-        iteration2_fit_y = 4 + 0.3 * np.sin(0.3 * curve_x)  # Too low frequency
+        # Iteration 2: Wrong slope - linear trend
+        iteration2_fit_y = 2.0 + 0.15 * (curve_x - 7.5)  # Linear, still not fitting the pattern
         new_curve2 = create_curve(iteration2_fit_y, DARK_BLUE, 10)
         self.play(Transform(current_curve, new_curve2), run_time=0.5)
         self.wait(0.5)
         
-        # Iteration 3: Better frequency but wrong amplitude
-        iteration3_fit_y = 4 + 0.8 * np.sin(0.6 * curve_x)  # Getting closer
+        # Iteration 3: Wrong frequency - very basic wave
+        iteration3_fit_y = 2.7 + 0.5 * np.sin(0.15 * curve_x)  # Wrong frequency, clearly not fitting
         new_curve3 = create_curve(iteration3_fit_y, DARK_BLUE, 10)
         self.play(Transform(current_curve, new_curve3), run_time=0.5)
         self.wait(0.5)
         
-        # Iteration 4: Almost there - correct frequency, close amplitude
-        iteration4_fit_y = 4 + 1.2 * np.sin(0.7 * curve_x) + 0.3 * np.sin(1.1 * curve_x)  # Multi-frequency
+        # Check validation - should show poor performance
+        validation_label_solo = Text("Validation", weight=BOLD, color=BLUE).scale(1.5).set_color(BLUE).move_to(training_label_solo)
+        
+        self.play(
+            FadeOut(VGroup(*train_dots)), 
+            FadeOut(training_label_solo),
+            FadeIn(VGroup(*val_dots)), 
+            FadeIn(validation_label_solo), 
+            run_time=1.5
+        )
+        self.wait(2)  # Wait 2 seconds to see poor validation performance
+        
+        # SECOND TRAINING PASS - 3 iterations (Better fitting)
+        self.play(
+            FadeOut(VGroup(*val_dots)), 
+            FadeOut(validation_label_solo),
+            FadeIn(VGroup(*train_dots)),
+            FadeIn(training_label_solo),
+            run_time=1
+        )
+        
+        # Iteration 4: Better frequency but wrong amplitude
+        iteration4_fit_y = 2.7 + 0.8 * np.sin(0.4 * curve_x)  # Getting closer to correct frequency
         new_curve4 = create_curve(iteration4_fit_y, DARK_BLUE, 10)
         self.play(Transform(current_curve, new_curve4), run_time=0.5)
         self.wait(0.5)
         
-        # Now bring in validation set for evaluation (fade out training)
-        validation_label_solo = Text("Validation", weight=BOLD, color=BLUE).scale(1.2).set_color(BLUE)
-        validation_label_solo.to_corner(UL).shift(RIGHT*0.3 + UP * 1)
-        
-        self.play(
-            FadeOut(VGroup(*train_dots)), 
-            FadeIn(VGroup(*val_dots)), 
-            ShowCreation(validation_label_solo), 
-            run_time=1.5
-        )
-        self.wait(2)  # Wait 2 seconds to check validation performance
-        
-        # Fade out validation data and bring back training data
-        training_label_solo = Text("Training", weight=BOLD, color=GREEN).scale(1.2).set_color(GREEN)
-        training_label_solo.to_corner(UL).shift(RIGHT*0.3 + UP * 1)
-        
-        self.play(
-            FadeOut(VGroup(*val_dots)), 
-            FadeOut(validation_label_solo),
-            FadeIn(VGroup(*train_dots)),
-            ShowCreation(training_label_solo),
-            run_time=1
-        )
-        
-        # More precise fitting iterations based on validation feedback
-        # Iteration 5: Adjust based on validation
-        iteration5_fit_y = 4 + 1.4 * np.sin(0.7 * curve_x) + 0.5 * np.sin(1.2 * curve_x)
+        # Iteration 5: Closer to right pattern
+        iteration5_fit_y = 2.7 + 1.0 * np.sin(0.5 * curve_x) + 0.3 * np.sin(1.0 * curve_x)  # Multi-frequency, getting better
         new_curve5 = create_curve(iteration5_fit_y, DARK_BLUE, 10)
         self.play(Transform(current_curve, new_curve5), run_time=0.5)
         self.wait(0.5)
         
-        # Iteration 6: Fine-tune amplitude
-        iteration6_fit_y = 4 + 1.3 * np.sin(0.7 * curve_x) + 0.6 * np.sin(1.2 * curve_x) + 0.1 * np.sin(2.0 * curve_x)
+        # Iteration 6: Much better fit
+        iteration6_fit_y = 2.7 + 1.1 * np.sin(0.2 * curve_x) + 0.6 * np.sin(1.1 * curve_x)  # Much closer to data
         new_curve6 = create_curve(iteration6_fit_y, DARK_BLUE, 10)
         self.play(Transform(current_curve, new_curve6), run_time=0.5)
         self.wait(0.5)
         
-        # Check validation again (fade out training, fade in validation)
+        # Check validation again - should show better performance
         self.play(
             FadeOut(VGroup(*train_dots)),
             FadeOut(training_label_solo),
             FadeIn(VGroup(*val_dots)), 
-            ShowCreation(validation_label_solo), 
+            FadeIn(validation_label_solo), 
             run_time=1.5
         )
-        self.wait(2)  # Wait 2 seconds to check validation performance again
+        self.wait(2)  # Wait 2 seconds to see improved validation performance
         
-        # Fade out validation data and bring back training for final iteration
+        # THIRD TRAINING PASS - 3 iterations (Good fitting without overfitting)
         self.play(
             FadeOut(VGroup(*val_dots)), 
             FadeOut(validation_label_solo),
             FadeIn(VGroup(*train_dots)),
-            ShowCreation(training_label_solo),
+            FadeIn(training_label_solo),
             run_time=1
         )
         
-        # Final training iteration
-        final_fit_y = 4 + 1.35 * np.sin(0.7 * curve_x) + 0.65 * np.sin(1.2 * curve_x) + 0.15 * np.sin(1.8 * curve_x)
+        # Iteration 7: Fine-tuning amplitude
+        iteration7_fit_y = 2.7 + 1.13 * np.sin(0.2 * curve_x) + 0.75 * np.sin(1.15 * curve_x)  # Fine-tuning
+        new_curve7 = create_curve(iteration7_fit_y, DARK_BLUE, 10)
+        self.play(Transform(current_curve, new_curve7), run_time=0.5)
+        self.wait(0.5)
+        
+        # Iteration 8: Almost perfect fit
+        iteration8_fit_y = 2.7 + 1.13 * np.sin(0.2 * curve_x) + 0.8 * np.sin(1.2 * curve_x) + 0.15 * np.sin(1.8 * curve_x)  # Very close to actual pattern
+        new_curve8 = create_curve(iteration8_fit_y, DARK_BLUE, 10)
+        self.play(Transform(current_curve, new_curve8), run_time=0.5)
+        self.wait(0.5)
+        
+        # Iteration 9: Final good fit (better fitting but not overfitted)
+        final_fit_y = 2.7 + 1.13 * np.sin(0.2 * curve_x) + 0.8 * np.sin(1.2 * curve_x) + 0.2 * np.sin(1.5 * curve_x)  # Better fit for test data
         final_curve = create_curve(final_fit_y, DARK_BLUE, 10)
         self.play(Transform(current_curve, final_curve), run_time=0.5)
         self.wait(1)
@@ -224,8 +237,7 @@ class TrainingDemo(Scene):
         self.wait(1)
         
         # Final testing phase
-        testing_label_solo = Text("Testing", weight=BOLD, color=RED).scale(1.2).set_color(RED)
-        testing_label_solo.to_corner(UL).shift(RIGHT*0.3 + UP * 1)
+        testing_label_solo = Text("Testing", weight=BOLD, color=RED).scale(1.5).set_color(RED).move_to(training_label_solo)
         
-        self.play(FadeIn(VGroup(*test_dots)), ShowCreation(testing_label_solo), run_time=1.5)
+        self.play(FadeIn(VGroup(*test_dots)), FadeIn(testing_label_solo), run_time=1.5)
         self.wait(3)  # Give time to observe how well the model performs on test data
