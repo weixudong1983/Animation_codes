@@ -3,6 +3,307 @@ import numpy as np
 
 DARK_BLUE = BLUE_E
 
+class Validation(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.17).shift(UP*0.17) # Zoom out
+
+        # Axes
+        axes = Axes(
+            x_range=[0, 12],
+            y_range=[0, 6],
+            axis_config={"include_ticks": False, "include_numbers": False, "stroke_width": 8},
+        )
+        axes.set_color(BLACK)
+
+        x_label = Text("x", weight=BOLD).next_to(axes.x_axis, DOWN).shift(RIGHT * 6 + DOWN * 0.4).scale(1.77).set_color(BLACK)
+        y_label = Text("y", weight=BOLD).next_to(axes.y_axis, UP).shift(UP * 0.1).scale(1.7).set_color(BLACK)
+
+        self.play(ShowCreation(axes))
+        self.play(Write(x_label), Write(y_label))
+        self.wait(1)
+
+        # ----- Dataset with squeezed y-range and scattered points -----
+        x_values = np.array([1.5, 2.5, 3.2, 4.0, 4.8, 5.5, 6.3, 7.0, 7.8, 8.5, 9.2, 10.0, 10.5, 11.0, 11.5])
+        y_values = np.array([2.2, 3.7, 2.0, 3.4, 3.8, 2.1, 3.3, 3.9, 2.3, 3.5, 2.4, 3.6, 3.2, 2.0, 3.7])
+
+        # Verify lengths
+        assert len(x_values) == len(y_values), "x_values and y_values must have the same length"
+        
+        dots = VGroup(*[
+            Dot(axes.coords_to_point(x, y), radius=0.18).set_color(GREY_C)
+            for x, y in zip(x_values, y_values)
+        ])
+
+        # Verify dots creation
+        assert len(dots) == len(x_values), f"Expected {len(x_values)} dots, but got {len(dots)}"
+
+        self.play(LaggedStart(*[ShowCreation(d) for d in dots], lag_ratio=0.05), run_time=2)
+        self.wait(1)
+
+        # Split with 60/40 split
+        total_points = len(x_values)
+        train_count = int(0.6 * total_points)  # 60% training, 40% validation
+        all_indices = list(range(total_points))
+        np.random.seed(42)  # Set seed for reproducibility
+        np.random.shuffle(all_indices)
+        
+        # Verify indices
+        assert max(all_indices) < total_points, f"Indices out of range: {all_indices}"
+        
+        train_idx = all_indices[:train_count]
+        val_idx = all_indices[train_count:]
+
+        # Verify index lengths
+        assert len(train_idx) + len(val_idx) == total_points, "Train and validation indices don't cover all points"
+        assert max(train_idx) < len(dots), f"Train index out of range: {max(train_idx)}"
+        assert max(val_idx) < len(dots), f"Validation index out of range: {max(val_idx)}"
+
+        train_dots = [dots[i] for i in train_idx]
+        val_dots = [dots[i] for i in val_idx]
+
+        self.play(*[dot.animate.set_color(GREEN) for dot in train_dots])
+        self.play(*[dot.animate.set_color(BLUE) for dot in val_dots])
+        self.wait(1)
+
+        self.wait(2)
+
+        # Curve fitting setup
+        curve_x = np.linspace(1.5, 11.5, 200)
+
+        def create_curve(fit_y, color=DARK_BLUE, stroke_width=10):
+            curve_points = [
+                axes.coords_to_point(curve_x[i], fit_y[i])
+                for i in range(len(curve_x))
+            ]
+            curve = VMobject()
+            curve.set_color(color)
+            curve.set_stroke(width=stroke_width)
+            curve.set_points_smoothly(curve_points)
+            return curve
+
+        # UNDERFITTING
+        self.play(FadeOut(VGroup(*val_dots)), run_time=1.5)
+        iteration1_fit_y = np.full_like(curve_x, 3.0)
+        current_curve = create_curve(iteration1_fit_y)
+        self.play(ShowCreation(current_curve), run_time=1)
+
+        iteration2_fit_y = 2.5 + 0.1 * (curve_x - 6)
+        new_curve2 = create_curve(iteration2_fit_y)
+        self.play(Transform(current_curve, new_curve2), run_time=0.5)
+
+        iteration3_fit_y = 3.0 + 0.05 * (curve_x - 6)**2
+        new_curve3 = create_curve(iteration3_fit_y)
+        self.play(Transform(current_curve, new_curve3), run_time=0.5)
+
+        self.play(FadeOut(VGroup(*train_dots)), FadeIn(VGroup(*val_dots)), run_time=1.5)
+        underfitting_text = Text("UNDERFITTING", weight=BOLD).scale(1.3).set_color(RED)
+        underfitting_text.move_to(UP * 3.5)  # Fixed position
+        self.play(ShowCreation(underfitting_text), run_time=1)
+        self.wait(3)
+
+        self.play(FadeOut(underfitting_text), FadeOut(VGroup(*val_dots)), FadeIn(VGroup(*train_dots)), run_time=1.5)
+
+        # OVERFITTING polynomial curve
+        train_x = x_values[train_idx]
+        train_y = y_values[train_idx]
+        degree = len(train_x) - 1
+        coeffs = np.polyfit(train_x, train_y, deg=degree)
+        overfit_y = np.polyval(coeffs, curve_x)
+        overfit_y = np.clip(overfit_y, 1.0, 5.5)
+        overfit_curve = create_curve(overfit_y)
+        self.play(Transform(current_curve, overfit_curve), run_time=1.5)
+
+        self.play(FadeOut(VGroup(*train_dots)), FadeIn(VGroup(*val_dots)), run_time=1.5)
+        overfitting_text = Text("OVERFITTING", weight=BOLD).scale(1.3).set_color(RED)
+        overfitting_text.move_to(UP * 3.5)  # Fixed position
+        self.play(ShowCreation(overfitting_text), run_time=1)
+        self.wait(3)
+
+        self.play(FadeOut(overfitting_text), FadeOut(VGroup(*val_dots)), FadeIn(VGroup(*train_dots)), run_time=1.5)
+
+        # JUST RIGHT
+
+
+        # JUST RIGHT
+        goldilocks_y = (
+            3.0
+            + 0.3 * np.sin(0.5 * curve_x + 0.2)
+            + 0.2 * np.sin(1.2 * curve_x)
+            + 0.15 * np.sin(0.8 * curve_x + 1.0)
+            + 0.12 * np.sin(0.35 * curve_x - 0.3)
+            + 0.08 * np.sin(1.5 * curve_x + 0.5)
+            - 0.05 * (curve_x - 6.5)**2
+            + 0.1 * (curve_x - 6.5)
+        )
+
+
+        goldilocks_curve = create_curve(goldilocks_y).shift(UP*0.234)
+        self.play(Transform(current_curve, goldilocks_curve), run_time=1.5)
+
+
+        self.play(FadeOut(VGroup(*train_dots)), FadeIn(VGroup(*val_dots)), run_time=1.5)
+        goldilocks_text = Text("JUST RIGHT", weight=BOLD).scale(1.3).set_color(GREEN)
+        goldilocks_text.move_to(UP * 3.5)  # Fixed position
+        self.play(ShowCreation(goldilocks_text), run_time=1)
+        self.wait(3)
+
+        self.play(FadeOut(VGroup(*val_dots, current_curve, axes, x_label, y_label, goldilocks_text)), run_time=0.5)
+
+        over = Text("High Training Error + High Validation Error", weight=BOLD).to_edge(UP).set_color(BLACK).scale(0.8).shift(DOWN*0.4)
+        self.play(ShowCreation(over))
+        self.wait(2)
+        temp = Text("Underfitting", weight=BOLD).set_color(RED).scale(1.44).next_to(over, DOWN, buff=0.9)
+        self.play(ShowCreation(temp))
+
+        self.wait(2)
+
+        under = Text("Low Training Error + High Validation Error", weight=BOLD).next_to(temp, DOWN, buff=1.1).set_color(BLACK).scale(0.8)
+        self.play(ShowCreation(under))
+        self.wait(2)
+        temp1 = Text("OverFitting", weight=BOLD).set_color(RED).scale(1.44).next_to(under, DOWN, buff=0.9)
+        self.play(ShowCreation(temp1))
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(temp, temp1, over, under)), run_time=0.5)
+
+        first = Text("Validation", weight=BOLD).set_color(BLUE).scale(1.44).next_to(over, DOWN, buff=0.9).shift(UP*1.83)
+        self.play(ShowCreation(first))
+
+        temp = Text("Tune Hyperparameters", weight=BOLD).next_to(first, DOWN).set_color(GREEN).shift(DOWN*0.25)
+        self.play(ShowCreation(temp))
+
+            # List of hyperparameters as bullet points
+        bullets = [
+            "• Learning rate",
+            "• Number of neurons",
+            "• Regularization strength",
+            "• Batch size",
+            "• Number of epochs",
+        ]
+
+        # Create Text objects for each bullet
+        bullet_texts = VGroup(*[
+            Text(item, weight=BOLD).next_to(temp, DOWN, buff=0.5 + i * 0.5).set_color(BLACK).shift(LEFT*0.8)
+            for i, item in enumerate(bullets)
+        ])
+
+
+
+        # Adjust positions
+        for i in range(len(bullet_texts)):
+            if i == 0:
+                bullet_texts[i].next_to(temp, DOWN, buff=0.7)
+            else:
+                bullet_texts[i].next_to(bullet_texts[i-1], DOWN, aligned_edge=LEFT)
+
+        # Animate
+        for bt in bullet_texts:
+            bt.shift(LEFT*0.8)
+            self.play(FadeIn(bt), run_time=0.5)
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(bullet_texts, temp, first)), run_time=0.5)
+
+        training = Text("Training Data", weight=BOLD).to_edge(UP).set_color(GREEN).scale(1.3).shift(UP*0.4)
+        self.play(ShowCreation(training))
+        self.wait()
+        temp = Text("Training (Updating weights)", weight=BOLD).next_to(training, DOWN, buff=0.55).set_color(BLACK)
+        self.play(ShowCreation(temp))
+
+        self.wait(2)
+
+        val = Text("Validation Data", weight=BOLD).to_edge(UP).set_color(BLUE).scale(1.3).next_to(temp, DOWN, buff=0.9)
+        self.play(ShowCreation(val))
+        self.wait()
+        temp1 = Text("Tuning Hyperparameters", weight=BOLD).next_to(val, DOWN, buff=0.55).set_color(BLACK)
+        self.play(ShowCreation(temp1))
+        self.wait(2)
+
+        test = Text("Testing Data", weight=BOLD).to_edge(UP).set_color(RED).scale(1.3).next_to(temp1, DOWN, buff=0.9)
+        self.play(ShowCreation(test))
+        self.wait()
+        temp2 = Text("Final testing", weight=BOLD).next_to(test, DOWN, buff=0.55).set_color(BLACK)
+        self.play(ShowCreation(temp2))
+
+        self.wait(2)
+        self.play(FadeOut(VGroup(temp, temp1, temp2, test, training,val )),self.camera.frame.animate.scale(0.93).shift(DOWN*0.23), run_time=0.5)
+
+        #LifeCYcle
+        
+
+
+        # 1. Dataset (bullet)
+        dataset = Text("• Dataset", weight=BOLD).scale(0.6).to_edge(UP).set_color(BLACK)
+        self.play(Write(dataset))
+        self.wait(0.5)
+
+        # 2. Splitting (one text with nested bullets)
+        splitting_text = "• Splitting\n   - Training\n   - Validation\n   - Test"
+        splitting = Text(splitting_text, weight=BOLD).scale(0.5).next_to(dataset, DOWN, buff=0.6).set_color(BLACK)
+        splitting[10:19].set_color(GREEN)
+        splitting[19:30].set_color(BLUE)
+        splitting[30:40].set_color(RED)
+        self.play(Write(splitting))
+        self.wait(0.5)
+
+
+
+        # 3. Training
+        training = Text("• Training (weights updating)", weight=BOLD).scale(0.6).next_to(splitting, DOWN, buff=0.8).set_color(BLACK)
+        training[:9].set_color(GREEN)
+
+        # Arrow from splitting to training
+        arrow_train = Arrow(splitting.get_bottom(), training.get_top(), buff=0.1)
+        arrow_train.set_color(BLACK)
+        self.play(GrowArrow(arrow_train))
+        self.wait(0.5)
+
+        self.play(Write(training))
+        self.wait(0.5)
+
+
+        # 4. Validation
+        validation_text = "• Validation\n   - Error checking"
+        validation = Text(validation_text, weight=BOLD).scale(0.5).next_to(training, DOWN, buff=0.8)
+        validation.set_color(BLACK)
+        # Arrow from training to validation
+        arrow_val = Arrow(training.get_bottom(), validation.get_top(), buff=0.1)
+        arrow_val.set_color(BLACK)
+        self.play(GrowArrow(arrow_val))
+        self.play(Write(validation))
+        self.wait(0.5)
+
+
+
+        # 5. Tune hyperparameters
+        tune = Text("• Tune hyperparameters", weight=BOLD).scale(0.6).next_to(validation, DOWN, buff=0.8)
+        tune.set_color(BLACK)
+        # Arrow from training to validation
+        arrow_next = Arrow(validation.get_bottom(), tune.get_top(), buff=0.1)
+        arrow_next.set_color(BLACK)
+        self.play(GrowArrow(arrow_val))
+        self.play(Write(tune))
+        self.wait(0.5)
+
+        # Curved arrow looping back to training
+        loop_arrow = CurvedArrow(tune.get_left(), training.get_left(), angle=-TAU / 3, stroke_width=6)
+        loop_arrow.set_color(BLUE).shift(LEFT*0.1)
+        self.play(ShowCreation(loop_arrow))
+        self.wait(0.5)
+
+        # 6. Final test
+        final_test = Text("• Final test on test set", weight=BOLD).scale(0.6).next_to(tune, DOWN, buff=0.8)
+        final_test.set_color(BLACK)
+        self.play(Write(final_test))
+        self.wait(0.5)
+
+        # Arrow from training to final test
+        arrow_test = CurvedArrow(training.get_right(), final_test.get_right(), angle=-TAU / 3 ,stroke_width=8).set_color(RED).shift(RIGHT*0.1)
+        self.play(ShowCreation(arrow_test))
+        self.wait(2)
+
+        self.wait(2)
+
 class TrainingDemo(Scene):
     def construct(self):
         self.camera.frame.scale(1.4)  # Zoom out
