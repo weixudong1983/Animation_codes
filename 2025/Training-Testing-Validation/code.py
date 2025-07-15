@@ -542,3 +542,212 @@ class TrainingDemo(Scene):
         
         self.play(FadeIn(VGroup(*test_dots)), FadeIn(testing_label_solo), run_time=1.5)
         self.wait(3)  # Give time to observe how well the model performs on test data
+
+
+class DataSplitAnimation(Scene):
+    def construct(self):
+        # Set white background 
+        self.camera.frame.scale(0.8)
+        
+        # Initial proportions
+        initial_props = [0.7, 0.15, 0.15]  # 70%, 15%, 15%
+        final_props = [0.6, 0.2, 0.2]     # 60%, 20%, 20%
+        
+        # Colors for each section
+        colors = [GREEN, BLUE, RED]
+        initial_values = [70, 15, 15]
+        final_values = [60, 20, 20]
+        
+        # Bar configuration
+        bar_width = 8
+        bar_height = 1
+        bar_position = UP * 0.4
+        
+        # Create the initial data split bar
+        bar_group = self.create_data_split_bar(
+            proportions=initial_props,
+            colors=colors,
+            values=initial_values,
+            bar_width=bar_width,
+            bar_height=bar_height,
+            position=bar_position
+        )
+        
+        # Add to scene
+        self.add(bar_group)
+        self.wait(1)
+        
+        # Create final bar configuration (for shapes and braces only)
+        final_bar_group = self.create_data_split_bar(
+            proportions=final_props,
+            colors=colors,
+            values=final_values,
+            bar_width=bar_width,
+            bar_height=bar_height,
+            position=bar_position
+        )
+        
+        # Animate transition with simultaneous countdown
+        self.animate_with_countdown(
+            bar_group, 
+            final_bar_group, 
+            initial_values, 
+            final_values,
+            duration=2.0
+        )
+        
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(UP*1.15))
+
+        train = Text("Train: 60% to 80%", weight=BOLD).set_color(BLACK).to_edge(UP).shift(UP*0.24)
+        train[:5].set_color(GREEN)
+        val = Text("Val: 10% to 20%", weight=BOLD).set_color(BLACK).next_to(train, DOWN, buff=0.45)
+        val[:3].set_color(BLUE)
+        test = Text("Test: 10% to 20%", weight=BOLD).set_color(BLACK).next_to(val, DOWN, buff=0.45)
+        test[:4].set_color(RED)
+
+        self.play(ShowCreation(VGroup(train, val , test)))
+
+        self.wait(2)
+        
+
+
+
+
+        self.embed()
+    
+    def animate_with_countdown(self, initial_group, final_group, initial_vals, final_vals, duration):
+        """Animate shapes with Transform and numbers with countdown simultaneously"""
+        
+        # Get the sections, braces, and texts separately
+        initial_sections = initial_group[:3]  # First 3 elements are sections
+        initial_braces = initial_group[3:6]   # Next 3 elements are braces
+        initial_texts = initial_group[6:9]    # Last 3 elements are texts
+        
+        final_sections = final_group[:3]
+        final_braces = final_group[3:6]
+        final_texts = final_group[6:9]
+        
+        # Store initial and final proportions for interpolation
+        initial_props = [0.7, 0.15, 0.15]
+        final_props = [0.6, 0.2, 0.2]
+        
+        # Manual animation with frame-by-frame updates
+        frame_rate = 15  # Updates per second
+        total_frames = int(duration * frame_rate)
+        
+        for frame in range(total_frames + 1):
+            t = frame / total_frames
+            eased_t = self.smooth_ease(t)
+            
+            # Calculate current proportions
+            current_props = []
+            for i in range(3):
+                start_prop = initial_props[i]
+                end_prop = final_props[i]
+                current_prop = start_prop + (end_prop - start_prop) * eased_t
+                current_props.append(current_prop)
+            
+            # Create new sections with current proportions
+            bar_width = 8
+            bar_height = 1
+            bar_position = UP * 0.4
+            colors = [GREEN, BLUE, RED]
+            
+            section_widths = [prop * bar_width for prop in current_props]
+            current_x = -bar_width / 2
+            
+            for i in range(3):
+                # Create new section with current width
+                width = section_widths[i]
+                new_section = Rectangle(width=width, height=bar_height)
+                new_section.set_color(colors[i])
+                new_section.set_fill(colors[i], opacity=1)
+                new_section.set_stroke(BLACK, width=1)
+                new_section.move_to(bar_position + RIGHT * (current_x + width / 2))
+                
+                # Update the section
+                initial_sections[i].become(new_section)
+                
+                # Update brace to match new section
+                new_brace = Brace(initial_sections[i], DOWN)
+                new_brace.set_color(BLACK)
+                initial_braces[i].become(new_brace)
+                
+                current_x += width
+            
+            # Calculate and update text values
+            current_vals = []
+            for i in range(3):
+                start_val = initial_vals[i]
+                end_val = final_vals[i]
+                current_val = int(start_val + (end_val - start_val) * eased_t)
+                current_vals.append(current_val)
+            
+            # Update text objects and position them in middle of braces
+            for i, text_obj in enumerate(initial_texts):
+                new_text = Text(f"{current_vals[i]}%", font_size=36, weight=BOLD)
+                new_text.set_color(BLACK)
+                new_text.next_to(initial_braces[i], DOWN, buff=0.1)
+                text_obj.become(new_text)
+            
+            # Wait for next frame
+            if frame < total_frames:
+                self.wait(1 / frame_rate)
+    
+    def smooth_ease(self, t):
+        """Smooth easing function for more natural countdown"""
+        return t * t * (3 - 2 * t)  # Smoothstep function
+    
+    def create_data_split_bar(self, proportions, colors, values, bar_width, bar_height, position):
+        """Create a data split bar with sections, braces, and labels"""
+        group = VGroup()
+        
+        # Calculate section widths
+        section_widths = [prop * bar_width for prop in proportions]
+        
+        # Create sections
+        sections = []
+        current_x = -bar_width / 2  # Start from left edge
+        
+        for i, (width, color) in enumerate(zip(section_widths, colors)):
+            # Create rectangle for this section
+            section = Rectangle(width=width, height=bar_height)
+            section.set_color(color)
+            section.set_fill(color, opacity=1)
+            section.set_stroke(BLACK, width=1)
+            
+            # Position section
+            section.move_to(position + RIGHT * (current_x + width / 2))
+            sections.append(section)
+            
+            current_x += width
+        
+        # Create braces and labels
+        braces = []
+        texts = []
+        
+        for i, (width, value) in enumerate(zip(section_widths, values)):
+            # Create brace
+            brace = Brace(sections[i], DOWN)
+            brace.set_color(BLACK)
+            braces.append(brace)
+            
+            # Create label text positioned in middle of brace
+            text = Text(f"{value}%", font_size=36, weight=BOLD)
+            text.set_color(BLACK)
+            text.next_to(brace, DOWN, buff=0.1)
+            texts.append(text)
+        
+        # Add all elements to group
+        group.add(*sections)
+        group.add(*braces)
+        group.add(*texts)
+        
+        return group
+    
+    def setup(self):
+        """Setup the scene with white background"""
+        self.camera.background_color = WHITE
+
