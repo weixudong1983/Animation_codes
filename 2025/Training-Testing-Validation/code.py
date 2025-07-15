@@ -1,7 +1,140 @@
 from manimlib import *
 import numpy as np
 
+DARK_GRAY = GREY_E
+DARK_GREEN = GREEN_E
+BROWN = "#824203"
+
+
 DARK_BLUE = BLUE_E
+
+class BiasVarianceTradeoff(Scene):
+    def construct(self):
+
+        # Set white background
+        self.camera.frame.scale(0.87).shift(UP*0.5)
+        
+        # Create the pivot (triangle support)
+        pivot = Polygon(
+            [-0.5, -1, 0], [0.5, -1, 0], [0, 0.5, 0],
+            fill_color=GREY_C,
+            fill_opacity=1.0,
+            stroke_color=GREY_D,
+            stroke_width=3
+        )
+        
+        # Create the see-saw bench (horizontal rectangle)
+        bench = Rectangle(
+            width=8.0,
+            height=0.3,
+            fill_color=PURPLE,
+            fill_opacity=1.0,
+            stroke_color=PURPLE_B,
+            stroke_width=3
+        )
+        bench.move_to([0, 0.65,0])  # Place on top of triangle
+        
+        # Create rounded squares for Bias and Variance
+        bias_square = RoundedRectangle(
+            width=1.2,
+            height=1.2,
+            corner_radius=0.2,
+            fill_color=GREEN_B,
+            fill_opacity=1.0,
+            stroke_color=GREEN,
+            stroke_opacity=7,
+            stroke_width=10
+        )
+        
+        variance_square = RoundedRectangle(
+            width=1.2,
+            height=1.2,
+            corner_radius=0.2,
+            fill_color=MAROON_B,
+            fill_opacity=1.0,
+            stroke_color=MAROON,
+            stroke_opacity=1,
+            stroke_width=10
+        )
+        
+        # Create text labels for the squares
+        bias_text = Text("B", font_size=88, font="Arial Bold", weight=BOLD)
+        bias_text.set_color(BLACK)
+        variance_text = Text("V", font_size=88, font="Arial Bold", weight=BOLD)
+        variance_text.set_color(BLACK)
+        
+        # Position squares on the ends of the bench (on top of bench)
+        bias_square.move_to([-3.34, 1.44,0])
+        variance_square.move_to([3.34, 1.44, 0])
+        
+        # Position text inside squares
+        bias_text.move_to(bias_square.get_center())
+        variance_text.move_to(variance_square.get_center())
+        
+        # Create additional labels
+        underfitting_label = Text("Underfitting", font_size=54 , weight=BOLD)
+        underfitting_label.set_color(GREEN)
+        overfitting_label = Text("Overfitting", font_size=54 , weight=BOLD)
+        overfitting_label.set_color(MAROON)
+        balanced_label = Text("Optimal Balance", font_size=58, weight= BOLD)
+        balanced_label.set_color(BLUE)
+        
+        # Position labels
+        underfitting_label.move_to([-3.5, -1, 0])
+        overfitting_label.move_to([3.5, -1, 0])
+        balanced_label.move_to([0, -2, 0])
+        
+        # Group elements that will rotate together
+        seesaw_group = VGroup(bench, bias_square, variance_square, bias_text, variance_text)
+        
+
+        
+        # Add all elements to scene
+        self.add(pivot)
+        self.play(FadeIn(seesaw_group))
+        self.wait(1)
+        
+        # Function to tilt toward bias (left side down)
+        def tilt_to_bias():
+            self.play(
+                Rotate(seesaw_group, angle=-PI/6, about_point=[0, 0.5, 0]),
+                FadeIn(underfitting_label),
+                run_time=2
+            )
+            self.wait(2)
+            self.play(FadeOut(underfitting_label))
+        # Function to tilt toward variance (right side down)
+        def tilt_to_variance():
+            self.play(
+                Rotate(seesaw_group, angle=PI/3, about_point=[0, 0.5, 0]),
+                FadeIn(overfitting_label),
+                run_time=2
+            )
+            self.wait(2)
+            self.play(FadeOut(overfitting_label))
+        # Function to balance in the middle
+        def balance_seesaw():
+            self.play(
+                Rotate(seesaw_group, angle=-PI/6, about_point=[0, 0.5, 0]),
+                FadeIn(balanced_label),
+                run_time=2
+            )
+            self.wait(2)
+        
+        # Execute the animation sequence
+        
+        # 1. Tilt toward bias (underfitting)
+        tilt_to_bias()
+        
+
+        # 2. Tilt toward variance (overfitting)
+        tilt_to_variance()
+        
+        # 3. Balance in the middle (optimal tradeoff)
+        balance_seesaw()
+        
+        self.wait(2)
+
 
 class Validation(Scene):
     def construct(self):
