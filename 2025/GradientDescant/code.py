@@ -374,6 +374,105 @@ class GD1(Scene):
         self.wait(3)
 
 
+        self.play(FadeOut(VGroup(dot, tangent_line, rect, update_rule )), self.camera.frame.animate.scale(0.8).shift(UP))
+
+
+        quad1 = axes.get_graph(
+            lambda x: np.sin(3.4 * x) + np.sin(x) + 3,
+            x_range=[0.56, 8.61], # Explicitly define the x_range for the plot
+            stroke_width=8,
+        ).set_color(PURPLE_D).set_z_index(-3)
+
+        self.play(Transform(quad, quad1))
+
+        self.wait(2)
+
+        arrow = Arrow(ORIGIN, ORIGIN+DOWN*1.4, stroke_width=6).set_color(GREEN_E).shift(RIGHT*0.46+DOWN*0.5)
+       
+        a = arrow.copy().shift(LEFT*1.7 + UP*0.5)
+        b = arrow.copy().shift(RIGHT*1.8+UP*0.9)
+        c = arrow.copy().shift(LEFT*3.7+UP*1.19)
+        
+
+        self.play(GrowArrow(arrow), GrowArrow(a), GrowArrow(b), GrowArrow(c))
+
+        
+        self.wait(2)
+
+        self.play(
+            a.animate.shift(UP*0.8+RIGHT*0.7),
+            b.animate.shift(UP*1.7+RIGHT),
+            arrow.animate.shift(UP*1.7+RIGHT*1.1),
+            c.animate.shift(UP*1.4+RIGHT*0.9)
+        )
+
+
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(a,b,c, arrow)))
+
+        #NEW NON CONVEX VISUALS
+
+        # Re-introduce the dot
+        dot = Dot(radius=0.18).set_color(RED)
+
+        non_convex_func = lambda x: np.sin(3.4 * x) + np.sin(x) + 3
+        non_convex_deriv_func = lambda x: 3.4 * np.cos(3.4 * x) + np.cos(x)
+ 
+        # Choose a starting point for GD that leads to a local minimum
+        # Let's try to start near a local maximum or a point where it will fall into a local minimum.
+        # Looking at the graph of sin(3.4x) + sin(x) + 3, a good starting point could be around x=2.5
+        # This should converge to the local minimum around x=3.5-4
+        start_x_non_convex = 2.5 
+        start_point_non_convex = axes.c2p(start_x_non_convex, non_convex_func(start_x_non_convex))
+        dot.move_to(start_point_non_convex)
+
+        self.play(FadeIn(dot))
+        self.wait(1)
+
+
+        # Create the initial tangent line for the non-convex function
+        slope_value_non_convex = non_convex_deriv_func(start_x_non_convex)
+        tangent_line = Line(LEFT * 1.13, RIGHT * 1.13, stroke_width=6, color=ORANGE)
+        tangent_line.rotate(np.arctan(slope_value_non_convex))
+        tangent_line.move_to(dot.get_center()).set_z_index(-2)
+        
+        self.play(ShowCreation(tangent_line))
+        self.wait(1)
+
+        # Set a suitable learning rate for the non-convex function
+        alpha_non_convex = 0.05 # Adjust as needed for good visualization
+
+        current_x_non_convex = start_x_non_convex
+
+        local_min_text = Tex("Local Minimum").scale(1.5).set_color(RED).to_edge(UP)
+        
+        for i in range(10): # More iterations to ensure it settles
+            slope_value = non_convex_deriv_func(current_x_non_convex)
+            new_x = current_x_non_convex - alpha_non_convex * slope_value
+            new_point = axes.c2p(new_x, non_convex_func(new_x))
+            
+            new_tangent_line = Line(LEFT * 1.5, RIGHT * 1.5, stroke_width=6, color=ORANGE)
+            new_tangent_line.rotate(np.arctan(non_convex_deriv_func(new_x)))
+            new_tangent_line.move_to(new_point).set_z_index(-2)
+
+            self.play(
+                dot.animate.move_to(new_point),
+                Transform(tangent_line, new_tangent_line),
+                run_time=0.4 # Slightly faster to see convergence
+            )
+            current_x_non_convex = new_x
+            
+            # Optional: Add a small pause if you want to emphasize each step
+            self.wait(0.1)
+
+        
+
+        self.play(FadeOut(tangent_line))
+        self.play(Write(local_min_text))
+        self.wait(2)
+
+
 
 
 
