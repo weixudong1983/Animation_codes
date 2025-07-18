@@ -474,6 +474,41 @@ class GD1(Scene):
 
 
 
+class GradientDescentND(Scene):
+    def construct(self):
 
+        # Title
+        title = Text("Gradient Descent: General Case", weight=BOLD).set_color(GREEN).shift(DOWN*0.3).scale(1.3)
+        title.to_edge(UP)
+        self.play(FadeIn(title))
+
+        # Cost function
+        cost_func = Tex(r"\mathbf{J(w_1, w_2, \dots, w_n, b)}").set_color(BLACK).scale(1.3)
+        cost_func.scale(1.3)
+        cost_func.next_to(title, DOWN, buff=1)
+        self.play(Write(cost_func))
+        self.wait(1)
+
+
+        # Update rules
+        # Update rules (split into a 2x2 matrix)
+        eq1 = Tex(r"w_1 := w_1 - \alpha \frac{\partial J}{\partial w_1}").set_color(BLACK).scale(1.3)
+        eq2 = Tex(r"w_2 := w_2 - \alpha \frac{\partial J}{\partial w_2}").set_color(BLACK).scale(1.3)
+        eq3 = Tex(r"w_n := w_n - \alpha \frac{\partial J}{\partial w_n}").set_color(BLACK).scale(1.3)
+        eq4 = Tex(r"b := b - \alpha \frac{\partial J}{\partial b}").set_color(BLACK).scale(1.3)
+        
+        # Arrange in 2 rows, 2 columns
+        left_col = VGroup(eq1, eq3).arrange(DOWN, aligned_edge=LEFT, buff=0.7)
+        right_col = VGroup(eq2, eq4).arrange(DOWN, aligned_edge=LEFT, buff=0.7)
+        
+        eqs_group = VGroup(left_col, right_col).arrange(RIGHT, buff=1.5)
+        eqs_group.next_to(cost_func, DOWN, buff=1)
+        
+        # Animate equations
+        for eq in [eq1, eq2, eq3, eq4]:
+            self.play(Write(eq))
+            self.wait(0.3)
+
+        self.wait(2)
 
 
