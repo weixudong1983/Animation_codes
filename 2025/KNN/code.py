@@ -351,3 +351,56 @@ class Distances(Scene):
         self.embed()
 
 
+
+class SimpleKNNProsAndCons(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.75).shift(DOWN*0.2+LEFT*0.3)
+        # Pro section
+        pro_title = Text("Pro", font_size=60, color=GREEN, weight=BOLD)
+        pro_title.shift(LEFT * 3 + UP * 2)
+        
+        pro_bullets = [
+            "• Lazy learning - no training required",
+            "• Fast to implement and understand", 
+            "• Easy to use for beginners",
+            "• Works with any distance metric",
+            "• Handles multi-class problems naturally"
+        ]
+        
+        pro_texts = VGroup()
+        for i, bullet in enumerate(pro_bullets):
+            text = Text(bullet, font_size=24, color=GREEN)
+            text.next_to(pro_title, DOWN, buff=0.34 + i * 0.4)
+            text.align_to(pro_title, LEFT)
+            pro_texts.add(text)
+        
+        # Con section  
+        con_title = Text("Con", font_size=60, color=RED, weight=BOLD)
+        con_title.next_to(pro_title, DOWN, buff=0.5).shift(DOWN*2.13)
+        
+        con_bullets = [
+            "• Finding k (hyperparameter) is tricky",
+            "• Curse of dimensionality problem",
+            "• Computationally expensive for large data"
+        ]
+        
+        con_texts = VGroup()
+        for i, bullet in enumerate(con_bullets):
+            text = Text(bullet, font_size=24, color=RED)  
+            text.next_to(con_title, DOWN, buff=0.34 + i * 0.4)
+            text.align_to(con_title, LEFT)
+            con_texts.add(text)
+        
+        # Animate everything
+        self.play(Write(pro_title))
+        for text in pro_texts:
+            self.play(Write(text), run_time=0.7)
+            
+        self.play(Write(con_title))
+        for text in con_texts:
+            self.play(Write(text), run_time=0.7)
+            
+        self.wait(3)
+        
+        self.embed()
