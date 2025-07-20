@@ -285,7 +285,7 @@ class KNNRegression(Scene):
 from manimlib import *
 import numpy as np
 
-class KNNRegressionNoAxes(Scene):
+class Distances(Scene):
     def construct(self):
         self.camera.frame.shift(UP*1.65+RIGHT*2.4)
         
