@@ -282,4 +282,72 @@ class KNNRegression(Scene):
         # Final pause to show the regression result
         self.wait(2)
 
+from manimlib import *
+import numpy as np
+
+class KNNRegressionNoAxes(Scene):
+    def construct(self):
+        self.camera.frame.shift(UP*1.65+RIGHT*2.4)
+        
+        # First pair of dots and line - Euclidean
+        dot1 = Dot(np.array([1, 1, 0]), color=BLUE, radius=0.3).set_color(RED)
+        dot2 = Dot(np.array([4, 3, 0]), color=BLUE, radius=0.3).set_color(RED)
+        line1 = Line(dot1.get_center(), dot2.get_center(), color=BLUE, stroke_width=8.5).set_color(YELLOW)
+        line1.set_z_index(-1)
+        
+        # Distance type title (BOLD) on top
+        euclidean_title = Text(r"Euclidean Distance", weight=BOLD, color=BLUE).to_edge(UP).scale(1.4).shift(UP*1.3+RIGHT*2.3)
+        
+        # Formula below the dots and lines
+        euclidean_formula = Tex(
+            r"d = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}", 
+            color=BLUE
+        ).next_to(dot1, DOWN, buff=1.5).shift(RIGHT*1.5).scale(1.2*1.1*1.1)
+        
+        # Show Euclidean
+        self.play(FadeIn(dot1), FadeIn(dot2))
+        self.play(ShowCreation(line1))
+        self.play(Write(euclidean_title), Write(euclidean_formula))
+        self.wait(2)
+        
+        # Uncreate the Euclidean line
+        self.play(Uncreate(line1))
+        
+        # Create Manhattan distance lines (horizontal then vertical)
+        # Horizontal line from dot1 to directly below dot2
+        horizontal_line = Line(
+            dot1.get_center(), 
+            np.array([dot2.get_center()[0], dot1.get_center()[1], 0]), 
+            color=YELLOW, 
+            stroke_width=8.5
+        ).set_z_index(-1)
+        
+        # Vertical line from end of horizontal line to dot2
+        vertical_line = Line(
+            np.array([dot2.get_center()[0], dot1.get_center()[1], 0]), 
+            dot2.get_center(), 
+            color=YELLOW, 
+            stroke_width=8.5
+        ).set_z_index(-1)
+        
+        # Manhattan distance title and formula
+        manhattan_title = Text(r"Manhattan Distance", weight=BOLD, color=BLUE).to_edge(UP).scale(1.4).shift(UP*1.3+RIGHT*2.3)
+        manhattan_formula = Tex(
+            r"d = |x_2 - x_1| + |y_2 - y_1|", 
+            color=BLUE
+        ).next_to(dot1, DOWN, buff=1.5).shift(RIGHT*1.5).scale(1.2*1.1*1.1)
+        
+        # Transform title and formula to Manhattan
+        self.play(
+            Transform(euclidean_title, manhattan_title),
+            Transform(euclidean_formula, manhattan_formula)
+        )
+        
+        # Show Manhattan distance lines
+        self.play(ShowCreation(horizontal_line))
+        self.play(ShowCreation(vertical_line))
+        self.wait(2)
+        
+        self.embed()
+
 
