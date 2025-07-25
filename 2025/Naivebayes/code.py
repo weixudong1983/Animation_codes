@@ -198,6 +198,109 @@ class BayesRule(Scene):
 
 
 
+class BayesTheoremDerivation(Scene):
+    def construct(self):
+        self.camera.frame.scale(0.8).shift(UP*1.73)
+        # STEP 1: Complete equation in one line
+        eq1 = Tex(r"P(Star \mid Green) = \frac{P(Star \cap Green)}{P(Green)}").scale(1.2).to_edge(UP)
+        self.play(Write(eq1))
+        self.wait(1)
+
+        # STEP 2: Second complete equation in one line
+        eq2 = Tex(r"P(Green \mid Star) = \frac{P(Green \cap Star)}{P(Star)}").scale(1.1).next_to(eq1, DOWN, buff=1.2)
+        self.play(Write(eq2))
+        self.wait(1.2)
+
+
+        # STEP 3: Isolate intersection - complete equation
+        isolate = Tex(r"P(Green \cap Star) = P(Green \mid Star) \cdot P(Star)")
+        isolate.move_to(eq1)
+        self.play(Transform(eq1, isolate))
+        self.wait(1.5)
+
+        # STEP 4: Final Bayes theorem - complete equation
+        final_eq = Tex(r"P(Star \cap Green) = P(Star \mid Green) \cdot P(Green)").move_to(eq2)
+        self.play(Transform(eq2, final_eq))
+        self.wait(2)
+
+        rect1 = SurroundingRectangle(eq1[:14], color=YELLOW, stroke_width=6)
+        rect2 = SurroundingRectangle(eq2[:13], color=YELLOW, stroke_width=6)
+
+        self.play(
+            ShowCreation(rect1),
+            ShowCreation(rect2),
+            run_time=1
+        )
+
+        self.wait(2)
+
+        self.play(
+            Transform(rect1, SurroundingRectangle(eq1[15:], color=YELLOW)),
+            Transform(rect2, SurroundingRectangle(eq2[14:], color=YELLOW)), run_time=1)
+
+        # Box it
+
+        self.wait(2)
+
+        final_eq = Tex(r"P(Star \mid Green) = \frac{P(Green \mid Star) \cdot P(Star)}{P(Green)}").move_to(VGroup(eq1, eq2).get_center()).scale(1)
+        self.play(ReplacementTransform(VGroup(eq2, eq1), final_eq),Uncreate(rect1), Uncreate(rect2))
+        self.wait(1.5)
+
+        box = SurroundingRectangle(final_eq, color="#00FF00", stroke_width=6).scale(1.06)
+        self.play(ShowCreation(box))
+        self.wait(2)
+        self.play(Uncreate(box))
+
+
+        # STEP 5: Explain the Denominator
+        denom_explain = Tex(r"P(Green) = P(Green \mid Star) \cdot P(Star) + P(Green \mid \neg Star) \cdot P(\neg Star)").scale(0.95*0.7)
+        denom_explain.next_to(final_eq, DOWN, buff=1.5)
+        self.play(Write(denom_explain), self.camera.frame.animate.shift(DOWN))
+        self.wait(3)
+
+        brace = Brace(denom_explain[:8], DOWN, buff=0.2).set_color(YELLOW)
+        self.play(GrowFromCenter(brace))
+
+        self.wait(1.5)
+
+        self.play(Transform(brace, Brace(denom_explain[9:30], DOWN, buff=0.2).set_color(YELLOW)))
+        
+        self.wait(1.5)
+
+        self.play(Transform(brace, Brace(denom_explain[31:], DOWN, buff=0.2).set_color(YELLOW)))
+
+        self.wait(1.5)
+
+
+        # STEP 6: Final transformed full Bayes Equation with expanded denominator
+        expanded_bayes = Tex(
+            r"P(Star \mid Green) = \frac{P(Green \mid Star) \cdot P(Star)}{P(Green \mid Star) \cdot P(Star) + P(Green \mid \neg Star) \cdot P(\neg Star)}"
+        ).scale(0.9)
+        expanded_bayes.move_to(final_eq.get_center()).scale(0.9*0.9*0.87)
+
+        self.play(
+            ReplacementTransform(VGroup(final_eq, denom_explain), expanded_bayes),
+            self.camera.frame.animate.shift(UP),
+            FadeOut(brace)
+        )
+        self.wait(2)
+
+
+
+        equation_A_B = Tex(r"P(A \mid B) = \frac{P(B \mid A) \cdot P(A)}{P(B \mid A) \cdot P(A) + P(B \mid \neg A) \cdot P(\neg A)}").scale(1.3*0.9*0.9*0.9).move_to(expanded_bayes)
+        self.play(Transform(expanded_bayes, equation_A_B))
+        self.wait(2)
+
+        self.play(expanded_bayes[-16].animate.set_color(RED), 
+                  expanded_bayes[-5].animate.set_color(RED),)
+        
+        self.wait(2)
+
+
+        temp  =  Tex(r"P(A \mid x_1, x_2, \ldots, x_n) = \frac{P(x_1, x_2, \ldots, x_n \mid A) \cdot P(A)}{P(x_1, x_2, \ldots, x_n)}").scale(0.9).move_to(expanded_bayes)
+        self.play(Transform(expanded_bayes, temp))
+        self.wait(2)
+
 
 
  
