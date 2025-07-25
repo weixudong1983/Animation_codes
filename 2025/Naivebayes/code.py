@@ -198,6 +198,8 @@ class BayesRule(Scene):
 
 
 
+from manimlib import *
+
 class BayesTheoremDerivation(Scene):
     def construct(self):
         self.camera.frame.scale(0.8).shift(UP*1.73)
@@ -300,6 +302,74 @@ class BayesTheoremDerivation(Scene):
         temp  =  Tex(r"P(A \mid x_1, x_2, \ldots, x_n) = \frac{P(x_1, x_2, \ldots, x_n \mid A) \cdot P(A)}{P(x_1, x_2, \ldots, x_n)}").scale(0.9).move_to(expanded_bayes)
         self.play(Transform(expanded_bayes, temp))
         self.wait(2)
+
+
+        
+        # STEP 7: Clear for new example
+        self.play(FadeOut(expanded_bayes))
+
+
+        # STEP 1: General form with 3 features
+        general_eq = Tex(
+            r"P(A \mid x_1, x_2, x_3) = \frac{P(x_1, x_2, x_3 \mid A) \cdot P(A)}{P(x_1, x_2, x_3)}"
+        ).scale(1.2).move_to(expanded_bayes)
+        self.play(Write(general_eq) ,self.camera.frame.animate.scale(1.1))
+        self.wait(2)
+
+
+        # Expand the numerator of non-naive Bayes
+        full_non_naive = Tex(
+            r"P(A \mid x_1, x_2, x_3) = \frac{P(x_1 \mid A) \cdot P(x_2 \mid x_1, A) \cdot P(x_3 \mid x_1, x_2, A) \cdot P(A)}{P(x_1, x_2, x_3)}"
+        ).scale(1.1).move_to(general_eq)
+        self.play(ReplacementTransform(general_eq, full_non_naive), self.camera.frame.animate.scale(1.1**3))
+        self.wait(3)
+
+        brace = Brace(full_non_naive[14:21], UP, buff=0.2).set_color(YELLOW)
+        self.play(GrowFromCenter(brace))
+
+        self.wait(2)
+
+        self.play(Transform(brace, Brace(full_non_naive[22:32], UP, buff=0.2).set_color(YELLOW)))
+        self.wait(2)
+        self.play(Transform(brace, Brace(full_non_naive[33:46], UP, buff=0.2).set_color(YELLOW)))
+        self.wait(2)
+
+        self.play(Transform(brace, Brace(VGroup(full_non_naive[-11:-1], full_non_naive[-1]), DOWN, buff=0.2).set_color(YELLOW)))
+
+        # Voiceover explanation point: explain full dependencies in numerator
+        # Now expand the denominator explicitly
+
+        denom_expanded = Tex(r"P(x_1, x_2, x_3) = P(x_1, x_2, x_3 \mid A) \cdot P(A) + P(x_1, x_2, x_3 \mid \neg A) \cdot P(\neg A)").scale(0.9).next_to(full_non_naive, DOWN, buff=1).shift(DOWN).scale(1.2)
+        self.play(Write(denom_expanded), self.camera.frame.animate.shift(DOWN))
+        self.wait(2)
+
+        self.play(Transform(brace, Brace(denom_expanded[12:30], DOWN, buff=0.2).set_color(YELLOW)))
+        self.wait(2)
+        self.play(Transform(brace, Brace(denom_expanded[31:], DOWN, buff=0.2).set_color(YELLOW)))
+        self.wait(2)
+
+
+        self.play(FadeOut(denom_expanded), FadeOut(brace), self.camera.frame.animate.shift(UP))
+
+        # Now simplify into Naive form
+        naive_eq = Tex(
+            r"P(A \mid x_1, x_2, x_3) = \frac{P(x_1 \mid A) \cdot P(x_2 \mid A) \cdot P(x_3 \mid A) \cdot P(A)}{P(x_1, x_2, x_3)}"
+        ).scale(1.1).move_to(full_non_naive)
+        self.play(ReplacementTransform(full_non_naive, naive_eq), self.camera.frame.animate.scale(0.9*0.9*1.08))
+        self.wait(3)
+
+        brace = Brace(naive_eq[14:21], UP, buff=0.2).set_color(YELLOW)
+        self.play(GrowFromCenter(brace))
+
+        self.wait()
+
+        self.play(Transform(brace, Brace(naive_eq[22:29], UP, buff=0.2).set_color(YELLOW)))
+        self.wait()
+
+        self.play(Transform(brace, Brace(naive_eq[30:37], UP, buff=0.2).set_color(YELLOW)))
+        self.wait(3)
+
+
 
 
 
