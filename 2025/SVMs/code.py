@@ -841,7 +841,7 @@ class SVM_Hard_MarginMath(Scene):
 
 
 
-class SVM_Hard_MarginMath(Scene):
+class SVM_Soft_MarginMath(Scene):
     def construct(self):
         # Create axes for first quadrant only
         axes = Axes(
