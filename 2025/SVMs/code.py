@@ -1144,7 +1144,7 @@ class SVM_Soft_MarginMath(Scene):
 
         rect = SurroundingRectangle(partial_derivatives, stroke_width=6).scale(1.1)
         self.play(ShowCreation(rect))
-        self.play(2)
+        self.wait(2)
 
         dual_formulation = VGroup(Tex(r"D(\alpha) = \sum_{i=1}^{m}\alpha_i - \frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_i\alpha_j y_i y_j (\mathbf{x}_i \cdot \mathbf{x}_j)"),Tex(r"\text{subject to:}"),Tex(r"0 \leq \alpha_i \leq C, \quad \forall i"),Tex(r"\sum_{i=1}^{m}\alpha_i y_i = 0")).arrange(DOWN, buff=0.5)
         dual_formulation.move_to(VGroup(rect, lagrangian)).scale(1.1*1.1)
