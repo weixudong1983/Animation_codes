@@ -1166,3 +1166,134 @@ class SVM_Soft_MarginMath(Scene):
 
         self.wait(2)
 
+class OneDToTwoDSeparableBetterScaling(Scene):
+    def construct(self):
+        # Set up camera
+        self.camera.frame.scale(0.9).shift(DOWN*0.3)
+        
+        # Create horizontal x axis
+        axis_x = NumberLine(
+            x_range=[-6, 6, 1],
+            include_numbers=False,
+            stroke_width=4
+        ).shift(DOWN*2)
+        
+        self.add(axis_x)
+        
+        # GREEN class: BIGGER x values so they move more in transform
+        green_points_1d = np.array([-1, -0.5, 0.0, 0.5, 1])
+        
+        # BLUE class: SMALLER x values so they don't go too high
+        blue_points_1d = np.array([-3.5, -2.8, -2.2, 1.8, 2.5, 3.2])
+        
+        # Create dots
+        green_dots = VGroup()
+        for point in green_points_1d:
+            dot = Dot(axis_x.number_to_point(point), radius=0.15)
+            dot.set_color(GREEN)
+            green_dots.add(dot)
+        
+        blue_dots = VGroup()
+        for point in blue_points_1d:
+            dot = Dot(axis_x.number_to_point(point), radius=0.15)
+            dot.set_color(BLUE)
+            blue_dots.add(dot)
+        
+        # Show 1D data
+        self.play(ShowCreation(green_dots))
+        self.play(ShowCreation(blue_dots))
+        self.wait(2)
+        
+        # RED decision boundary
+        decision_x = -1.0
+        decision_line_1d = Line(
+            start=axis_x.number_to_point(decision_x) + UP*0.8,
+            end=axis_x.number_to_point(decision_x) + DOWN*0.8,
+            color=RED,
+            stroke_width=8
+        )
+        
+        self.play(ShowCreation(decision_line_1d))
+        self.wait(1)
+        
+        # MOVE DECISION LINE LEFT AND RIGHT
+        self.play(decision_line_1d.animate.shift(RIGHT*1.5), run_time=2)
+        self.wait(0.5)
+        self.play(decision_line_1d.animate.shift(LEFT*3), run_time=2) 
+        self.wait(0.5)
+        self.play(decision_line_1d.animate.shift(RIGHT*4.5), run_time=2)
+        self.wait(1)
+        
+        # Remove failed decision boundary
+        self.play(FadeOut(decision_line_1d))
+        self.wait(1)
+
+        
+        # Create TALLER y-axis at middle of green dots
+        green_middle = np.mean(green_points_1d)
+        axis_y = NumberLine(
+            x_range=[0, 6, 1],  # TALLER RANGE
+            include_numbers=False,
+            stroke_width=4
+        ).rotate(PI/2)
+        
+        # Position y-axis HIGHER and make it TALLER
+        axis_y.move_to(axis_x.number_to_point(green_middle) + UP*3)
+        axis_y.set_z_index(-1)
+        
+        self.play(ShowCreation(axis_y), self.camera.frame.animate.scale(1.2).shift(UP*1.43))
+        self.wait(1)
+        
+
+        # BIG TEXT for labels
+        label_x = Text("x", font_size=60)
+        label_x.set_color(WHITE).next_to(axis_x, RIGHT, buff=0.5)
+        
+        label_phi = Text("φ(x)", font_size=60)
+        label_phi.set_color(WHITE).next_to(axis_y, UP, buff=0.5)
+        
+        self.play(Write(label_x))
+        self.play(Write(label_phi))
+        self.wait(1)
+        
+        # BIG formula text
+        formula = Text("φ(x) = x²", font_size=50)
+        formula.set_color(YELLOW)
+        formula.to_edge(UP + RIGHT).shift(LEFT*1)
+        
+        self.play(Write(formula))
+        self.wait(2)
+
+        
+        # Transform to 2D with BALANCED scaling
+        def transform_to_2d(x_val):
+            y_val = x_val**2 * 0.41  # Better scaling factor
+            x_pos = axis_x.number_to_point(x_val)
+            y_offset = axis_y.number_to_point(y_val) - axis_y.number_to_point(0)
+            return x_pos + y_offset
+        
+        # Animate transformation
+        animations = []
+        
+        for i, dot in enumerate(green_dots):
+            new_pos = transform_to_2d(green_points_1d[i])
+            animations.append(dot.animate.move_to(new_pos))
+        
+        for i, dot in enumerate(blue_dots):
+            new_pos = transform_to_2d(blue_points_1d[i])
+            animations.append(dot.animate.move_to(new_pos))
+        
+        self.play(*animations, run_time=3)
+        self.wait(2)
+        
+        # Create 2D decision boundary that PROPERLY SEPARATES
+        decision_y = 1.0  # Good separation level
+        decision_line_2d = Line(
+            start=axis_x.number_to_point(-5.5) + (axis_y.number_to_point(decision_y) - axis_y.number_to_point(0)),
+            end=axis_x.number_to_point(5.5) + (axis_y.number_to_point(decision_y) - axis_y.number_to_point(0)),
+            color=RED,
+            stroke_width=8
+        )
+        
+        self.play(ShowCreation(decision_line_2d))
+        self.wait(3)
