@@ -1297,3 +1297,265 @@ class OneDToTwoDSeparableBetterScaling(Scene):
         
         self.play(ShowCreation(decision_line_2d))
         self.wait(3)
+
+
+from manimlib import *
+import numpy as np
+from sklearn.svm import SVC
+from sklearn.datasets import make_circles
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+class PolyAndRBFKernelDemo(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.1)
+        self.camera.frame.scale(0.9)
+        self.camera.frame.shift(UP*0.1+RIGHT*0.33)
+
+        # Coordinate plane
+        plane = NumberPlane(
+            x_range=[-3, 3, 1], y_range=[-3, 3, 1],
+            height=6, width=6,
+            background_line_style={
+                "stroke_color": GREY,
+                "stroke_width": 1,
+                "stroke_opacity": 0.6
+            }
+        ).shift(LEFT * 2.5)
+
+        def train_real_svm(X, y, kernel='poly', **params):
+            """Train actual SVM and return model + decision boundary"""
+            svm = SVC(kernel=kernel, **params)
+            svm.fit(X, y)
+            
+            h = 0.05
+            x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
+            y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
+            xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                               np.arange(y_min, y_max, h))
+            
+            Z = svm.decision_function(np.c_[xx.ravel(), yy.ravel()])
+            Z = Z.reshape(xx.shape)
+            return svm, xx, yy, Z
+
+        def create_boundary_from_real_svm(xx, yy, Z, plane, color, level=0):
+            """Extract real SVM decision boundary"""
+            try:
+                fig, ax = plt.subplots(figsize=(6, 6))
+                cs = ax.contour(xx, yy, Z, levels=[level])
+                
+                boundary_curves = []
+                # Handle both old and new matplotlib versions
+                if hasattr(cs, 'collections'):
+                    for collection in cs.collections:
+                        for path in collection.get_paths():
+                            vertices = path.vertices
+                            if len(vertices) > 10:
+                                manim_points = []
+                                for vertex in vertices:
+                                    x, y = vertex[0], vertex[1]
+                                    if -3 <= x <= 3 and -3 <= y <= 3:
+                                        manim_points.append(plane.coords_to_point(x, y))
+                                if len(manim_points) > 5:
+                                    curve = VMobject().set_points_smoothly(manim_points)
+                                    curve.set_stroke(color, width=8)
+                                    boundary_curves.append(curve)
+                else:
+                    # Newer matplotlib versions
+                    for line_collection in cs.allsegs:
+                        for line in line_collection:
+                            if len(line) > 10:
+                                manim_points = []
+                                for point in line:
+                                    x, y = point[0], point[1]
+                                    if -3 <= x <= 3 and -3 <= y <= 3:
+                                        manim_points.append(plane.coords_to_point(x, y))
+                                if len(manim_points) > 5:
+                                    curve = VMobject().set_points_smoothly(manim_points)
+                                    curve.set_stroke(color, width=8)
+                                    boundary_curves.append(curve)
+                
+                plt.close(fig)
+                return boundary_curves
+            except:
+                return []
+
+        def create_dots_from_data(X, y, plane):
+            """Convert data points to manim dots"""
+            blue_dots, red_dots = [], []
+            for point, label in zip(X, y):
+                x, y_coord = point[0], point[1]
+                if -3 <= x <= 3 and -3 <= y_coord <= 3:
+                    dot = Dot(plane.coords_to_point(x, y_coord), radius=0.09)
+                    if label == 1:
+                        dot.set_color(BLUE)
+                        blue_dots.append(dot)
+                    else:
+                        dot.set_color(RED)
+                        red_dots.append(dot)
+            return VGroup(*blue_dots), VGroup(*red_dots)
+
+
+
+        self.play(ShowCreation(plane))
+
+
+        # ==================== POLYNOMIAL KERNEL ====================
+        print("Training Polynomial SVM...")
+        
+        # Generate XOR-like data for polynomial kernel
+        np.random.seed(123)
+        n_samples = 50
+        X_poly = np.random.randn(n_samples, 2)
+        y_poly = np.logical_xor(X_poly[:, 0] > 0, X_poly[:, 1] > 0).astype(int)
+        y_poly = 2 * y_poly - 1  # Convert to -1,1
+
+        # Initial polynomial SVM training
+        svm_poly, xx_poly, yy_poly, Z_poly = train_real_svm(
+            X_poly, y_poly, kernel='poly', degree=2, C=1.0, coef0=1
+        )
+
+        # Display polynomial formula and info
+        poly_formula = Tex(r"K_{poly}(x,y) = (x \cdot y + c)^d", font_size=52).set_color(GREEN)
+        poly_formula.to_edge(RIGHT, buff=0.5).shift(UP)
+
+        poly_label = Text("Polynomial Kernel", font_size=42).set_color(GREEN)
+        poly_label.next_to(poly_formula, DOWN, buff=0.5)
+
+        poly_params = Tex(r"c = 1, \quad d = 2", font_size=48).set_color(YELLOW)
+        poly_params.next_to(poly_label, DOWN, buff=0.5)
+
+        poly_info = Tex(f"\\text{{Support Vectors: }}{len(svm_poly.support_)}", font_size=24).set_color(WHITE)
+        poly_info.next_to(poly_params, DOWN, buff=0.3)
+
+        self.play(Write(poly_formula), Write(poly_label), Write(poly_params), )
+
+        # Show polynomial data
+        blue_dots, red_dots = create_dots_from_data(X_poly, y_poly, plane)
+        self.play(*[GrowFromCenter(dot) for dot in blue_dots], lag_ratio=0.08)
+        self.play(*[GrowFromCenter(dot) for dot in red_dots], lag_ratio=0.08)
+        self.wait(1)
+
+
+        # Show initial polynomial boundary
+        poly_boundary_curves = create_boundary_from_real_svm(xx_poly, yy_poly, Z_poly, plane, "#00ff00")
+        poly_boundary = VGroup(*poly_boundary_curves) if poly_boundary_curves else VGroup()
+        if len(poly_boundary) > 0:
+            self.play(ShowCreation(poly_boundary), run_time=2)
+
+
+        self.wait(1.5)
+
+
+
+        # Animate parameter changes for polynomial (degree)
+        for degree in [3, 4, 5]:
+            print(f"Updating Polynomial SVM to degree {degree}...")
+            
+            new_svm, xx_new, yy_new, Z_new = train_real_svm(
+                X_poly, y_poly, kernel='poly', degree=degree, C=1.0, coef0=1
+            )
+            
+            # Create new boundary
+            new_curves = create_boundary_from_real_svm(xx_new, yy_new, Z_new, plane, "#00ff00")
+            new_boundary = VGroup(*new_curves) if new_curves else VGroup()
+            
+            # Create new parameter text
+            new_params = Tex(f"c = 1, \\quad d = {degree}", font_size=48).set_color(YELLOW)
+            new_params.next_to(poly_label, DOWN, buff=0.5)
+            
+
+            
+            # Use .become() for smooth transitions
+            self.play(
+                Transform(poly_boundary, new_boundary),
+                Transform(poly_params, new_params),
+                run_time=0.7
+            )
+            self.wait(1.2)
+
+        # Clear polynomial scene
+        self.play(FadeOut(VGroup(blue_dots, red_dots, poly_boundary,
+                                poly_formula, poly_label, poly_params, )))
+
+        # ==================== RBF KERNEL ====================
+        print("Training RBF SVM...")
+        
+
+        # Generate circular data for RBF kernel
+        np.random.seed(456)
+        X_rbf, y_rbf = make_circles(n_samples=80, noise=0.12, factor=0.4, random_state=42)
+        X_rbf = X_rbf * 2.2  # Scale for visibility
+        y_rbf = 2 * y_rbf - 1  # Convert to -1,1
+
+        # Initial RBF SVM training
+        svm_rbf, xx_rbf, yy_rbf, Z_rbf = train_real_svm(
+            X_rbf, y_rbf, kernel='rbf', gamma=1.0, C=1.0
+        )
+
+        # Display RBF formula and info
+        rbf_formula = Tex(r"K_{RBF}(x,y) = \exp\left(-\frac{||x - y||^2}{2\sigma^2}\right)", 
+                         font_size=40).set_color(GREEN)
+        rbf_formula.to_edge(RIGHT, buff=0.5).shift(UP * 1.23)
+
+        rbf_label = Text("RBF (Gaussian) Kernel", font_size=42).set_color(GREEN)
+        rbf_label.next_to(rbf_formula, DOWN, buff=0.5)
+
+        rbf_params = Tex(r"\sigma = 1.0", font_size=48).set_color(YELLOW)
+        rbf_params.next_to(rbf_label, DOWN, buff=0.5)
+
+
+
+        self.play(Write(rbf_formula), Write(rbf_label), Write(rbf_params),)
+
+        # Show RBF data
+        blue_dots_rbf, red_dots_rbf = create_dots_from_data(X_rbf, y_rbf, plane)
+        self.play(*[GrowFromCenter(dot) for dot in blue_dots_rbf])
+        self.play(*[GrowFromCenter(dot) for dot in red_dots_rbf])
+        self.wait(1)
+
+
+
+        # Show initial RBF boundary
+        rbf_boundary_curves = create_boundary_from_real_svm(xx_rbf, yy_rbf, Z_rbf, plane, "#00ff00")
+        rbf_boundary = VGroup(*rbf_boundary_curves) if rbf_boundary_curves else VGroup()
+        if len(rbf_boundary) > 0:
+            self.play(ShowCreation(rbf_boundary), run_time=2)
+
+
+        self.wait(1.5)
+
+        # Animate sigma parameter changes for RBF
+        sigma_values = [0.7, 1.5, 0.5, 2.0]
+        
+        for sigma in sigma_values:
+            print(f"Updating RBF SVM to sigma {sigma}...")
+            
+            # Convert sigma to gamma (gamma = 1/(2*sigma^2))
+            gamma_val = 1.0 / (2 * sigma ** 2)
+            
+            new_svm, xx_new, yy_new, Z_new = train_real_svm(
+                X_rbf, y_rbf, kernel='rbf', gamma=gamma_val, C=1.0
+            )
+            
+            # Create new boundary
+            new_curves = create_boundary_from_real_svm(xx_new, yy_new, Z_new, plane, "#00ff00")
+            new_boundary = VGroup(*new_curves) if new_curves else VGroup()
+            
+            # Create new parameter text
+            new_params = Tex(f"\\sigma = {sigma:.1f}", font_size=48).set_color(YELLOW)
+            new_params.next_to(rbf_label, DOWN, buff=0.5)
+            
+            # Use .become() for smooth transitions
+            self.play(
+                rbf_boundary.animate.become(new_boundary),
+                rbf_params.animate.become(new_params),
+                run_time=0.3
+            )
+            self.wait(1.2)
+
+
+
+        self.wait(2)
+
+        print("Real SVM Training Complete!")
