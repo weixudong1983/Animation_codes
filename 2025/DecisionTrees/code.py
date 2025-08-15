@@ -554,3 +554,488 @@ class GiniFormula(Scene):
         )
 
         self.wait(2)
+
+
+class Training(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(1.31).shift(0.7*UP)
+
+        # ------------------------------------------------------------- #
+        # 1. data (animal dataset, emojis removed)
+        # ------------------------------------------------------------- #
+        data = [
+            ["Name",      "CanFly", "EatsMeat", "LaysEggs", "Bird"],
+            ["Eagle",     "Yes",    "Yes",      "Yes",      "Yes"],
+            ["Bat",       "Yes",    "Yes",      "No",       "No"],
+            ["Butterfly", "Yes",    "No",       "Yes",      "No"],
+            ["Penguin",   "No",     "Yes",      "Yes",      "Yes"],
+            ["Elephant",  "No",     "No",       "No",       "No"],
+            ["Ostrich",   "No",     "Yes",       "Yes",      "Yes"],
+            ["Peacock",   "Yes",     "Yes",       "Yes",      "Yes"],
+            ["Cat",   "No",     "Yes",       "No",      "No"],
+        ]
+
+        # Column colors
+        column_colors = [BLUE, PURPLE, PINK, ORANGE, TEAL]
+        yes_color, no_color = GREEN, RED
+
+        # ------------------------------------------------------------- #
+        # 2. build Text objects
+        # ------------------------------------------------------------- #
+        text_rows = [
+            [
+                Text(str(cell), weight="BOLD", color=BLACK).set_color(BLACK) if r == 0 else Text(str(cell))
+                for c, cell in enumerate(row)
+            ]
+            for r, row in enumerate(data)
+        ]
+        n_rows, n_cols = len(text_rows), len(text_rows[0])
+
+        # ------------------------------------------------------------- #
+        # 3. geometry
+        # ------------------------------------------------------------- #
+        col_w = [max(text_rows[r][c].get_width() for r in range(n_rows)) + 0.8
+                 for c in range(n_cols)]
+        row_h = max(m.get_height() for row in text_rows for m in row) + 0.6
+        tot_w, tot_h = sum(col_w), n_rows * row_h
+
+        # ------------------------------------------------------------- #
+        # 4. build backgrounds & position text
+        # ------------------------------------------------------------- #
+        cell_bgs, cell_txts = VGroup(), VGroup()
+
+        for r in range(n_rows):
+            for c in range(n_cols):
+                x = -tot_w/2 + sum(col_w[:c]) + col_w[c]/2
+                y =  tot_h/2 - (r + 0.5)*row_h
+
+                txt = text_rows[r][c].move_to([x, y, 0])
+                bg = Rectangle(width=col_w[c], height=row_h, stroke_width=0).move_to([x, y, 0])
+
+                # coloring rules
+                if r == 0:                   # header row
+                    bg.set_fill(YELLOW, opacity=0.66)
+                else:
+                    bg.set_fill(column_colors[c], opacity=0.3)
+                    if data[r][c] == "Yes":
+                        bg.set_fill(yes_color, opacity=0.5)
+                    elif data[r][c] == "No":
+                        bg.set_fill(no_color, opacity=0.5)
+
+                cell_bgs.add(bg)
+                cell_txts.add(txt)
+
+        # ------------------------------------------------------------- #
+        # 5. grid lines
+        # ------------------------------------------------------------- #
+        grid = VGroup(Rectangle(width=tot_w, height=tot_h, stroke_width=2))
+        x_cur = -tot_w/2
+        for w in col_w[:-1]:
+            x_cur += w
+            grid.add(Line([x_cur,  tot_h/2, 0], [x_cur, -tot_h/2, 0], stroke_width=1.5))
+        y_cur = tot_h/2
+        for _ in range(n_rows-1):
+            y_cur -= row_h
+            grid.add(Line([-tot_w/2, y_cur, 0], [tot_w/2, y_cur, 0], stroke_width=1.5))
+
+        # ------------------------------------------------------------- #
+        # 6. assemble & animate
+        # ------------------------------------------------------------- #
+        table = VGroup(cell_bgs, grid, cell_txts).scale(0.8).center()
+        title = Text("Animal Dataset", font_size=86, weight=BOLD).next_to(table, UP, buff=0.88)
+
+        self.play(Write(title))
+        self.play(ShowCreation(grid), run_time=1)
+        self.play(FadeIn(cell_bgs), run_time=1.5)
+        self.play(LaggedStartMap(FadeIn, cell_txts, shift=0.1*UP, lag_ratio=0.06), run_time=2)
+        self.wait(2)
+
+        def get_cell(r, c):
+            return cell_bgs[r*n_cols + c]
+
+
+        peacock = ImageMobject("peacock.png").shift(RIGHT*16.45).scale(0.4)
+        eagle = ImageMobject("eagle.png").scale(0.4).next_to(peacock, RIGHT)
+        elephant = ImageMobject("elephant.png").scale(0.4).next_to(eagle, RIGHT)
+        bat = ImageMobject("bat.png").scale(0.4).next_to(peacock, LEFT)
+        butterfly = ImageMobject("butterfly.png").scale(0.6).next_to(bat, LEFT)
+        ostrich = ImageMobject("ostrich.png").scale(0.4).next_to(butterfly, LEFT)
+        penguin = ImageMobject("penguin.png").scale(0.606).next_to(elephant, RIGHT)
+        cat = ImageMobject("cat.png").scale(0.6).next_to(ostrich, LEFT)
+
+        self.add(eagle, peacock, elephant, bat, butterfly, ostrich, penguin, cat)
+        self.wait(2)
+        self.play(self.camera.frame.animate.shift(RIGHT*15))
+        
+        total = Group(eagle, cat, ostrich, butterfly, bat, peacock, elephant, penguin)
+
+        self.play(total.animate.scale(0.95).shift(UP*3.1))
+        temp_a = bat.get_center()
+        temp_b = peacock.get_center()
+        self.play(peacock.animate.move_to(temp_a).shift(RIGHT*0.1), bat.animate.move_to(temp_b))
+        self.wait(2)
+
+        brace = Brace(Group(cat,  penguin), DOWN, buff=0.3)
+        self.play(GrowFromCenter(brace))
+        text = Text("8").next_to(brace, DOWN).scale(2).shift(DOWN*0.3).set_color(YELLOW)
+        self.play(ShowCreation(text))
+        self.wait(2)
+
+        a = Circle(stroke_color="#00ff00", stroke_width=4).move_to(ostrich)
+        b = a.copy().move_to(peacock)
+        c = b.copy().move_to(eagle)
+        d = c.copy().move_to(penguin)
+
+        self.play(ShowCreation(a), ShowCreation(b), ShowCreation(c), ShowCreation(d))
+        self.wait(2)
+
+        self.play(Uncreate(a), Uncreate(b), Uncreate(c), Uncreate(d), Uncreate(brace), Uncreate(text))
+
+        formula = Tex(r"Gini = 1 - \left(p_{yes}^{2} + p_{no}^{2}\right)").scale(2.6).next_to(total, DOWN, buff=1.6)
+        self.play(ShowCreation(formula))
+        self.wait(2)
+
+        self.play(Transform(formula, Tex(r"Gini = 1 - \left(\left(\tfrac{4}{8}\right)^{2} + \left(\tfrac{4}{8}\right)^{2}\right)").scale(2.6).move_to(formula)))
+        self.wait(2)
+        
+        self.play(Transform(formula, Tex(r"Gini = 0.5").scale(2.6).move_to(formula)))
+        self.wait(2)
+
+        self.play(FadeOut(formula), total.animate.shift(UP*1.2))
+        self.wait()
+
+        # Create ellipse with full opacity fill
+        ellipse = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=BLUE, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(total, DOWN, buff=1).shift(UP*0.8)
+        
+        # Text inside ellipse
+        feature_text = Text(
+            "CanFly", 
+            font_size=68, 
+            weight=BOLD, 
+        ).move_to(ellipse.get_center()).set_color(BLACK)
+        # Arrows with z_index = -1 (behind other elements)
+        arrow_left = Arrow(
+            start=ellipse.get_center(), 
+            end=ellipse.get_center() + LEFT*2 + DOWN*2.3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right = Arrow(
+            start=ellipse.get_center(), 
+            end=ellipse.get_center() + RIGHT*2 + DOWN*2.3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(FadeIn(ellipse), Write(feature_text))
+        self.wait(1)
+        self.play(GrowArrow(arrow_left), GrowArrow(arrow_right))
+        self.play(FadeIn(no_label), FadeIn(yes_label))
+        self.wait(2)
+
+
+        self.play(cat.animate.next_to(arrow_left, DOWN).shift(LEFT*2.3+UP*0.29), run_time=0.5)
+        self.play(ostrich.animate.next_to(cat, DOWN).shift(UP*0.4), run_time=0.5)
+        self.play(elephant.animate.next_to(cat, RIGHT).shift(LEFT*0.46), run_time=0.5)
+        self.play(penguin.animate.next_to(ostrich, RIGHT).shift(LEFT*0.56), run_time=0.5)
+        
+        self.play(butterfly.animate.next_to(arrow_right, DOWN).shift(RIGHT*0.6), run_time=0.5)
+        self.play(peacock.animate.next_to(butterfly, RIGHT).shift(LEFT*0.35), run_time=0.5)
+        self.play(bat.animate.next_to(butterfly, DOWN).shift(UP*0.46), run_time=0.5)
+        self.play(eagle.animate.next_to(peacock, DOWN).shift(UP*0), run_time=0.5)
+
+        self.play(self.camera.frame.animate.scale(0.8).shift(DOWN+RIGHT*3))
+        self.wait(2)
+
+        gini_left = Tex(r"Gini_{No} = 1 - (p_{yes}^2 + p_{no}^2)").next_to(ellipse, RIGHT).shift(RIGHT*1.28).scale(1.2)
+        self.play(ShowCreation(gini_left))
+        self.wait()
+
+        rect = SurroundingRectangle(Group(cat, elephant, penguin, ostrich), stroke_width=6).scale(0.94)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(Group(cat, elephant,), stroke_width=6).scale(0.9).shift(UP*0.15)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(Group( penguin, ostrich), stroke_width=6).scale(0.9).shift(DOWN*0.15+RIGHT*0.14)))
+ 
+        self.wait(2)
+
+
+        self.play(Transform(gini_left, Tex(r"Gini_{No} = 1 - \left(\left(\tfrac{2}{4}\right)^{2} + \left(\tfrac{2}{4}\right)^{2}\right)").move_to(gini_left).scale(1.2)), Uncreate(rect))
+        self.wait(2)
+
+        self.play(Transform(gini_left, Tex(r"Gini_{No} = 0.5").scale(1.36).move_to(gini_left)))
+
+        self.wait(2)
+
+        gini_right = Tex(r"Gini_{Yes} = 1 - (p_{yes}^2 + p_{no}^2)").next_to(gini_left, DOWN).scale(1.02).shift(DOWN*0.32)
+        self.play(ShowCreation(gini_right))
+        self.wait(1)
+
+        rect = SurroundingRectangle(Group(butterfly, peacock, bat, eagle), stroke_width=6).scale(0.94).shift(DOWN*0.14)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(Group(butterfly, bat,), stroke_width=6).scale(0.9).shift(DOWN*0.25)))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(Group( peacock, eagle), stroke_width=6).scale(0.99)))
+ 
+        self.wait(2)
+
+
+        self.play(Transform(gini_right, Tex(r"Gini_{Yes} = 1 - \left(\left(\tfrac{2}{4}\right)^{2} + \left(\tfrac{2}{4}\right)^{2}\right)").move_to(gini_right).scale(1.02)), Uncreate(rect))
+        self.wait(2)
+
+        self.play(Transform(gini_right, Tex(r"Gini_{Yes} = 0.5").scale(1.36).move_to(gini_right)))
+
+        self.wait(2)   
+
+        rect_left = SurroundingRectangle(Group(cat, elephant, penguin, ostrich), stroke_width=6).scale(0.94).set_color(RED).shift(RIGHT*0.13)
+        rect_gini_left = SurroundingRectangle(gini_left, color=RED, stroke_width=6).scale(1.1)
+        self.play(ShowCreation(rect_left), ShowCreation(rect_gini_left))
+        self.wait(2)
+
+        rect_right = SurroundingRectangle(Group(butterfly, peacock, bat, eagle), stroke_width=6).scale(0.94).set_color(GREEN).shift(RIGHT*0.13+DOWN*0.14)
+        rect_gini_right = SurroundingRectangle(gini_right, color=GREEN, stroke_width=6).scale(1.1)
+        self.play(ShowCreation(rect_right), ShowCreation(rect_gini_right))
+        self.wait(2)
+
+        final_canfly = Tex(r"\left(\tfrac{4}{8}\right)\cdot 0.5 + \left(\tfrac{4}{8}\right)\cdot 0.5").next_to(Group(peacock, eagle), RIGHT).scale(1.1*1.1).shift(RIGHT*0.44)
+        self.play(ShowCreation(final_canfly), Uncreate(VGroup(rect_right, rect_left, rect_gini_right, rect_gini_left)))
+        self.wait(2)
+
+        self.play(Transform(final_canfly, Tex("Gini_{CanFly} = 0.5").move_to(final_canfly).scale(1.15)))
+
+        self.wait(2)
+
+        self.play(FadeOut(Group(gini_left, gini_right)), final_canfly.animate.shift(UP*4.7) )
+        self.wait(2)
+
+        self.play(FadeOut(final_canfly))
+
+        self.play(Transform(ellipse, Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=YELLOW, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).move_to(ellipse)),
+        Transform(feature_text,  Text(
+            "LaysEggs", 
+            font_size=62, 
+            weight=BOLD, 
+        ).move_to(ellipse).set_color(BLACK)))
+
+        self.wait()
+
+        temp_a = penguin.get_center()
+        temp_b = bat.get_center()
+
+
+        self.play(bat.animate.move_to(temp_a), penguin.animate.next_to(temp_b, LEFT).shift(RIGHT*0.26), ostrich.animate.next_to(peacock, DOWN).shift(RIGHT*0.37), eagle.animate.shift(LEFT*1.2))
+        self.wait(2)
+
+        gini_left = Tex(r"Gini_{No} = 1 - (p_{yes}^2 + p_{no}^2)").next_to(ellipse, RIGHT).shift(RIGHT*1.28).scale(1.2)
+        self.play(ShowCreation(gini_left))
+        self.wait()
+
+        rect = SurroundingRectangle(Group(cat, elephant, bat,), stroke_width=6).scale(0.94)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+
+
+        self.play(Transform(gini_left, Tex(r"Gini_{No} = 1 - (0^2 + 1^2)").move_to(gini_left).scale(1.2)), Uncreate(rect))
+        self.wait(2)
+
+        self.play(Transform(gini_left, Tex(r"Gini_{No} = 0").scale(1.36).move_to(gini_left).scale(1.13)))
+
+        self.wait(2)
+
+        gini_right = Tex(r"Gini_{Yes} = 1 - (p_{yes}^2 + p_{no}^2)").next_to(gini_left, DOWN).scale(1.02).shift(DOWN*0.32)
+        self.play(ShowCreation(gini_right))
+        self.wait(1)
+
+        rect = SurroundingRectangle(Group(butterfly, peacock, penguin, ostrich,eagle), stroke_width=6).scale(0.94).shift(DOWN*0.14)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+
+        self.play(Transform(gini_right, Tex(r"Gini_{Yes} = 1 - \left(\left(\tfrac{4}{5}\right)^{2} + \left(\tfrac{1}{5}\right)^{2}\right)").move_to(gini_right).scale(1.02)), Uncreate(rect))
+        self.wait(2)
+
+        self.play(Transform(gini_right, Tex(r"Gini_{Yes} = 0.32").scale(1.36).move_to(gini_right)))
+
+        self.wait(2)   
+
+        rect_left = SurroundingRectangle(Group(cat, elephant, bat, ), stroke_width=6).scale(0.94).set_color(RED).shift(RIGHT*0)
+        rect_gini_left = SurroundingRectangle(gini_left, color=RED, stroke_width=6).scale(1.1)
+        self.play(ShowCreation(rect_left), ShowCreation(rect_gini_left))
+        self.wait(2)
+
+        rect_right = SurroundingRectangle(Group(butterfly, peacock,penguin, eagle, ostrich), stroke_width=6).scale(0.94).set_color(GREEN).shift( DOWN*0.14)
+        rect_gini_right = SurroundingRectangle(gini_right, color=GREEN, stroke_width=6).scale(1.1)
+        self.play(ShowCreation(rect_right), ShowCreation(rect_gini_right))
+        self.wait(2)
+
+        final_layeggs = Tex(r"\left(\tfrac{3}{8}\right)\cdot 0 + \left(\tfrac{5}{8}\right)\cdot 0.32").next_to(Group(peacock, eagle), RIGHT).scale(1.1*1.1).shift(RIGHT*0.44)
+        self.play(ShowCreation(final_layeggs), Uncreate(VGroup(rect_right, rect_left, rect_gini_right, rect_gini_left)))
+        self.wait(2)
+
+        self.play(Transform(final_layeggs, Tex("Gini_{LayEggs} = 0.2").move_to(final_layeggs).scale(1.15)))
+
+        self.wait(2)
+
+        self.play(FadeOut(Group(gini_left, gini_right)), final_layeggs.animate.next_to(final_canfly, DOWN).shift(DOWN*0.13) )
+        self.play(FadeIn(final_canfly))
+
+
+        self.wait(2)
+
+        final_eatmeat = Tex("Gini_{EatsMeat} = 0.333").next_to(final_layeggs, DOWN).scale(1.15).shift(DOWN*0.13)
+        self.play(ShowCreation(final_eatmeat))
+        self.wait(2)
+
+        rect = SurroundingRectangle(final_layeggs, stroke_width=6, color=BLUE).scale(1.1)
+        self.play(ShowCreation(rect))
+        self.wait(3)
+
+        self.play(Uncreate(VGroup(final_canfly, final_eatmeat, final_layeggs, rect)), self.camera.frame.animate.shift(LEFT*2.6))
+        self.play(self.camera.frame.animate.scale(1.2).shift(DOWN))
+
+        not_bird = Rectangle(color=RED, fill_color=RED, fill_opacity=0.65, height=1, width=4.4).next_to(Group(cat, elephant, bat), DOWN, buff=0.6)
+        not_bird_text = Text("Not Bird", weight=BOLD).move_to(not_bird).scale(1.8).set_color(WHITE)
+        not_bird = VGroup(not_bird, not_bird_text).next_to(bat, DOWN).scale(0.7).shift(LEFT*0.5)
+        self.play(GrowFromCenter(not_bird))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.scale(1.2).shift(DOWN+RIGHT*3.46))
+
+        rect = SurroundingRectangle(Group(peacock, penguin, ostrich,), stroke_width=6).set_color(BLUE)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+        gini = Tex(r"Gini = 1 - (p_{no}^2 + p_{yes}^2)").next_to(rect, RIGHT).scale(1.5).shift(RIGHT*1.9)
+
+        self.play(ShowCreation(gini))
+        self.wait(2)
+
+        self.play(Transform(gini, Tex(r"Gini = 1 - \left(\left(\tfrac{1}{5}\right)^2 + \left(\tfrac{4}{5}\right)^2\right)").scale(1.5).move_to(gini)))
+        self.wait(2)
+
+        self.play(Transform(gini, Tex(r"Gini = 0.32").scale(2).move_to(gini)))
+
+        self.play(gini.animate.shift(UP*4), Uncreate(rect))
+        self.wait(2)
+
+        gini_canfly = Tex(r"Gini_{CanFly} = 0.266").scale(2).next_to(gini, DOWN).shift(DOWN*0.45)
+        self.play(ShowCreation(gini_canfly))
+        self.wait(2)
+        gini_eatmeat = Tex(r"Gini_{EatsMeat} = 0").scale(2).next_to(gini_canfly, DOWN).shift(DOWN*0.45)
+        self.play(ShowCreation(gini_eatmeat))
+        self.wait(2)
+
+        rect = SurroundingRectangle(gini_eatmeat, color=GREEN, stroke_width=6).scale(1.17)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(rect, gini_canfly, gini_eatmeat, gini)))
+
+
+        self.play(Group(butterfly, peacock, penguin, eagle, ostrich).animate.shift(RIGHT*6.6))
+
+
+
+        # Create ellipse with full opacity fill
+        ellipse_right = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=PURPLE, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(arrow_right.get_center(), DOWN, buff=1.23).shift(RIGHT*2+UP*0.3)
+        
+        # Text inside ellipse
+        feature_text_right = Text(
+            "EatsMeat", 
+            font_size=62, 
+            weight=BOLD, 
+        ).move_to(ellipse_right.get_center()).set_color(WHITE).set_z_index(1)
+        # Arrows with z_index = -1 (behind other elements)
+        arrow_right_left = Arrow(
+            start=ellipse_right.get_center(), 
+            end=ellipse_right.get_center() + LEFT*2 + DOWN*3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right_right = Arrow(
+            start=ellipse_right.get_center(), 
+            end=ellipse_right.get_center() + RIGHT*2 + DOWN*3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label_left = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_right_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label_left = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(FadeIn(ellipse_right), Write(feature_text_right))
+        self.wait(1)
+        self.play(GrowArrow(arrow_right_right), GrowArrow(arrow_right_left))
+        self.play(FadeIn(no_label_left), FadeIn(yes_label_left))
+        self.wait(2)
+
+        self.play(butterfly.animate.next_to(arrow_right_left, DOWN).shift(LEFT+UP*0.1))
+        a = not_bird.copy().scale(0.76).next_to(butterfly, DOWN, buff=0.4).shift(UP*0.45)
+        self.play(ShowCreation(a))
+        self.wait(2)
+
+        self.play(Group(penguin, peacock, eagle, ostrich).animate.next_to(arrow_right_right, DOWN,).shift(RIGHT))
+        self.play(penguin.animate.next_to(peacock, LEFT, buff=0.2).shift(RIGHT*0.4), Group(eagle, ostrich).animate.shift(LEFT*0.45))
+         
+        bird_rect = Rectangle(color=GREEN, fill_color=GREEN, fill_opacity=0.65, height=1.1, width=2.5).next_to(Group(penguin, ostrich), DOWN, buff=0.6)
+        bird_text = Text("Bird", weight=BOLD).scale(2).move_to(bird_rect).set_color(WHITE)
+        bird = VGroup(bird_rect, bird_text).next_to(Group(eagle, ostrich), DOWN).shift(UP*0.2).scale(0.65)
+        self.play(ShowCreation(bird))
+        self.wait(2)
+
+        self.play(FadeOut(Group(cat,elephant, bat, butterfly, penguin, peacock, eagle, ostrich)),
+        not_bird.animate.move_to(Group(cat, elephant)), a.animate.next_to(butterfly, ORIGIN).shift(UP*0.3).scale(1.5),
+        bird.animate.move_to(Group(penguin, peacock)))
+
+        self.wait(1)
+
+        self.play(self.camera.frame.animate.shift(LEFT*3+UP*1.14).scale(0.8))
+        self.wait(2)
+
