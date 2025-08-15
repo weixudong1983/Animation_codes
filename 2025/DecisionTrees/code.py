@@ -445,5 +445,51 @@ class DecisionTree(Scene):
         self.wait(2)
 
 
+class GiniFormula(Scene):
+    def construct(self):
+       
+        self.camera.frame.shift(DOWN)
+
+        title = Tex(r"\textbf{Gini Impurity}").scale(0.9).to_edge(UP)
+
+        # Formula: only "Gini" is wrapped in \text{}, math stays in math mode
+        formula = Tex(
+            r"Gini = 1 - \sum_{i=1}^{C} p_i^2"
+        ).scale(1.66)
+
+        terms = VGroup(
+            Tex(r"C"),
+            Tex(r"p_i")
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.65).scale(0.9).next_to(formula, DOWN, buff=1.12).shift(LEFT*4.25)
+        
+        a = Text("= Number of classes").next_to(terms[0], RIGHT)
+        b = Text("= Proportion of class i in the Node").next_to(terms[1], RIGHT)
+
+        self.play(Write(formula))
+        self.play(FadeIn(terms))
+        self.play(Write(a), Write(b))
+        self.wait(2)
+
+        rect = SurroundingRectangle(formula, color=RED, stroke_width=8).scale(1.1)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+
+        self.play(Transform(rect, SurroundingRectangle(VGroup(a, terms[0]), color=RED, stroke_width=5, ).scale(1.19)))
+        self.play(formula[7].animate.set_color(RED))
+        self.wait(2)
+        self.play(Transform(rect, SurroundingRectangle(VGroup(b, terms[1]), color=RED, stroke_width=5, ).scale(1.12)))
+        self.play(formula[12:14].animate.set_color(RED))
+
+        self.wait(2)
+
+        self.play(Uncreate(rect), formula[7:].animate.set_color(RED))
+        self.wait(2)
+
+        rect = SurroundingRectangle(formula[5:], color=YELLOW, stroke_width=8).scale(1.1)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
 
     
