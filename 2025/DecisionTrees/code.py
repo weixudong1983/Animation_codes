@@ -492,4 +492,65 @@ class GiniFormula(Scene):
         self.wait(2)
 
 
-    
+    class GiniImpurityAnimation(Scene):
+    def construct(self):
+        axes = Axes(
+            x_range=[0, 1.2, 0.2], # x-axis longer, ends at 1.2
+            y_range=[0, 0.6, 0.1],
+            width=9, # make it wide!
+            height=5,
+            axis_config={"color": WHITE, "include_tip": True},
+            x_axis_config={"include_tip": True},
+            y_axis_config={"include_tip": True},
+        )
+
+        # Axis labels outside last tick
+        x_label = Tex("p_i")
+        x_label.next_to(axes.c2p(1.2, 0), RIGHT, buff=0.6)
+        y_label = Tex("Gini")
+        y_label.next_to(axes.c2p(0, 0.6), UP, buff=0.3).shift(UP*0.3).scale(1.2)
+
+        # Custom tick labels
+        x_one_label = Tex("1")
+        x_one_label.next_to(axes.c2p(1, 0), DOWN, buff=0.2).shift(DOWN*0.1)
+        y_half_label = Tex("0.5")
+        y_half_label.next_to(axes.c2p(0, 0.5), LEFT, buff=0.2).shift(LEFT*0.1)
+
+        # Graph only from x=0 to x=1!
+        graph = axes.get_graph(lambda x: 2 * x * (1 - x), x_range=[0, 1], stroke_width=7)
+        graph.set_color(BLUE)
+
+        dot = Dot().scale(2)
+        dot.set_color(YELLOW)
+        dot.move_to(axes.c2p(0, 0))
+
+        gini_value_text = DecimalNumber(0, num_decimal_places=3)
+        gini_label_prefix = Tex("Gini = ")
+
+        def text_updater(text_mobject):
+            current_p_value = axes.p2c(dot.get_center())[0]
+            if current_p_value > 1:
+                current_p_value = 1
+            new_gini_value = 2 * current_p_value * (1 - current_p_value)
+            text_mobject.set_value(new_gini_value)
+            text_mobject.next_to(dot, UR, buff=0.2)
+
+        gini_value_text.add_updater(text_updater)
+        gini_label_prefix.add_updater(lambda m: m.next_to(gini_value_text, LEFT))
+
+        self.play(ShowCreation(axes))
+        self.play(Write(x_label), Write(y_label))
+        self.play(Write(x_one_label), Write(y_half_label))
+        self.play(ShowCreation(graph))
+        self.wait(1)
+
+        self.add(dot, gini_value_text, gini_label_prefix)
+        self.wait(2)
+        
+        self.play(
+            MoveAlongPath(dot, graph),
+            run_time=4,
+            rate_func=there_and_back
+        )
+
+        self.wait(2)
