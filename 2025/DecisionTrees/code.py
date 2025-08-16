@@ -1036,6 +1036,560 @@ class Training(Scene):
 
         self.wait(1)
 
+
+
+
+    class FeatureTypes(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.31).shift(0.7*UP)
+
+        # ------------------------------------------------------------- #
+        # 1. data v1 (replace EatsMeat with Weight: Low/Medium/High)
+        # ------------------------------------------------------------- #
+        # Legend:
+        # - Weight: Low/Medium/High (categorical, non-binary)
+        # - Keep CanFly, LaysEggs, Bird as Yes/No
+        data_v1 = [
+            ["Name",      "CanFly", "Weight",  "LaysEggs", "Bird"],
+            ["Eagle",     "Yes",    "Medium",  "Yes",      "Yes"],
+            ["Bat",       "Yes",    "Low",     "No",       "No"],
+            ["Butterfly", "Yes",    "Low",     "Yes",      "No"],
+            ["Penguin",   "No",     "Medium",  "Yes",      "Yes"],
+            ["Elephant",  "No",     "High",    "No",       "No"],
+            ["Ostrich",   "No",     "High",    "Yes",      "Yes"],
+            ["Peacock",   "Yes",    "Medium",  "Yes",      "Yes"],
+            ["Cat",       "No",     "Low",     "No",       "No"],
+        ]
+
+        # Colors
+        column_colors_v1 = [BLUE, PURPLE, PINK, ORANGE, TEAL]
+        yes_color, no_color = GREEN, RED
+        # Weight category colors
+        weight_low_color = YELLOW
+        weight_med_color = GOLD
+        weight_high_color = MAROON_B
+
+        # ------------------------------------------------------------- #
+        # 2. build Text objects v1
+        # ------------------------------------------------------------- #
+        text_rows_v1 = [
+            [
+                Text(str(cell), weight="BOLD", color=BLACK).set_color(BLACK) if r == 0 else Text(str(cell))
+                for c, cell in enumerate(row)
+            ]
+            for r, row in enumerate(data_v1)
+        ]
+        n_rows_v1, n_cols_v1 = len(text_rows_v1), len(text_rows_v1[0])
+
+        # ------------------------------------------------------------- #
+        # 3. geometry v1
+        # ------------------------------------------------------------- #
+        col_w_v1 = [max(text_rows_v1[r][c].get_width() for r in range(n_rows_v1)) + 0.8
+                    for c in range(n_cols_v1)]
+        row_h_v1 = max(m.get_height() for row in text_rows_v1 for m in row) + 0.6
+        tot_w_v1, tot_h_v1 = sum(col_w_v1), n_rows_v1 * row_h_v1
+
+        # ------------------------------------------------------------- #
+        # 4. build backgrounds & position text v1
+        # ------------------------------------------------------------- #
+        cell_bgs_v1, cell_txts_v1 = VGroup(), VGroup()
+
+        for r in range(n_rows_v1):
+            for c in range(n_cols_v1):
+                x = -tot_w_v1/2 + sum(col_w_v1[:c]) + col_w_v1[c]/2
+                y =  tot_h_v1/2 - (r + 0.5)*row_h_v1
+
+                txt = text_rows_v1[r][c].move_to([x, y, 0])
+                bg = Rectangle(width=col_w_v1[c], height=row_h_v1, stroke_width=0).move_to([x, y, 0])
+
+                # coloring rules
+                if r == 0:  # header row
+                    bg.set_fill(YELLOW, opacity=0.66)
+                else:
+                    # default column tint
+                    bg.set_fill(column_colors_v1[c], opacity=0.3)
+                    val = data_v1[r][c]
+                    # Binary columns: Yes/No
+                    if c in [1, 3, 4]:
+                        if val == "Yes":
+                            bg.set_fill(yes_color, opacity=0.5)
+                        elif val == "No":
+                            bg.set_fill(no_color, opacity=0.5)
+                    # Weight categorical column
+                    if c == 2:
+                        if val == "Low":
+                            bg.set_fill(PURPLE, opacity=0.5)
+                        elif val == "Medium":
+                            bg.set_fill(weight_med_color, opacity=0.5)
+                        elif val == "High":
+                            bg.set_fill(weight_high_color, opacity=0.5)
+
+                cell_bgs_v1.add(bg)
+                cell_txts_v1.add(txt)
+
+        # ------------------------------------------------------------- #
+        # 5. grid v1
+        # ------------------------------------------------------------- #
+        grid_v1 = VGroup(Rectangle(width=tot_w_v1, height=tot_h_v1, stroke_width=2))
+        x_cur = -tot_w_v1/2
+        for w in col_w_v1[:-1]:
+            x_cur += w
+            grid_v1.add(Line([x_cur,  tot_h_v1/2, 0], [x_cur, -tot_h_v1/2, 0], stroke_width=1.5))
+        y_cur = tot_h_v1/2
+        for _ in range(n_rows_v1-1):
+            y_cur -= row_h_v1
+            grid_v1.add(Line([-tot_w_v1/2, y_cur, 0], [tot_w_v1/2, y_cur, 0], stroke_width=1.5))
+
+        # ------------------------------------------------------------- #
+        # 6. assemble & animate v1
+        # ------------------------------------------------------------- #
+        table_v1 = VGroup(cell_bgs_v1, grid_v1, cell_txts_v1).scale(0.8).center()
+        title_v1 = Text("Animal Dataset (Weight categorical)", font_size=64, weight=BOLD).next_to(table_v1, UP, buff=0.6)
+
+        self.play(Write(title_v1))
+        self.play(ShowCreation(grid_v1), run_time=1)
+        self.play(FadeIn(cell_bgs_v1), run_time=1.5)
+        self.play(LaggedStartMap(FadeIn, cell_txts_v1, shift=0.1*UP, lag_ratio=0.06), run_time=2)
+        self.wait(1.5)
+
+
+        # Optional highlight Name column
+        def get_cell_v1(r, c):
+            return cell_bgs_v1[r*n_cols_v1 + c]
+
+        rect = SurroundingRectangle(VGroup(get_cell_v1(0,2), get_cell_v1(n_rows_v1-1,2)),
+                                    fill_color=WHITE, color=WHITE, fill_opacity=0.3)
+        self.play(ShowCreation(rect))
+        self.wait(1)
+        self.play(FadeOut(rect))
+
+        # ------------------------------------------------------------- #
+        # 7. Build one-hot version (Weight -> 3 binary columns)
+        # ------------------------------------------------------------- #
+        # New columns: W=Low, W=Medium, W=High, keep others
+        # Order: Name, CanFly, W=Low, W=Medium, W=High, LaysEggs, Bird
+        def one_hot_weight(val):
+            return ["Yes" if val=="Low" else "No",
+                    "Yes" if val=="Medium" else "No",
+                    "Yes" if val=="High" else "No"]
+
+        data_v2 = []
+        # Header
+        data_v2.append(["Name", "CanFly", "W=Low", "W=Medium", "W=High", "LaysEggs", "Bird"])
+        for r in range(1, len(data_v1)):
+            name, canfly, weight, lay, bird = data_v1[r]
+            w_low, w_med, w_high = one_hot_weight(weight)
+            data_v2.append([name, canfly, w_low, w_med, w_high, lay, bird])
+
+        # Colors per column for v2
+        # Keep consistent base hues, and let Yes/No override for binary columns
+        column_colors_v2 = [BLUE, PURPLE, YELLOW, GOLD, MAROON_B, ORANGE, TEAL]
+
+        # Build text objects v2
+        text_rows_v2 = [
+            [
+                Text(str(cell), weight="BOLD", color=BLACK).set_color(BLACK) if r == 0 else Text(str(cell))
+                for c, cell in enumerate(row)
+            ]
+            for r, row in enumerate(data_v2)
+        ]
+        n_rows_v2, n_cols_v2 = len(text_rows_v2), len(text_rows_v2[0])
+
+        # Geometry v2
+        col_w_v2 = [max(text_rows_v2[r][c].get_width() for r in range(n_rows_v2)) + 0.8
+                    for c in range(n_cols_v2)]
+        row_h_v2 = max(m.get_height() for row in text_rows_v2 for m in row) + 0.6
+        tot_w_v2, tot_h_v2 = sum(col_w_v2), n_rows_v2 * row_h_v2
+
+        # Build backgrounds & text v2
+        cell_bgs_v2, cell_txts_v2 = VGroup(), VGroup()
+        for r in range(n_rows_v2):
+            for c in range(n_cols_v2):
+                x = -tot_w_v2/2 + sum(col_w_v2[:c]) + col_w_v2[c]/2
+                y =  tot_h_v2/2 - (r + 0.5)*row_h_v2
+                txt = text_rows_v2[r][c].move_to([x, y, 0])
+                bg = Rectangle(width=col_w_v2[c], height=row_h_v2, stroke_width=0).move_to([x, y, 0])
+
+                if r == 0:
+                    bg.set_fill(YELLOW, opacity=0.66)
+                else:
+                    # default base tint
+                    bg.set_fill(column_colors_v2[c], opacity=0.3)
+                    val = data_v2[r][c]
+                    # All non-name columns in v2 are binary Yes/No
+                    if c != 0:
+                        if val == "Yes":
+                            bg.set_fill(yes_color, opacity=0.5)
+                        elif val == "No":
+                            bg.set_fill(no_color, opacity=0.5)
+
+                cell_bgs_v2.add(bg)
+                cell_txts_v2.add(txt)
+
+        # Grid v2
+        grid_v2 = VGroup(Rectangle(width=tot_w_v2, height=tot_h_v2, stroke_width=2))
+        x_cur = -tot_w_v2/2
+        for w in col_w_v2[:-1]:
+            x_cur += w
+            grid_v2.add(Line([x_cur,  tot_h_v2/2, 0], [x_cur, -tot_h_v2/2, 0], stroke_width=1.5))
+        y_cur = tot_h_v2/2
+        for _ in range(n_rows_v2-1):
+            y_cur -= row_h_v2
+            grid_v2.add(Line([-tot_w_v2/2, y_cur, 0], [tot_w_v2/2, y_cur, 0], stroke_width=1.5))
+
+        table_v2 = VGroup(cell_bgs_v2, grid_v2, cell_txts_v2).scale(0.8).center()
+        title_v2 = Text("One-Hot Encoded Weight", font_size=64, weight=BOLD).next_to(table_v2, UP, buff=0.6)
+
+        # ------------------------------------------------------------- #
+        # 8. Transform animation: table_v1 -> table_v2
+        # ------------------------------------------------------------- #
+        # Strategy:
+        # - Fade out old title, bring in new title
+        # - Morph table position/scale if needed, crossfade old group to new
+        self.play(FadeOut(title_v1))
+        self.play(ReplacementTransform(table_v1, table_v2), run_time=0.7)
+        self.play(Write(title_v2))
+        self.wait(2)
+
+        # Optionally, emphasize the new three columns
+        def get_cell_v2(r, c):
+            return cell_bgs_v2[r*n_cols_v2 + c]
+        # Surround the three new columns across all rows
+        col_group = VGroup(
+            *[get_cell_v2(r, 2) for r in range(n_rows_v2)],
+            *[get_cell_v2(r, 3) for r in range(n_rows_v2)],
+            *[get_cell_v2(r, 4) for r in range(n_rows_v2)],
+        )
+        brace = Brace(col_group, direction=UP)
+        brace_label = Text("Weight one-hot: Low / Medium / High", font_size=36)
+        brace_label.next_to(brace, UP, buff=0.2)
+        
+
+        rect = SurroundingRectangle(VGroup(get_cell_v1(0,2), get_cell_v1(0,4),),
+                                    fill_color=WHITE, color=WHITE, fill_opacity=0.3)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        # Group the three weight columns across all rows (v2)
+        full_cols_group = VGroup(
+            *[get_cell_v2(r, 2) for r in range(n_rows_v2)],
+            *[get_cell_v2(r, 3) for r in range(n_rows_v2)],
+            *[get_cell_v2(r, 4) for r in range(n_rows_v2)],
+        )
+        # Target rectangle covering all rows of columns 2–4 in v2
+        target_rect = SurroundingRectangle(
+            full_cols_group,
+            fill_color=WHITE, color=WHITE, fill_opacity=0.3
+        )
+        # Animate the rectangle to expand to the full three-column block
+        self.play(ReplacementTransform(rect, target_rect), run_time=0.9)
+        self.wait(2)
+
+        self.play(FadeOut(target_rect))
+
+        # ------------------------------------------------------------- #
+        # 9. Transform to a new table (continuous Weight + binary target)
+        #    Features: Name, Weight(kg), CanFly, LaysEggs
+        #    Target: Bird (binary Yes/No)
+        # ------------------------------------------------------------- #
+
+        data_v3 = [
+            ["Name", "Weight(kg)", "CanFly", "LaysEggs", "Bird"],  # keep Bird as binary output
+            ["Eagle",     "6.5",    "Yes", "Yes", "Yes"],
+            ["Bat",       "0.03",   "Yes", "No",  "No"],
+            ["Butterfly", "0.0005", "Yes", "Yes", "No"],
+            ["Penguin",   "10.0",   "No",  "Yes", "Yes"],
+            ["chicken",   "2.0",  "No",  "Yes", "Yes"],
+            ["Peacock",   "4.5",    "Yes", "Yes", "Yes"],
+            ["Cat",       "4.0",    "No",  "No",  "No"],
+            ["Snake",       "3.0",    "No",  "Yes",  "No"],
+        ]
+
+        # Column base colors for v3 (Weight neutral tint; Bird highlighted)
+        column_colors_v3 = [BLUE, GREY, PURPLE, ORANGE, TEAL]
+        yes_color, no_color = GREEN, RED
+
+        title_v3 = Text("Continuous Weight", font_size=64, weight=BOLD)
+
+        # Build text objects v3
+        text_rows_v3 = [
+            [
+                Text(str(cell), weight="BOLD", color=BLACK).set_color(BLACK) if r == 0 else Text(str(cell))
+                for c, cell in enumerate(row)
+            ]
+            for r, row in enumerate(data_v3)
+        ]
+        n_rows_v3, n_cols_v3 = len(text_rows_v3), len(text_rows_v3[0])
+
+        # Geometry v3
+        col_w_v3 = [max(text_rows_v3[r][c].get_width() for r in range(n_rows_v3)) + 0.8
+                    for c in range(n_cols_v3)]
+        row_h_v3 = max(m.get_height() for row in text_rows_v3 for m in row) + 0.6
+        tot_w_v3, tot_h_v3 = sum(col_w_v3), n_rows_v3 * row_h_v3
+
+        # Build backgrounds & text v3
+        cell_bgs_v3, cell_txts_v3 = VGroup(), VGroup()
+        for r in range(n_rows_v3):
+            for c in range(n_cols_v3):
+                x = -tot_w_v3/2 + sum(col_w_v3[:c]) + col_w_v3[c]/2
+                y =  tot_h_v3/2 - (r + 0.5)*row_h_v3
+                txt = text_rows_v3[r][c].move_to([x, y, 0])
+                bg = Rectangle(width=col_w_v3[c], height=row_h_v3, stroke_width=0).move_to([x, y, 0])
+
+                if r == 0:
+                    bg.set_fill(YELLOW, opacity=0.66)
+                else:
+                    # Base tint
+                    bg.set_fill(column_colors_v3[c], opacity=0.3)
+                    val = data_v3[r][c]
+                    # Binary columns: CanFly (2), LaysEggs (3), Bird (4)
+                    if c in [2, 3, 4]:
+                        if val == "Yes":
+                            bg.set_fill(yes_color, opacity=0.5)
+                        elif val == "No":
+                            bg.set_fill(no_color, opacity=0.5)
+
+                cell_bgs_v3.add(bg)
+                cell_txts_v3.add(txt)
+
+        # Grid v3
+        grid_v3 = VGroup(Rectangle(width=tot_w_v3, height=tot_h_v3, stroke_width=2))
+        x_cur = -tot_w_v3/2
+        for w in col_w_v3[:-1]:
+            x_cur += w
+            grid_v3.add(Line([x_cur,  tot_h_v3/2, 0], [x_cur, -tot_h_v3/2, 0], stroke_width=1.5))
+        y_cur = tot_h_v3/2
+        for _ in range(n_rows_v3-1):
+            y_cur -= row_h_v3
+            grid_v3.add(Line([-tot_w_v3/2, y_cur, 0], [tot_w_v3/2, y_cur, 0], stroke_width=1.5))
+
+        table_v3 = VGroup(cell_bgs_v3, grid_v3, cell_txts_v3).scale(0.8).center()
+        title_v3.next_to(table_v3, UP, buff=0.6)
+
+        # Animate transform from v2 -> v3
+        self.play(FadeOut(title_v2))
+        self.play(Transform(table_v2, table_v3), run_time=1.0)
+        self.play(Write(title_v3))
+        self.wait(2)
+
+        peacock = ImageMobject("peacock.png").shift(RIGHT*16.45).scale(0.4)
+        eagle = ImageMobject("eagle.png").scale(0.4).next_to(peacock, RIGHT)
+        elephant = ImageMobject("snake.png").scale(0.4).next_to(eagle, RIGHT)
+        bat = ImageMobject("bat.png").scale(0.4).next_to(peacock, LEFT)
+        butterfly = ImageMobject("butterfly.png").scale(0.6).next_to(bat, LEFT)
+        ostrich = ImageMobject("chicken.png").scale(0.6).next_to(butterfly, LEFT)
+        penguin = ImageMobject("penguin.png").scale(0.606).next_to(elephant, RIGHT)
+        cat = ImageMobject("cat.png").scale(0.6).next_to(ostrich, LEFT)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*15))
+        self.add(eagle, peacock, elephant, bat, butterfly, ostrich, penguin, cat)
+        self.wait(2)
+        
+        total = Group(eagle, cat, ostrich, butterfly, bat, peacock, elephant, penguin)
+
+        self.play(total.animate.scale(0.85).shift(UP*4.1))
+ 
+        
+        
+        # Create ellipse with full opacity fill
+        ellipse = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=YELLOW, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(total, DOWN, buff=1).shift(UP*0.8)
+        
+        # Text inside ellipse
+        feature_text = Tex(
+            r"weight \geq X", 
+            font_size=60, 
+        ).move_to(ellipse.get_center()).set_color(BLACK)
+        # Arrows with z_index = -1 (behind other elements)
+        arrow_left = Arrow(
+            start=ellipse.get_center(), 
+            end=ellipse.get_center() + LEFT*3 + DOWN*2.3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right = Arrow(
+            start=ellipse.get_center(), 
+            end=ellipse.get_center() + RIGHT*3 + DOWN*2.3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(FadeIn(ellipse), Write(feature_text))
+        self.wait(1)
+        self.play(GrowArrow(arrow_left), GrowArrow(arrow_right))
+        self.play(FadeIn(no_label), FadeIn(yes_label))
+        self.wait(2)
+
+        self.play(Transform(feature_text, Tex(r'weight \geq 4.25', font_size = 50,  ).set_color(BLACK).move_to(feature_text)))
+        self.wait(2)
+
+        self.play(butterfly.animate.next_to(arrow_left, DOWN).shift(LEFT*2.7+UP*0.2), run_time=0.5)
+        self.play(cat.animate.next_to(butterfly, DOWN).shift(UP*0.77+LEFT*0.4), run_time=0.5)
+        self.play(bat.animate.next_to(butterfly, RIGHT), run_time=0.5)
+        self.play(elephant.animate.next_to(cat, RIGHT).shift(LEFT*0.29), run_time=0.5)
+        self.play(ostrich.animate.next_to(elephant, RIGHT).shift(LEFT*0.29), run_time=0.5)
+        self.play(eagle.animate.next_to(arrow_right, DOWN).shift(RIGHT*0.7+DOWN*0.2), run_time=0.5)
+        self.play(peacock.animate.next_to(eagle, RIGHT), run_time=0.5)
+        self.play(penguin.animate.next_to(Group(eagle, peacock), DOWN).shift(UP*0.4), run_time=0.5)
+        self.play(self.camera.frame.animate.scale(0.8).shift(DOWN))
+        self.wait(2)
+
+
+        self.play(FadeOut(Group(ellipse, feature_text, no_label, yes_label, arrow_left, arrow_right, butterfly, bat, cat, elephant, ostrich, eagle, peacock, penguin)))
+
+        # Extract (name, weight, is_bird) from data_v3 (skip header)
+        rows_v3 = data_v3[1:]
+        parsed = []
+        for name, w_str, canfly, lay, bird in rows_v3:
+            try:
+                w_val = float(w_str)
+            except:
+                w_val = 0.0
+            is_bird = (bird == "Yes")
+            parsed.append((name, w_val, is_bird))
+
+        # Sort ascending by weight
+        parsed.sort(key=lambda t: t[1])
+
+        # Build Text labels ONLY for weights in increasing order
+        weight_texts = []
+        weight_font_size = 44
+        for name, w, is_bird in parsed:
+            # show just the numeric weight
+            weight_texts.append(Text(f"{w:g}", font_size=weight_font_size))
+
+        # Arrange vertically: smallest on top, then increasing downwards
+        weights_column = VGroup(*weight_texts)
+        # spacing between lines
+        vertical_gap = 0.6
+        # Arrange uses DOWN so items go top -> bottom
+        if len(weights_column) > 1:
+            weights_column.arrange(DOWN, buff=vertical_gap)
+        # Position near the old ellipse location; adjust as desired
+        # Center on screen and lift slightly
+        weights_column.move_to(ellipse).shift(DOWN*2.2+LEFT*4)
+        
+
+        self.play(ShowCreation(weights_column))
+        self.wait(2)
+
+
+        # 1) Parse and sort weights ascending from data_v3 (skip header)
+        rows_v3 = data_v3[1:]
+        weights_only = []
+        for name, w_str, canfly, lay, bird in rows_v3:
+            try:
+                weights_only.append(float(w_str))
+            except:
+                pass  # skip non-numeric
+
+        weights_only.sort()
+
+        # 2) Compute consecutive midpoints: (w0+w1)/2, (w1+w2)/2, ...
+        mid_values = []
+        for i in range(len(weights_only) - 1):
+            mid_values.append(0.5 * (weights_only[i] + weights_only[i+1]))
+
+        # 3) Build a vertical VGroup of Text for these midpoints
+        midpoint_font_size = 42
+        midpoint_texts = [Text(f"{m:.4g}", font_size=midpoint_font_size) for m in mid_values]
+        midpoints_column = VGroup(*midpoint_texts)
+
+        # Arrange vertically, top = first midpoint (between two smallest weights)
+        if len(midpoints_column) > 1:
+            midpoints_column.arrange(DOWN, buff=0.6)
+
+        # Position on screen (adjust as desired)
+        # If you want it exactly where the ellipse was, tweak these offsets.
+        midpoints_column.next_to(weights_column, RIGHT, buff=1).shift(RIGHT)
+
+        brace = Brace(weights_column[:2], RIGHT).set_color(YELLOW).shift(RIGHT*0.75)
+        self.play(ShowCreation(brace))
+        self.wait(1)
+
+        self.play(ShowCreation(midpoints_column[0]))
+        self.wait(1)
+
+        self.play(Transform(brace, Brace(weights_column[1:3], RIGHT).set_color(YELLOW).shift(RIGHT*0.75) ))
+        self.play(ShowCreation(midpoints_column[1]))
+        
+        self.play(Transform(brace, Brace(weights_column[2:4], RIGHT).set_color(YELLOW).shift(RIGHT*0.75) ))
+        self.play(ShowCreation(midpoints_column[2]))
+
+        self.play(Transform(brace, Brace(weights_column[3:5], RIGHT).set_color(YELLOW).shift(RIGHT*0.75) ))
+        self.play(ShowCreation(midpoints_column[3]))
+
+        self.play(ShowCreation(midpoints_column[4:]), Uncreate(brace))
+
+        self.wait()
+
+        rect = SurroundingRectangle(midpoints_column[0]).scale(1.1)
+
+        self.play(ShowCreation(rect))
+
+        self.wait()
+
+        for i in range(1,7):
+            self.play(Transform(rect, SurroundingRectangle(midpoints_column[i]).scale(1.17) ), run_time=0.97)
+
+        self.wait(2)
+
+
+        # YOUR PRECOMPUTED GINI VALUES (strings or numbers are fine)
+        # If they are numbers, we’ll format them; if strings, we leave as-is.
+        gini_values = [0.428, 0.333, 0.466, 0.375, 0.20, 0.333, 0.428]
+
+        # Build Texts; keep numeric formatting consistent with your display
+        gini_font_size = 42
+        gini_texts = []
+        for g in gini_values:
+            if isinstance(g, (int, float)):
+                gini_texts.append(Text(f"{g:.4g}", font_size=gini_font_size))
+            else:
+                gini_texts.append(Text(str(g), font_size=gini_font_size))
+
+        ginis_column = VGroup(*gini_texts)
+
+        # Arrange vertically with the same buff as midpoints_column to align rows
+        if len(ginis_column) > 1:
+            ginis_column.arrange(DOWN, buff=0.6)
+
+        # Place to the RIGHT of midpoints_column
+        ginis_column.next_to(midpoints_column, RIGHT, buff=1).shift(RIGHT)
+
+
+        self.play(FadeOut(rect), FadeIn(ginis_column))
+        self.wait(2)
+
+        rect = SurroundingRectangle(ginis_column).scale(1.17)
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(ginis_column[4]).scale(1.17) ), run_time=0.97)
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(midpoints_column[4]).scale(1.17) ), run_time=0.97)
+        
+        self.wait(2)
         self.play(self.camera.frame.animate.shift(LEFT*3+UP*1.14).scale(0.8))
         self.wait(2)
 
