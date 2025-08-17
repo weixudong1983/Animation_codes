@@ -1593,3 +1593,691 @@ class Training(Scene):
         self.play(self.camera.frame.animate.shift(LEFT*3+UP*1.14).scale(0.8))
         self.wait(2)
 
+class Regression(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(1.31).shift(0.7*UP)
+
+        # Columns:
+        # - Name (string)
+        # - CanFly (Yes/No)
+        # - Weight_cat (Low/Medium/High) for categorical display
+        # - LaysEggs (Yes/No)
+        # - Weight_kg (numeric) for regression
+
+        # Replacements: Elephant -> Snake, Ostrich -> Chicken
+
+        data_v2 = [
+            ["Name",      "CanFly", "EatsMeat", "LaysEggs", "Weight"],
+            ["Eagle",     "Yes",    "Yes",     "Yes",      4.0],
+            ["Bat",       "Yes",    "Yes",        "No",       0.03],
+            ["Butterfly", "Yes",    "No",        "Yes",      0.0005],
+            ["Penguin",   "No",     "Yes",     "Yes",      10.0],
+            ["Snake",     "No",     "Yes",        "Yes",      2.0],
+            ["Chicken",   "No",     "Yes",        "Yes",      2.5],
+            ["Peacock",   "Yes",    "Yes",     "Yes",      4.5],
+            ["Cat",       "No",     "Yes",        "No",       4.0],
+        ]
+
+        # Colors
+        column_colors_v2 = [BLUE, PURPLE, PINK, ORANGE, TEAL]
+        yes_color, no_color = GREEN, RED
+        # Weight categorical colors
+        weight_low_color  = YELLOW
+        weight_med_color  = GOLD
+        weight_high_color = MAROON_B
+
+        # Numeric weight color scale (low->high): BLUE_E to BLUE_A
+        def weight_to_color(w, w_min, w_max):
+            # Normalize 0..1
+            t = 0 if w_max == w_min else (w - w_min) / (w_max - w_min)
+            # Interpolate between darker to lighter blue
+            return interpolate_color(PURPLE_E, PURPLE_E, t)
+
+        # ------------------------------------------------------------- #
+        # 2) Build Text objects (header bold)
+        # ------------------------------------------------------------- #
+        text_rows_v2 = [
+            [
+                Text(str(cell), weight="BOLD", color=BLACK).set_color(BLACK) if r == 0
+                else Text(str(cell))
+                for c, cell in enumerate(row)
+            ]
+            for r, row in enumerate(data_v2)
+        ]
+        n_rows_v2, n_cols_v2 = len(text_rows_v2), len(text_rows_v2[0])
+
+        # ------------------------------------------------------------- #
+        # 3) Geometry
+        # ------------------------------------------------------------- #
+        col_w_v2 = [
+            max(text_rows_v2[r][c].get_width() for r in range(n_rows_v2)) + 0.8
+            for c in range(n_cols_v2)
+        ]
+        row_h_v2 = max(m.get_height() for row in text_rows_v2 for m in row) + 0.6
+        tot_w_v2, tot_h_v2 = sum(col_w_v2), n_rows_v2 * row_h_v2
+
+        # Precompute numeric weight domain
+        weight_col_idx = 4
+        weights = [row[weight_col_idx] for row in data_v2[1:]]
+        w_min, w_max = min(weights), max(weights)
+
+        # ------------------------------------------------------------- #
+        # 4) Build backgrounds & position text with coloring rules
+        # ------------------------------------------------------------- #
+        cell_bgs_v2, cell_txts_v2 = VGroup(), VGroup()
+
+        for r in range(n_rows_v2):
+            for c in range(n_cols_v2):
+                x = -tot_w_v2/2 + sum(col_w_v2[:c]) + col_w_v2[c]/2
+                y =  tot_h_v2/2 - (r + 0.5)*row_h_v2
+
+                txt = text_rows_v2[r][c].move_to([x, y, 0])
+                bg  = Rectangle(width=col_w_v2[c], height=row_h_v2, stroke_width=0).move_to([x, y, 0])
+
+                if r == 0:  # header
+                    bg.set_fill(YELLOW, opacity=0.66)
+                else:
+                    # Base tint
+                    bg.set_fill(column_colors_v2[c], opacity=0.25)
+                    val = data_v2[r][c]
+
+                    # Binary columns: CanFly (1), LaysEggs (3)
+                    if c in [1, 3]:
+                        if val == "Yes":
+                            bg.set_fill(yes_color, opacity=0.5)
+                        elif val == "No":
+                            bg.set_fill(no_color, opacity=0.5)
+
+                    # Categorical weight column: Weight_cat (2)
+                    if c == 2:
+                        if val == "Yes":
+                            bg.set_fill(GREEN, opacity=0.5)
+                        elif val == "No":
+                            bg.set_fill(RED, opacity=0.5)
+                        elif val == "High":
+                            bg.set_fill(weight_high_color, opacity=0.5)
+
+                    # Numeric weight column: Weight_kg (4)
+                    if c == 4:
+                        w = float(val)
+                        bg.set_fill(weight_to_color(w, w_min, w_max), opacity=0.55)
+
+                cell_bgs_v2.add(bg)
+                cell_txts_v2.add(txt)
+
+        # ------------------------------------------------------------- #
+        # 5) Grid
+        # ------------------------------------------------------------- #
+        grid_v2 = VGroup(Rectangle(width=tot_w_v2, height=tot_h_v2, stroke_width=2))
+        x_cur = -tot_w_v2/2
+        for w in col_w_v2[:-1]:
+            x_cur += w
+            grid_v2.add(Line([x_cur,  tot_h_v2/2, 0], [x_cur, -tot_h_v2/2, 0], stroke_width=1.5))
+        y_cur = tot_h_v2/2
+        for _ in range(n_rows_v2-1):
+            y_cur -= row_h_v2
+            grid_v2.add(Line([-tot_w_v2/2, y_cur, 0], [tot_w_v2/2, y_cur, 0], stroke_width=1.5))
+
+        # ------------------------------------------------------------- #
+        # 6) Assemble & animate table
+        # ------------------------------------------------------------- #
+        table_v2 = VGroup(cell_bgs_v2, grid_v2, cell_txts_v2).scale(0.8).center()
+        title_v2 = Text("Animal Dataset (For Regression)", font_size=64, weight=BOLD).next_to(table_v2, UP, buff=0.6)
+
+        self.play(Write(title_v2))
+        self.play(ShowCreation(grid_v2), run_time=1)
+        self.play(FadeIn(cell_bgs_v2), run_time=1.5)
+        self.play(LaggedStartMap(FadeIn, cell_txts_v2, shift=0.1*UP, lag_ratio=0.06), run_time=2)
+        self.wait(1.0)
+
+        # ------------------------------------------------------------- #
+        # 7) Optional: highlight numeric Weight_kg column
+        # ------------------------------------------------------------- #
+        def get_bg_cell(r, c):
+            return cell_bgs_v2[r*n_cols_v2 + c]
+
+        num_col = weight_col_idx
+        rect = SurroundingRectangle(
+            VGroup(get_bg_cell(0,num_col), get_bg_cell(n_rows_v2-1,num_col)),
+            fill_color=WHITE, color=WHITE, fill_opacity=0.2
+        )
+        self.play(ShowCreation(rect), run_time=0.8)
+        self.wait(0.6)
+        self.play(FadeOut(rect), run_time=0.5)
+
+        self.wait(2)
+
+        peacock = ImageMobject("peacock.png").shift(RIGHT*16.45).scale(0.4)
+        eagle = ImageMobject("eagle.png").scale(0.4).next_to(peacock, RIGHT)
+        snake = ImageMobject("snake.png").scale(0.4).next_to(eagle, RIGHT)
+        bat = ImageMobject("bat.png").scale(0.4).next_to(peacock, LEFT)
+        butterfly = ImageMobject("butterfly.png").scale(0.6).next_to(bat, LEFT)
+        chicken = ImageMobject("chicken.png").scale(0.6).next_to(butterfly, LEFT)
+        penguin = ImageMobject("penguin.png").scale(0.606).next_to(snake, RIGHT)
+        cat = ImageMobject("cat.png").scale(0.6).next_to(chicken, LEFT)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*15))
+        self.add(eagle, peacock, snake, bat, butterfly, chicken, penguin, cat)
+        self.wait(2)
+        
+        total = Group(eagle, cat, chicken, butterfly, bat, peacock, snake, penguin)
+
+        self.play(total.animate.scale(0.85).shift(UP*4.2))
+
+        self.wait(2)
+
+        brace = Brace(total, DOWN, buff=0.6)
+        self.play(ShowCreation(brace))
+
+        text = Text("variance = 8.89").next_to(brace, DOWN).shift(DOWN*0.62).scale(1.5)
+        self.play(ShowCreation(text))
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(brace, text)))
+
+        # Create ellipse with full opacity fill
+        ellipse = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=BLUE, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(total, DOWN, buff=1).shift(UP*0.8).shift(LEFT*6)
+        
+        # Text inside ellipse
+        feature_text = Text(
+            "EatsMeat", font_size=64, weight=BOLD
+        ).move_to(ellipse.get_center()).set_color(BLACK)
+        # Arrows with z_index = -1 (behind other elements)
+
+        arrow_left = Arrow(
+            start=ellipse.get_center(), 
+            end=ellipse.get_center() + LEFT*2 + DOWN*2.3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right = Arrow(
+            start=ellipse.get_center(), 
+            end=ellipse.get_center() + RIGHT*2 + DOWN*2.3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(FadeIn(ellipse), Write(feature_text))
+        self.wait(1)
+        self.play(GrowArrow(arrow_left), GrowArrow(arrow_right))
+        self.play(FadeIn(no_label), FadeIn(yes_label))
+        self.wait()
+
+        cat_a = cat.copy()
+        chicken_a = chicken.copy()
+        butterfly_a = butterfly.copy()
+        bat_a = bat.copy()
+        peacock_a = peacock.copy()
+        eagle_a = eagle.copy()
+        snake_a = snake.copy()
+        penguin_a = penguin.copy()
+
+        self.play(butterfly_a.animate.next_to(arrow_right, DOWN+LEFT).shift(LEFT*1.2),self.camera.frame.animate.shift(DOWN*0.7),  run_time=1)
+        self.play(cat_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(LEFT*1.33+DOWN*1.34).shift(LEFT*0.3),
+                  chicken_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(LEFT*0.16+DOWN*1.34).shift(LEFT*0.3),
+                  bat_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(RIGHT*1.+DOWN*1.34).shift(LEFT*0.3),
+                  peacock_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(LEFT*2.3+DOWN*2.74).shift(RIGHT*1.64).shift(LEFT*0.3),
+                  eagle_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(LEFT*0.87+DOWN*2.74).shift(RIGHT*1.64).shift(LEFT*0.3),
+                  snake_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(DOWN*2.74+RIGHT*0.18).shift(LEFT*0.73+DOWN*1.48).shift(LEFT*0.3),
+                penguin_a.animate.next_to(arrow_right.get_bottom(), RIGHT).shift(DOWN*2.74+RIGHT*1.38).scale(1).shift(LEFT*0.73+DOWN*1.48).shift(LEFT*0.3),
+                              run_time=1)
+        
+        self.wait(2)
+
+
+        ellipse2 = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=YELLOW,
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(ellipse, RIGHT, buff=1.8).shift(RIGHT)
+
+        
+        feature_text2 = Text(
+            "LaysEggs", font_size=64, weight=BOLD
+        ).move_to(ellipse2.get_center()).set_color(BLACK)
+        
+        arrow2_left = Arrow(
+            start=ellipse2.get_center(),
+            end=ellipse2.get_center() + LEFT*2 + DOWN*2.3,
+            color=RED,
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow2_right = Arrow(
+            start=ellipse2.get_center(),
+            end=ellipse2.get_center() + RIGHT*2 + DOWN*2.3,
+            color=GREEN,
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        no_label2 = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow2_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label2 = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow2_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        self.play(FadeIn(ellipse2), Write(feature_text2))
+        self.wait(1)
+        self.play(GrowArrow(arrow2_left), GrowArrow(arrow2_right))
+        self.play(FadeIn(no_label2), FadeIn(yes_label2))
+        self.wait(2)
+        
+        # Animal groupings for LaysEggs
+        # Use .copy() for these images!
+        cat_b = cat.copy()
+        bat_b = bat.copy()
+        eagle_b = eagle.copy()
+        penguin_b = penguin.copy()
+        snake_b = snake.copy()
+        peacock_b = peacock.copy()
+        chicken_b = chicken.copy()
+        butterfly_b = butterfly.copy()
+        
+
+        
+        self.play(cat_b.animate.next_to(arrow2_right, DOWN+LEFT).shift(LEFT*1), 
+                  bat_b.animate.next_to(arrow2_right, DOWN+LEFT).shift(LEFT*0.7+DOWN*1.65),run_time=1)
+        
+
+        self.play(
+                  chicken_b.animate.next_to(arrow2_right.get_bottom(), RIGHT).shift(LEFT*0.56+DOWN*1.34).shift(LEFT),
+                  butterfly_b.animate.next_to(arrow2_right.get_bottom(), RIGHT).shift(RIGHT*0.6+DOWN*1.34).shift(LEFT*0.9),
+                  peacock_b.animate.next_to(arrow2_right.get_bottom(), RIGHT).shift(RIGHT*0.6+DOWN*1.34).shift(RIGHT*0.25),
+                  eagle_b.animate.next_to(arrow2_right.get_bottom(), RIGHT).shift(LEFT*0.87+DOWN*2.74).shift(LEFT*0.8),
+                  snake_b.animate.next_to(arrow2_right.get_bottom(), RIGHT).shift(DOWN*2.74+RIGHT*0.18).shift(LEFT*0.8),
+                penguin_b.animate.next_to(arrow2_right.get_bottom(), RIGHT).shift(DOWN*2.74+RIGHT*1.38).scale(1.2).shift(LEFT*0.8),
+                              run_time=1)
+        
+        self.wait(2)
+
+
+        ### --- Feature 3: CanFly (ellipse: PURPLE_A, text: "CanFly") --- ###
+        
+        ellipse3 = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=PURPLE_A,
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(ellipse2, RIGHT, buff=1.8).shift(RIGHT)
+        
+        feature_text3 = Text(
+            "CanFly", font_size=64, weight=BOLD
+        ).move_to(ellipse3.get_center()).set_color(BLACK)
+        
+        arrow3_left = Arrow(
+            start=ellipse3.get_center(),
+            end=ellipse3.get_center() + LEFT*2 + DOWN*2.3,
+            color=RED,
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow3_right = Arrow(
+            start=ellipse3.get_center(),
+            end=ellipse3.get_center() + RIGHT*2 + DOWN*2.3,
+            color=GREEN,
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        no_label3 = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow3_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label3 = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow3_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        self.play(FadeIn(ellipse3), Write(feature_text3), self.camera.frame.animate.scale(1.1).shift(RIGHT*1.16))
+        self.wait(1)
+        self.play(GrowArrow(arrow3_left), GrowArrow(arrow3_right))
+        self.play(FadeIn(no_label3), FadeIn(yes_label3), FadeOut(table_v2))
+
+        
+        self.play(cat.animate.next_to(arrow3_right, DOWN+LEFT).shift(LEFT*1.2), 
+                  snake.animate.next_to(arrow3_right, DOWN+LEFT).shift(LEFT*1.23+DOWN*1.8),
+                  penguin.animate.next_to(arrow3_right, DOWN+LEFT).shift(LEFT*1.18+DOWN*2.86).scale(1.2),run_time=1)
+        
+
+        self.play(
+                  chicken.animate.next_to(arrow3_right.get_bottom(), RIGHT).shift(LEFT*0.16+DOWN*1.34).shift(LEFT),
+                  butterfly.animate.next_to(arrow3_right.get_bottom(), RIGHT).shift(RIGHT*1.2+DOWN*1.34).shift(LEFT*0.9),
+                  peacock.animate.next_to(arrow3_right.get_bottom(), RIGHT).shift(RIGHT*1.+DOWN*1.34).shift(LEFT*0.85+DOWN*1.4),
+                  eagle.animate.next_to(arrow3_right.get_bottom(), RIGHT).shift(LEFT*1.67+DOWN*2.74).shift(RIGHT*0.4),
+                bat.animate.next_to(arrow3_right.get_bottom(), RIGHT).shift(DOWN*4.2+RIGHT*1.38).scale(1).shift(LEFT*2.8),
+                              run_time=1)
+        
+        self.play(self.camera.frame.animate.shift(DOWN*2))
+        
+        self.wait(2)
+
+        tex = Tex(r"\left(\frac{1}{8}\right) \times 0 + \left(\frac{7}{8}\right) \times 8.3").next_to(snake_a, DOWN)
+        tex.shift(DOWN*0.6+LEFT*0.65).scale(1.2)
+
+        rect = SurroundingRectangle(butterfly_a).scale(1).set_color("#00ff00")
+
+        self.play(ShowCreation(rect))
+
+        self.wait()
+
+        self.play(FadeIn(tex[6]))
+        self.wait(1)
+
+        self.play(Transform(rect, SurroundingRectangle(Group(cat_a, snake_a, bat_a)).set_color("#00ff00")))
+        self.wait(1)
+
+        self.play(FadeIn(tex[-3:]))
+        self.wait(2)
+
+        self.play(FadeIn(tex[:6]))
+        self.wait(2)
+        self.play(FadeIn(tex[7:-3]))
+        self.wait(2)
+
+        self.play(Transform(tex, Text("7.26").move_to(tex).scale(2)))
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(Group(cat_b, peacock_b, bat_b, eagle_b)).set_color("#00ff00").scale(0.97).shift(DOWN*0.15)))
+        self.wait(1)
+
+        tex1 = Text("8.27").next_to(tex, RIGHT, buff=2.9).scale(2).shift(RIGHT*2)
+        self.play(ShowCreation(tex1))
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(Group(cat, peacock, bat, cat)).set_color("#00ff00").scale(0.97).shift(DOWN*0.15+LEFT*0.1)))
+        self.wait(1)
+
+        tex2 = Text("7.34").next_to(tex1, RIGHT, buff=2.9).scale(2).shift(RIGHT*2.23)
+        self.play(ShowCreation(tex2))
+        self.wait(2)
+
+
+        self.play(Transform(rect, SurroundingRectangle(tex).scale(1.23)), FadeOut(title_v2))
+        self.wait(2)
+
+
+        self.play(self.camera.frame.animate.shift(UP*1.1 + LEFT*6.6).scale(0.82),FadeOut(Group(cat, snake, chicken, butterfly, peacock, bat, eagle, penguin, ellipse3, feature_text3, no_label3, yes_label3, arrow3_left, arrow3_right, tex2, tex1, rect, tex, cat_b, bat_b, chicken_b, eagle_b, snake_b, penguin_b, peacock_b , butterfly_b, ellipse2, feature_text2, arrow2_left, arrow2_right, no_label2, yes_label2)))
+
+        self.wait(2)
+
+        rect = SurroundingRectangle(butterfly_a)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+        not_bird = Rectangle(color="#00ff00", fill_color="#00ff00", fill_opacity=0.35, height=1, width=4.4)
+        not_bird_text = Text("0.0005", weight=BOLD).move_to(not_bird).scale(1.8).set_color(WHITE)
+        not_bird = VGroup(not_bird, not_bird_text).move_to(butterfly_a).scale(0.58).shift(UP*0.5)
+        self.play(FadeIn(not_bird), FadeOut(butterfly_a), FadeOut(rect))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*3.3))
+
+        brace = Brace(Group(bat_a, penguin_a), RIGHT, buff=0.6)
+        self.play(GrowFromCenter(brace))
+        text = Text("8.3").next_to(brace, RIGHT, buff=1.3).scale(2)
+        self.play(ShowCreation(text))
+        self.wait(2)
+
+        self.play(FadeOut(Group(brace, text)))
+
+        temp_a = Text("LaysEggs = 6.94").next_to(brace , RIGHT, buff=0.9).scale(1.2).shift(LEFT*0.3)
+        temp_b = Text("CanFly = 7.52").next_to(temp_a, DOWN, buff=0.45).scale(1.2)
+
+        self.play(ShowCreation(Group(temp_a, temp_b)))
+        
+        rect = SurroundingRectangle(temp_a).scale(1.15)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+        self.play(Uncreate(rect), Uncreate(Group(temp_a, temp_b)))
+
+        self.play(Group(cat_a, chicken_a, bat_a, peacock_a, eagle_a, eagle_a, snake_a, penguin_a).animate.shift(RIGHT*7))
+
+        # Create ellipse with full opacity fill
+        ellipse_right = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=PURPLE, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(arrow_right.get_center(), DOWN, buff=1.23).shift(RIGHT*2+UP*0.3)
+        
+        # Text inside ellipse
+        feature_text_right = Text(
+            "LaysEggs", 
+            font_size=62, 
+            weight=BOLD, 
+        ).move_to(ellipse_right.get_center()).set_color(BLACK).set_z_index(1)
+        # Arrows with z_index = -1 (behind other elements)
+        arrow_right_left = Arrow(
+            start=ellipse_right.get_center(), 
+            end=ellipse_right.get_center() + LEFT*2 + DOWN*2.3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right_right = Arrow(
+            start=ellipse_right.get_center(), 
+            end=ellipse_right.get_center() + RIGHT*2 + DOWN*2.3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label_left = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_right_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label_left = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(FadeIn(ellipse_right), Write(feature_text_right))
+        self.wait(1)
+        self.play(GrowArrow(arrow_right_right), GrowArrow(arrow_right_left))
+        self.play(FadeIn(no_label_left), FadeIn(yes_label_left))
+        
+        self.play(
+            cat_a.animate.next_to(arrow_right_left, DOWN).shift(LEFT*1.6+UP*0.4),
+            bat_a.animate.next_to(arrow_right_left, DOWN),
+            Group(peacock_a, eagle_a, snake_a, penguin_a).animate.next_to(arrow_right_right, DOWN).shift(RIGHT*0.8),
+            chicken_a.animate.next_to(arrow_right_right, DOWN).shift(DOWN*1.15+RIGHT*2.5)
+            ,self.camera.frame.animate.shift(DOWN*0.4)
+        )
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(DOWN*2.6))
+
+        self.play(
+             Group(cat_a, bat_a).animate.shift(LEFT*3.5),
+            Group(peacock_a, eagle_a, snake_a, penguin_a, chicken_a).animate.shift(RIGHT*4.7)
+        )
+
+        self.wait(1)
+
+        # Create ellipse with full opacity fill
+        ellipse_right_right = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=YELLOW, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(arrow_right_right.get_center(), DOWN, buff=1.23).shift(RIGHT*2.07+UP*0.3)
+        
+        # Text inside ellipse
+        feature_text_right_right = Text(
+            "CanFly", 
+            font_size=62, 
+            weight=BOLD, 
+        ).move_to(ellipse_right_right.get_center()).set_color(BLACK).set_z_index(1)
+        # Arrows with z_index = -1 (behind other elements)
+        arrow_right_right_left = Arrow(
+            start=ellipse_right_right.get_center(), 
+            end=ellipse_right_right.get_center() + LEFT*1.7 + DOWN*2.3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right_right_right = Arrow(
+            start=ellipse_right_right.get_center(), 
+            end=ellipse_right_right.get_center() + RIGHT*1.7 + DOWN*2.3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label_right_left = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_right_right_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label_right_right = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right_right_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(FadeIn(ellipse_right_right), Write(feature_text_right_right))
+        self.wait(1)
+        self.play(GrowArrow(arrow_right_right_right), GrowArrow(arrow_right_right_left))
+        self.play(FadeIn(no_label_right_left), FadeIn(yes_label_right_right))
+        self.wait(0.12)
+
+        self.play(
+            snake_a.animate.next_to(arrow_right_right_left, DOWN).shift(LEFT*1.39)
+            ,penguin_a.animate.next_to(arrow_right_right_left, DOWN).shift(UP*0.45).shift(LEFT*0),
+            peacock_a.animate.next_to(arrow_right_right_right, DOWN).shift(RIGHT*0.6),
+            eagle_a.animate.next_to(arrow_right_right_right, DOWN).shift(RIGHT*1.2).shift(RIGHT*0.6),
+            chicken_a.animate.next_to(arrow_right_right_left, DOWN).shift(LEFT*1.39).shift(DOWN*1.18+RIGHT*0.5)
+            
+                                 ) 
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(LEFT*1.1+DOWN*0.99))       
+
+        # Create ellipse with full opacity fill
+        ellipse_right_left = Ellipse(
+            width=4, 
+            height=1.5, 
+            fill_color=YELLOW, 
+            fill_opacity=1,
+            stroke_color=WHITE,
+            stroke_width=2
+        ).next_to(arrow_right_left.get_center(), DOWN, buff=1.23).shift(LEFT*2.07+UP*0.3)
+        
+        # Text inside ellipse
+        feature_text_right_left = Text(
+            "CanFly", 
+            font_size=62, 
+            weight=BOLD, 
+        ).move_to(ellipse_right_left.get_center()).set_color(BLACK).set_z_index(1)
+        # Arrows with z_index = -1 (behind other elements)
+        arrow_right_left_left = Arrow(
+            start=ellipse_right_left.get_center(), 
+            end=ellipse_right_left.get_center() + LEFT*1.7 + DOWN*2.3, 
+            color=RED, 
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        arrow_right_left_right = Arrow(
+            start=ellipse_right_left.get_center(), 
+            end=ellipse_right_left.get_center() + RIGHT*1.7 + DOWN*2.3, 
+            color=GREEN, 
+            fill_color=GREEN,
+            fill_opacity=1,
+            stroke_width=6
+        ).set_z_index(-1)
+        
+        # Labels for the arrows
+        no_label_right_left = Text("No", color=RED, font_size=50, weight=BOLD).next_to(arrow_right_left_left.get_center(), LEFT).shift(LEFT*0.19)
+        yes_label_right_right = Text("Yes", color=GREEN, font_size=50, weight=BOLD).next_to(arrow_right_left_right.get_center(), RIGHT).shift(RIGHT*0.19)
+        
+        # Animate the decision tree elements
+        self.play(Group(cat_a, bat_a).animate.shift(LEFT*1.8))
+        self.play(FadeIn(ellipse_right_left), Write(feature_text_right_left))
+        self.wait(1)
+        self.play(GrowArrow(arrow_right_left_right), GrowArrow(arrow_right_left_left))
+        self.play(FadeIn(no_label_right_left), FadeIn(yes_label_right_right))
+        self.wait(0.12)
+
+        self.play(
+            cat_a.animate.next_to(arrow_right_left_left, DOWN).shift(DOWN).shift(UP*1.5+LEFT*1.1),
+            bat_a.animate.next_to(arrow_right_left_right, DOWN).shift(DOWN).shift(UP*1+RIGHT*0.75)
+
+        )
+
+        self.wait(2)
+
+        rect = SurroundingRectangle(cat_a)
+        rect1 = SurroundingRectangle(bat_a)
+
+        self.play(ShowCreation(rect), ShowCreation(rect1))
+        self.wait(1.8)
+
+        not_bird1 = Rectangle(color="#00ff00", fill_color="#00ff00", fill_opacity=0.35, height=1, width=4.4)
+        not_bird_text = Text("4.0", weight=BOLD).move_to(not_bird1).scale(1.8).set_color(WHITE)
+        a = VGroup(not_bird1, not_bird_text).move_to(cat_a).scale(0.58).shift(UP*0.1)
+        not_bird1 = Rectangle(color="#00ff00", fill_color="#00ff00", fill_opacity=0.35, height=1, width=4.4)
+        not_bird_text = Text("0.03", weight=BOLD).move_to(not_bird1).scale(1.8).set_color(WHITE)
+        b = VGroup(not_bird1, not_bird_text).move_to(bat_a).scale(0.58).shift(UP*0.19)
+      
+        self.play(FadeIn(a), FadeOut(cat_a), FadeOut(rect), FadeIn(b), FadeOut(bat_a), FadeOut(rect1))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*2))
+
+        rect = SurroundingRectangle(Group(snake_a, penguin_a, chicken_a)).scale(0.85)
+        rect1 = SurroundingRectangle(Group(peacock_a, eagle_a))
+
+        self.play(ShowCreation(rect), ShowCreation(rect1))
+        self.wait(1.8)
+
+        not_bird1 = Rectangle(color="#00ff00", fill_color="#00ff00", fill_opacity=0.35, height=1, width=4.4)
+        not_bird_text = Text("4.83", weight=BOLD).move_to(not_bird1).scale(1.8).set_color(WHITE)
+        a = VGroup(not_bird1, not_bird_text).move_to(Group(snake_a, chicken_a, penguin_a)).scale(0.58).shift(UP*0.89)
+        not_bird1 = Rectangle(color="#00ff00", fill_color="#00ff00", fill_opacity=0.35, height=1, width=4.4)
+        not_bird_text = Text("4.25", weight=BOLD).move_to(not_bird1).scale(1.8).set_color(WHITE)
+        b = VGroup(not_bird1, not_bird_text).move_to(Group(peacock_a, eagle_a)).scale(0.58).shift(UP*0.19)
+      
+        self.play(FadeIn(a), FadeOut(Group(snake_a, penguin_a, chicken_a, peacock_a, eagle_a)), FadeOut(rect), FadeIn(b), FadeOut(rect1))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.scale(1.3).shift(UP*2.66+LEFT*1.74))
+
+        self.wait(2)
+
+        a = Text("?", weight=BOLD).next_to(ellipse, RIGHT, buff=1.5).scale(3).set_color("#ff0000")
+        self.play(ShowCreation(a))
+        self.wait(2)
+
+        self.play(a.animate.next_to(ellipse_right, RIGHT, buff=1.5))
+        self.wait()
+        self.play(a.animate.next_to(ellipse_right_right, RIGHT, buff=1.5))
+        self.wait()
+        self.play(a.animate.next_to(b, DOWN, buff=0.5))
+
+        self.wait(2)
