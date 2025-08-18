@@ -2281,3 +2281,248 @@ class Regression(Scene):
         self.play(a.animate.next_to(b, DOWN, buff=0.5))
 
         self.wait(2)
+
+
+class Training(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.31).shift(0.7*UP)
+
+        # ------------------------------------------------------------- #
+        # 1) DATA TABLE + GRID (minimal; keep your full version if you like)
+        # ------------------------------------------------------------- #
+        data = [
+            ["Name",      "CanFly", "EatsMeat", "LaysEggs", "Bird"],
+            ["Eagle",     "Yes",    "Yes",      "Yes",      "Yes"],
+            ["Bat",       "Yes",    "Yes",      "No",       "No"],
+            ["Butterfly", "Yes",    "No",       "Yes",      "No"],
+            ["Penguin",   "No",     "Yes",      "Yes",      "Yes"],
+            ["Elephant",  "No",     "No",       "No",       "No"],
+            ["Ostrich",   "No",     "Yes",      "Yes",      "Yes"],
+            ["Peacock",   "Yes",    "Yes",      "Yes",      "Yes"],
+            ["Cat",       "No",     "Yes",      "No",       "No"],
+        ]
+
+        column_colors = [BLUE, PURPLE, PINK, ORANGE, TEAL]
+        yes_color, no_color = GREEN, RED
+
+        text_rows = [
+            [
+                Text(str(cell), weight="BOLD", color=BLACK).set_color(BLACK) if r == 0 else Text(str(cell))
+                for c, cell in enumerate(row)
+            ]
+            for r, row in enumerate(data)
+        ]
+        n_rows, n_cols = len(text_rows), len(text_rows[0])
+
+        col_w = [max(text_rows[r][c].get_width() for r in range(n_rows)) + 0.8
+                 for c in range(n_cols)]
+        row_h = max(m.get_height() for row in text_rows for m in row) + 0.6
+        tot_w, tot_h = sum(col_w), n_rows * row_h
+
+        cell_bgs, cell_txts = VGroup(), VGroup()
+        for r in range(n_rows):
+            for c in range(n_cols):
+                x = -tot_w/2 + sum(col_w[:c]) + col_w[c]/2
+                y =  tot_h/2 - (r + 0.5)*row_h
+                txt = text_rows[r][c].move_to([x, y, 0])
+                bg = Rectangle(width=col_w[c], height=row_h, stroke_width=0).move_to([x, y, 0])
+
+                if r == 0:
+                    bg.set_fill(YELLOW, opacity=0.66)
+                else:
+                    bg.set_fill(column_colors[c], opacity=0.3)
+                    if data[r][c] == "Yes":
+                        bg.set_fill(yes_color, opacity=0.5)
+                    elif data[r][c] == "No":
+                        bg.set_fill(no_color, opacity=0.5)
+
+                cell_bgs.add(bg)
+                cell_txts.add(txt)
+
+        grid = VGroup(Rectangle(width=tot_w, height=tot_h, stroke_width=2))
+        x_cur = -tot_w/2
+        for w in col_w[:-1]:
+            x_cur += w
+            grid.add(Line([x_cur,  tot_h/2, 0], [x_cur, -tot_h/2, 0], stroke_width=1.5))
+        y_cur = tot_h/2
+        for _ in range(n_rows-1):
+            y_cur -= row_h
+            grid.add(Line([-tot_w/2, y_cur, 0], [tot_w/2, y_cur, 0], stroke_width=1.5))
+
+        table = VGroup(cell_bgs, grid, cell_txts).scale(0.8).center()
+        title = Text("Animal Dataset", font_size=86, weight=BOLD).next_to(table, UP, buff=0.88)
+
+        self.play(Write(title))
+        self.play(ShowCreation(grid), run_time=1)
+        self.play(FadeIn(cell_bgs), run_time=1.5)
+        self.play(LaggedStartMap(FadeIn, cell_txts, shift=0.1*UP, lag_ratio=0.06), run_time=2)
+        self.wait(0.8)
+
+        # ------------------------------------------------------------- #
+        # 2) Decision tree built at ORIGIN, then shift as a group
+        #    - Lower ellipses a bit (ellipse_down_nudge)
+        #    - Reduce horizontal spacing for both branches by 0.7 (h_reduce)
+        #    - Extra DOWN spacing kept
+        #    - Node colors: LaysEggs=BLUE, CanFly=YELLOW, EatsMeat=PURPLE_A
+        # ------------------------------------------------------------- #
+        h_reduce = 0.7            # tighten horizontal spacing
+        ellipse_down_nudge = 0.25 # nudge nodes down a bit
+        yes_shift = LEFT*0.2      # shift "Yes" a bit left
+        no_shift  = RIGHT*0.2     # shift "No" a bit right
+
+        root_center = ORIGIN
+
+        # Root node (LaysEggs)
+        root_ellipse = Ellipse(
+            width=4, height=1.5,
+            fill_color=BLUE, fill_opacity=1,
+            stroke_color=WHITE, stroke_width=2
+        ).move_to(root_center + DOWN*ellipse_down_nudge)
+        root_label = Text("LaysEggs", weight=BOLD, font_size=60).set_color(BLACK).move_to(root_ellipse)
+
+        # CanFly node
+        canfly_center = root_center + RIGHT*(4 - h_reduce) + DOWN*(2.3 + ellipse_down_nudge)
+        canfly_ellipse = Ellipse(
+            width=4, height=1.5,
+            fill_color=YELLOW, fill_opacity=1,
+            stroke_color=WHITE, stroke_width=2
+        ).move_to(canfly_center + DOWN*ellipse_down_nudge)
+        canfly_label = Text("CanFly", weight=BOLD, font_size=58).set_color(BLACK).move_to(canfly_ellipse)
+
+        # EatsMeat node
+        eats_center = canfly_center + RIGHT*(3.6 - h_reduce) + DOWN*(2.2 + ellipse_down_nudge)
+        eats_ellipse = Ellipse(
+            width=4, height=1.5,
+            fill_color=PURPLE_A, fill_opacity=1,
+            stroke_color=WHITE, stroke_width=2
+        ).move_to(eats_center + DOWN*ellipse_down_nudge)
+        eats_label = Text("EatsMeat", weight=BOLD, font_size=56).set_color(BLACK).move_to(eats_ellipse)
+
+        # Leaf rectangles (scale by 0.8 as requested)
+        leaf_no_eggs = root_center + LEFT*(3.6 - h_reduce) + DOWN*(3.1 + ellipse_down_nudge)
+        not_bird_left = VGroup(
+            Rectangle(color=RED, fill_color=RED, fill_opacity=0.7, width=3.6, height=1.12),
+            Text("Not Bird", weight=BOLD).scale(1.6).set_color(WHITE)
+        ).move_to(leaf_no_eggs).scale(0.8)
+
+        leaf_eggs_yes_canfly_no = canfly_center + LEFT*(2.8 - h_reduce) + DOWN*(2.9 + ellipse_down_nudge)
+        bird_right_no = VGroup(
+            Rectangle(color=GREEN, fill_color=GREEN, fill_opacity=0.7, width=2.8, height=1.12),
+            Text("Bird", weight=BOLD).scale(1.6).set_color(WHITE)
+        ).move_to(leaf_eggs_yes_canfly_no).scale(0.8)
+
+        leaf_eats_no = eats_center + LEFT*(2.6 - h_reduce) + DOWN*(2.7 + ellipse_down_nudge)
+        not_bird_eats_no = VGroup(
+            Rectangle(color=RED, fill_color=RED, fill_opacity=0.7, width=3.6, height=1.12),
+            Text("Not Bird", weight=BOLD).scale(1.6).set_color(WHITE)
+        ).move_to(leaf_eats_no).scale(0.8)
+
+        leaf_eats_yes = eats_center + RIGHT*(2.6 - h_reduce) + DOWN*(2.7 + ellipse_down_nudge)
+        bird_eats_yes = VGroup(
+            Rectangle(color=GREEN, fill_color=GREEN, fill_opacity=0.7, width=2.8, height=1.12),
+            Text("Bird", weight=BOLD).scale(1.6).set_color(WHITE)
+        ).move_to(leaf_eats_yes).scale(0.8)
+
+        # Group everything, then shift root to RIGHT*15 + UP*2
+        tree_group = VGroup(
+            root_ellipse, root_label,
+            canfly_ellipse, canfly_label,
+            eats_ellipse, eats_label,
+            not_bird_left, bird_right_no, not_bird_eats_no, bird_eats_yes
+        )
+        tree_group.shift(RIGHT*15 + UP*2)
+
+        # ------------------------------------------------------------- #
+        # 3) Animate: ellipses -> arrows (ShowCreation) -> labels -> leaves
+        # ------------------------------------------------------------- #
+        # Show ellipses and labels
+        self.play(FadeIn(eats_ellipse), Write(eats_label), FadeIn(canfly_ellipse), Write(canfly_label),FadeIn(root_ellipse), Write(root_label),self.camera.frame.animate.shift(RIGHT*18+DOWN*2.8) )
+
+        # Arrows from LaysEggs
+        root_to_no = Arrow(
+            start=root_ellipse.get_center(),
+            end=not_bird_left.get_center() + UP*0.8,
+            color=RED, stroke_width=6
+        ).set_z_index(-1)
+        root_to_yes = Arrow(
+            start=root_ellipse.get_center(),
+            end=canfly_ellipse.get_center(),
+            color=GREEN, stroke_width=6
+        ).set_z_index(-1)
+        self.play(ShowCreation(root_to_no), ShowCreation(root_to_yes), run_time=0.5)
+
+        # Shift "No" slightly right, "Yes" slightly left (as requested)
+        lab_no  = Text("No",  color=RED,   weight=BOLD).next_to(root_to_no, LEFT).shift(RIGHT*0.2 + no_shift)
+        lab_yes = Text("Yes", color=GREEN, weight=BOLD).next_to(root_to_yes, RIGHT).shift(LEFT*0.2 + yes_shift)
+        self.play(FadeIn(lab_no), FadeIn(lab_yes) , run_time=0.5)
+
+        # Arrows from CanFly
+        canfly_to_no = Arrow(
+            start=canfly_ellipse.get_center(),
+            end=bird_right_no.get_center() + UP*0.8,
+            color=RED, stroke_width=6
+        ).set_z_index(-1)
+        canfly_to_yes = Arrow(
+            start=canfly_ellipse.get_center(),
+            end=eats_ellipse.get_center(),
+            color=GREEN, stroke_width=6
+        ).set_z_index(-1)
+        self.play(ShowCreation(canfly_to_no), ShowCreation(canfly_to_yes), run_time=0.5)
+
+        rlab_no  = Text("No",  color=RED,   weight=BOLD).next_to(canfly_to_no, LEFT).shift(RIGHT*0.2 + no_shift)
+        rlab_yes = Text("Yes", color=GREEN, weight=BOLD).next_to(canfly_to_yes, RIGHT).shift(LEFT*0.2 + yes_shift)
+        self.play(FadeIn(rlab_no), FadeIn(rlab_yes), run_time=0.5)
+
+        # Arrows from EatsMeat
+        eats_to_no = Arrow(
+            start=eats_ellipse.get_center(),
+            end=not_bird_eats_no.get_center() + UP*0.8,
+            color=RED, stroke_width=6
+        ).set_z_index(-1)
+        eats_to_yes = Arrow(
+            start=eats_ellipse.get_center(),
+            end=bird_eats_yes.get_center() + UP*0.8,
+            color=GREEN, stroke_width=6
+        ).set_z_index(-1)
+        self.play(ShowCreation(eats_to_no), ShowCreation(eats_to_yes), run_time=0.5)
+
+        elab_no  = Text("No",  color=RED,   weight=BOLD).next_to(eats_to_no, LEFT).shift(RIGHT*0.2 + no_shift)
+        elab_yes = Text("Yes", color=GREEN, weight=BOLD).next_to(eats_to_yes, RIGHT).shift(LEFT*0.2 + yes_shift)
+        self.play(FadeIn(elab_no), FadeIn(elab_yes), run_time=0.5)
+
+        # Reveal leaves (already scaled to 0.8)
+        self.play(FadeIn(not_bird_left), FadeIn(bird_right_no), FadeIn(not_bird_eats_no), FadeIn(bird_eats_yes), run_time=0.5)
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(LEFT*18+UP*2.8))
+        self.wait(1.8)
+
+        self.play(
+            TransformMatchingStrings(cell_txts[1*len(data[0]) + 0], Text("Turtle").scale(0.8).move_to(cell_txts[1*len(data[0]) + 0])),
+            TransformMatchingStrings(cell_txts[1*len(data[0]) + 1], Text("No").scale(0.8).move_to(cell_txts[1*len(data[0]) + 1])),
+            TransformMatchingStrings(cell_txts[1*len(data[0]) + 2], Text("No").scale(0.8).move_to(cell_txts[1*len(data[0]) + 2])),
+            TransformMatchingStrings(cell_txts[1*len(data[0]) + 3], Text("Yes").scale(0.8).move_to(cell_txts[1*len(data[0]) + 3])),
+            TransformMatchingStrings(cell_txts[1*len(data[0]) + 4], Text("No").scale(0.8).move_to(cell_txts[1*len(data[0]) + 4])),
+
+        )
+
+        self.play(
+            cell_bgs[1*len(data[0]) + 1].animate.set_fill(RED, opacity=0.5),
+            cell_bgs[1*len(data[0]) + 4].animate.set_fill(RED, opacity=0.5))
+        # Also update background colors for "CanFly" and "Bird" cells in row 1 to RED (No)
+        
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*18+DOWN*2.8))
+
+        self.wait(2)
+
+        self.play(Transform(canfly_ellipse, VGroup(eats_ellipse, eats_label).copy().scale(1).move_to(canfly_ellipse)), FadeOut(canfly_label) , Transform(bird_right_no, not_bird_eats_no.copy().move_to(bird_right_no)))
+        self.wait(1.6)
+
+        self.play(FadeOut(Group(elab_no, elab_yes, eats_ellipse, eats_to_no, eats_to_yes, eats_label, not_bird_eats_no)))
+        self.play(bird_eats_yes.animate.next_to(bird_right_no, RIGHT).shift(RIGHT*2))
+        
+        self.play(self.camera.frame.animate.shift(LEFT*2+UP).scale(0.8))
+
+        self.wait(2)
