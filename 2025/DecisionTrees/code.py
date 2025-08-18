@@ -2283,7 +2283,7 @@ class Regression(Scene):
         self.wait(2)
 
 
-class Training(Scene):
+class tiny_change(Scene):
     def construct(self):
         self.camera.frame.scale(1.31).shift(0.7*UP)
 
