@@ -1,5 +1,207 @@
 from manimlib import *
 
+class RandoomForest(Scene):
+
+    def construct(self):
+
+        title = Text("Random Forest").shift(UP*3).scale(1.7).set_color(YELLOW)
+        self.play(ShowCreation(title))
+
+        a = Text("N Data sample using sampling with replacement").shift(UP*1)
+
+        b = Text("Train A Decision Tree On K features out of M").next_to(a, DOWN, buff=0.7)
+        
+        self.play(ShowCreation(a))
+        self.wait(2)
+
+        self.play(ShowCreation(b))
+
+        self.wait(2)
+
+        k = Tex(r"K = \sqrt{M}").next_to(b, DOWN, buff=1.15).scale(1.5).set_color(GREEN)
+
+        self.play(ShowCreation(k))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.scale(1.2).shift(RIGHT*1.78+UP*0.55))
+
+        brace = Brace(Group(k, a, b, title), RIGHT, buff=0.4).set_color(RED)
+
+        self.play(GrowFromCenter(brace))
+        text = Text("B times").next_to(brace, RIGHT).shift(RIGHT*0.66)
+        text[0].scale(1.6)
+
+        self.play(ShowCreation(text))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*13.1+DOWN*0.23).scale(1.093), FadeOut(text), FadeOut(Group(brace, a, b, k, title)))
+
+
+        # Create grid of trees
+        trees_group = VGroup()
+        
+        # Grid parameters - increased for better screen filling
+        rows = 5
+        cols = 8
+        tree_scale = 0.44  # Increased scale as requested
+        spacing_x = 2.2   # Reduced spacing to fit more trees
+        spacing_y = 1.6   # Reduced spacing to fit more trees
+        
+        # Calculate starting position to center the grid
+        total_width = (cols - 1) * spacing_x
+        total_height = (rows - 1) * spacing_y
+        start_x = -total_width / 2
+        start_y = total_height / 2 + 1  # Keep some space at the bottom
+        
+        # Create trees in a grid
+        for row in range(rows):
+            for col in range(cols):
+                # Create tree with random colors for variety
+                colors = [WHITE, BLUE, GREEN, RED, YELLOW, PURPLE, ORANGE, PINK]
+                tree_color = np.random.choice(colors)
+                
+                tree, _ = self.create_single_tree(tree_color, 0)
+                
+                # Position and scale the tree
+                x_pos = start_x + col * spacing_x
+                y_pos = start_y - row * spacing_y
+                
+                tree.scale(tree_scale).move_to([x_pos, y_pos, 0]).shift(RIGHT*15)
+                
+                trees_group.add(tree)
+        
+        # Animate all trees appearing
+        self.play(
+            *[ShowCreation(tree) for tree in trees_group],
+            lag_ratio=0.08,  # Slightly faster animation
+            run_time=1.2
+        )
+    
+        
+        # Optional: Add a label for the forest
+        forest_label = Text("Random Forest of Decision Trees", 
+                           font_size=66, 
+                           color=YELLOW).shift(RIGHT*15 + DOWN*3.837)
+        
+        self.play(ShowCreation(forest_label))
+
+        self.wait(2)
+
+
+    def create_single_tree(self, stroke_color, fill_opacity):
+        # Create a VGroup to hold the entire tree
+        tree = VGroup()
+        
+        # Node radius
+        radius = 0.3
+        
+        # Define positions for symmetrical layout
+        # Root node
+        root_pos = UP * 1.5
+        
+        # Two children (level 1)
+        child1_pos = LEFT * 1 + UP * 0.5
+        child2_pos = RIGHT * 1 + UP * 0.5
+        
+        # Four grandchildren (level 2) - perfectly symmetrical
+        grandchild1_pos = LEFT * 1.5 + DOWN * 0.5
+        grandchild2_pos = LEFT * 0.5 + DOWN * 0.5
+        grandchild3_pos = RIGHT * 0.5 + DOWN * 0.5
+        grandchild4_pos = RIGHT * 1.5 + DOWN * 0.5
+        
+        # Create nodes with white stroke and no fill
+        root = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(root_pos)
+        
+        child1 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(child1_pos)
+        
+        child2 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(child2_pos)
+        
+        grandchild1 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild1_pos)
+        
+        grandchild2 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild2_pos)
+        
+        grandchild3 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild3_pos)
+        
+        grandchild4 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild4_pos)
+        
+        # Create edges that connect to the edge of circles, not center
+        # Calculate connection points on circle boundaries
+        def get_connection_points(circle1, circle2):
+            center1 = circle1.get_center()
+            center2 = circle2.get_center()
+            direction = normalize(center2 - center1)
+            
+            start_point = center1 + direction * radius
+            end_point = center2 - direction * radius
+            
+            return start_point, end_point
+        
+        # Create edges from edge to edge (not center to center)
+        start1, end1 = get_connection_points(root, child1)
+        edge1 = Line(start1, end1, color=stroke_color, stroke_width=2)
+        
+        start2, end2 = get_connection_points(root, child2)
+        edge2 = Line(start2, end2, color=stroke_color, stroke_width=2)
+        
+        start3, end3 = get_connection_points(child1, grandchild1)
+        edge3 = Line(start3, end3, color=stroke_color, stroke_width=2)
+        
+        start4, end4 = get_connection_points(child1, grandchild2)
+        edge4 = Line(start4, end4, color=stroke_color, stroke_width=2)
+        
+        start5, end5 = get_connection_points(child2, grandchild3)
+        edge5 = Line(start5, end5, color=stroke_color, stroke_width=2)
+        
+        start6, end6 = get_connection_points(child2, grandchild4)
+        edge6 = Line(start6, end6, color=stroke_color, stroke_width=2)
+        
+        # Add all elements to the tree VGroup
+        tree.add(
+            edge1, edge2, edge3, edge4, edge5, edge6,  # Add edges first so nodes appear on top
+            root, child1, child2, grandchild1, grandchild2, grandchild3, grandchild4
+        )
+        
+        return tree, None
+
+
+
 class DecisionTree(Scene):
     def construct(self):
 
