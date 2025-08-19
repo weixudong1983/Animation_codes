@@ -2526,3 +2526,177 @@ class tiny_change(Scene):
         self.play(self.camera.frame.animate.shift(LEFT*2+UP).scale(0.8))
 
         self.wait(2)
+
+
+
+
+class TreeEnsemble(Scene):
+    def construct(self):
+
+        self.camera.frame.shift(DOWN*0.9)
+        # Fill color variable - change this to adjust all node colors
+        STROKE_COLOR = WHITE
+        FILL_OPACITY = 0  # No fill - just outline
+        
+        # Create the base tree structure
+        base_tree = self.create_single_tree(STROKE_COLOR, FILL_OPACITY)
+        
+        # Create three trees by copying the VGroup
+        tree1 = base_tree.copy()
+        tree2 = base_tree.copy()
+        tree3 = base_tree.copy()
+        
+        # Position trees side by side
+        tree1.shift(LEFT * 4)
+        tree2.shift(ORIGIN)  # Center tree
+        tree3.shift(RIGHT * 4)
+        
+        # Add tree labels
+        label1 = Text("Tree 1", font_size=54).next_to(tree1, DOWN, buff=0.8)
+        label2 = Text("Tree 2", font_size=54).next_to(tree2, DOWN, buff=0.8)
+        label3 = Text("Tree 3", font_size=54).next_to(tree3, DOWN, buff=0.8)
+        
+        # Animate the creation
+        self.play(
+            ShowCreation(tree1),
+            ShowCreation(tree2), 
+            ShowCreation(tree3),
+            Write(label1),
+            Write(label2),
+            Write(label3),
+            run_time=3
+        )
+        
+        self.wait(2)
+
+
+
+        a = Text("1").scale(2).next_to(label1, DOWN, buff=1)
+        b = Text("0").scale(2).next_to(label2, DOWN, buff=1)
+        c = Text("1").scale(2).next_to(label3, DOWN, buff=1)
+
+        self.play(TransformFromCopy(tree1, a), TransformFromCopy(tree2, b), TransformFromCopy(tree3, c), run_time=1)
+
+        self.wait(2)
+
+        rect1 = SurroundingRectangle(b, color="#00ff00").scale(1.2)
+        rect2 = SurroundingRectangle(a, color="#ff0000").scale(1.2)
+        rect3 = SurroundingRectangle(c, color="#ff0000").scale(1.2)
+        
+        self.play(ShowCreation(rect1), ShowCreation(rect2), ShowCreation(rect3))
+        self.wait(2)
+
+        text = Text("1").scale(2.5).next_to(b, ORIGIN).set_color(GREEN)
+        self.play(ReplacementTransform(VGroup(a,b,c, rect3, rect2, rect1), text))
+        self.wait(2)
+
+
+    def create_single_tree(self, stroke_color, fill_opacity):
+        # Create a VGroup to hold the entire tree
+        tree = VGroup()
+        
+        # Node radius
+        radius = 0.3
+        
+        # Define positions for symmetrical layout
+        # Root node
+        root_pos = UP * 1.5
+        
+        # Two children (level 1)
+        child1_pos = LEFT * 1 + UP * 0.5
+        child2_pos = RIGHT * 1 + UP * 0.5
+        
+        # Four grandchildren (level 2) - perfectly symmetrical
+        grandchild1_pos = LEFT * 1.5 + DOWN * 0.5
+        grandchild2_pos = LEFT * 0.5 + DOWN * 0.5
+        grandchild3_pos = RIGHT * 0.5 + DOWN * 0.5
+        grandchild4_pos = RIGHT * 1.5 + DOWN * 0.5
+        
+        # Create nodes with white stroke and no fill
+        root = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(root_pos)
+        
+        child1 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(child1_pos)
+        
+        child2 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(child2_pos)
+        
+        grandchild1 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild1_pos)
+        
+        grandchild2 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild2_pos)
+        
+        grandchild3 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild3_pos)
+        
+        grandchild4 = Circle(
+            radius=radius, 
+            stroke_color=stroke_color,
+            stroke_width=2,
+            fill_opacity=fill_opacity
+        ).move_to(grandchild4_pos)
+        
+        # Create edges that connect to the edge of circles, not center
+        # Calculate connection points on circle boundaries
+        def get_connection_points(circle1, circle2):
+            center1 = circle1.get_center()
+            center2 = circle2.get_center()
+            direction = normalize(center2 - center1)
+            
+            start_point = center1 + direction * radius
+            end_point = center2 - direction * radius
+            
+            return start_point, end_point
+        
+        # Create edges from edge to edge (not center to center)
+        start1, end1 = get_connection_points(root, child1)
+        edge1 = Line(start1, end1, color=WHITE, stroke_width=2)
+        
+        start2, end2 = get_connection_points(root, child2)
+        edge2 = Line(start2, end2, color=WHITE, stroke_width=2)
+        
+        start3, end3 = get_connection_points(child1, grandchild1)
+        edge3 = Line(start3, end3, color=WHITE, stroke_width=2)
+        
+        start4, end4 = get_connection_points(child1, grandchild2)
+        edge4 = Line(start4, end4, color=WHITE, stroke_width=2)
+        
+        start5, end5 = get_connection_points(child2, grandchild3)
+        edge5 = Line(start5, end5, color=WHITE, stroke_width=2)
+        
+        start6, end6 = get_connection_points(child2, grandchild4)
+        edge6 = Line(start6, end6, color=WHITE, stroke_width=2)
+        
+        # Add all elements to the tree VGroup
+        tree.add(            root, child1, child2, grandchild1, grandchild2, grandchild3, grandchild4
+,
+            edge1, edge2, edge3, edge4, edge5, edge6,  # Add edges first so nodes appear on top
+        )
+        
+        return tree
