@@ -2902,3 +2902,72 @@ class TreeEnsemble(Scene):
         )
         
         return tree
+
+class VarianceDemo(Scene):
+    def construct(self):
+
+        self.camera.frame.shift(UP*1.5).scale(0.8)
+        # White background
+
+        # Number line
+        number_line = NumberLine(
+            unit_size=1,
+            include_tip=False,
+            include_numbers=True,
+            stroke_color=BLACK,
+        ).set_color(WHITE)
+        self.add(number_line)
+
+        # Formula above
+        formula = Tex(
+            r"\mathrm{Var}(D) = \frac{1}{n}\sum_{i=1}^n (y_i - \bar{y})^2",
+            color=BLACK
+        ).scale(1.2)
+        formula.to_edge(UP).set_color_by_gradient(BLUE, GREEN, RED).shift(UP*0.5)
+        self.add(formula)
+
+
+        # Variance label
+        variance_label = Text("Low variance", font_size=58, color=BLACK)
+        variance_label.next_to(number_line, UP*2).shift(UP*0.4)
+        self.add(variance_label)
+
+        # Create dots group (initially low variance near 0)
+        np.random.seed(1)
+        n_points = 10
+        xs_low = np.random.normal(loc=0, scale=0.6, size=n_points)
+        dots = VGroup(*[
+            Dot(radius=0.12).set_color(RED).move_to(number_line.n2p(x))
+            for x in xs_low
+        ])
+        self.add(dots)
+
+        self.wait(1)
+
+        # Animate to high variance (spread out)
+        xs_high = np.random.normal(loc=0, scale=2.2, size=n_points)
+        self.play(
+            *[dot.animate.move_to(number_line.n2p(x))
+              for dot, x in zip(dots, xs_high)],
+            Transform(
+                variance_label,
+                Text("High variance", font_size=58, color=BLACK).move_to(variance_label)
+            ),
+            run_time=1
+        )
+
+        self.wait(1)
+
+        # Animate back to low variance
+        xs_low2 = np.random.normal(loc=0, scale=0.6, size=n_points)
+        self.play(
+            *[dot.animate.move_to(number_line.n2p(x))
+              for dot, x in zip(dots, xs_low2)],
+            Transform(
+                variance_label,
+                Text("Low variance", font_size=58, color=BLACK).next_to(variance_label, UP*2)
+            ),
+            run_time=1
+        )
+
+        self.wait(2)
