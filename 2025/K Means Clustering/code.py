@@ -1,8 +1,152 @@
 from manimlib import *
 import numpy as np
 
-
 class SimpleAxes(VGroup):
+    """
+    Minimal first-quadrant axes with a c2p mapper.
+    Draws only positive x/y arrows starting at origin.
+    """
+    def __init__(
+        self,
+        x_max=10, y_max=7,           
+        x_length=8.8, y_length=5.2,  
+        origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+        stroke_width=2,
+        tip=True,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.x_max = float(x_max)
+        self.y_max = float(y_max)
+        self.x_length = float(x_length)
+        self.y_length = float(y_length)
+        self.origin = origin
+        self.x_unit = self.x_length / self.x_max
+        self.y_unit = self.y_length / self.y_max
+
+        # Positive axes only
+        x_end = self.origin + np.array([self.x_length, 0, 0])
+        y_end = self.origin + np.array([0, self.y_length, 0])
+        if tip:
+            self.x_axis = Arrow(start=self.origin, end=x_end, buff=0, stroke_width=stroke_width)
+            self.y_axis = Arrow(start=self.origin, end=y_end, buff=0, stroke_width=stroke_width)
+        else:
+            self.x_axis = Line(self.origin, x_end, stroke_width=stroke_width)
+            self.y_axis = Line(self.origin, y_end, stroke_width=stroke_width)
+
+        self.add(self.x_axis, self.y_axis)
+
+    def c2p(self, x, y, z=0.0):
+        return self.origin + np.array([x * self.x_unit, y * self.y_unit, 0.0])
+
+class WhatAreClusters(Scene):
+    def construct(self):
+        # Create axes
+        axes = SimpleAxes(
+            x_max=10, y_max=7,
+            x_length=8.8, y_length=5.2,
+            origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+            stroke_width=2, tip=True
+        )
+        x_label = Tex("x_{1}")
+        y_label = Tex("x_{2}")
+        x_label.next_to(axes.x_axis.get_end(), DOWN, buff=0.28)
+        y_label.next_to(axes.y_axis.get_end(), LEFT, buff=0.28)
+        
+        a = VGroup(axes, x_label, y_label).scale(1.17)
+        self.play(ShowCreation(a))
+        
+        # Create 3 distinct clusters of points - REPOSITIONED FOR AXES
+        # Cluster 1 (left) - Red
+        cluster1 = [
+            (1.2, 3.8), (1.8, 2.9), (0.9, 4.1), (1.5, 3.5), (1.7, 2.7),
+            (0.8, 4.3), (2.1, 3.2), (1.4, 3.9), (1.0, 3.1), (2.0, 3.6),
+            (1.3, 2.8), (1.6, 4.2), (1.1, 3.7), (1.9, 3.0), (1.7, 3.4)
+        ]
+        
+        # Cluster 2 (center-top) - Green  
+        cluster2 = [
+            (4.8, 5.2), (5.2, 5.8), (4.4, 4.9), (4.9, 5.5), (5.1, 6.1),
+            (4.5, 5.0), (5.3, 5.7), (4.7, 5.3), (4.3, 5.6), (5.4, 5.1),
+            (5.0, 6.0), (4.6, 4.8), (4.8, 5.4), (5.2, 5.9), (4.9, 5.2)
+        ]
+        
+        # Cluster 3 (right) - Blue
+        cluster3 = [
+            (7.8, 2.1), (8.4, 2.7), (7.5, 1.8), (8.1, 2.4), (8.0, 3.0),
+            (8.5, 1.9), (7.7, 2.5), (8.2, 2.2), (7.9, 2.8), (8.3, 2.0),
+            (8.0, 2.6), (7.6, 2.3), (8.1, 1.7), (8.4, 2.9), (7.8, 2.4)
+        ]
+        
+        all_points = cluster1 + cluster2 + cluster3
+        colors = [RED] * len(cluster1) + [GREEN] * len(cluster2) + [BLUE] * len(cluster3)
+        
+        # Create dots using axes coordinates - SCALED BY 0.7
+        dots = VGroup(*[
+            Dot(point=axes.c2p(x, y), radius=0.12, color=GREY).scale(0.7)
+            for x, y in all_points
+        ])
+        
+        self.play(FadeIn(dots, lag_ratio=0.05), run_time=2)
+        self.wait(1)
+        
+        # Color the dots by cluster
+        color_animations = []
+        for i, color in enumerate(colors):
+            color_animations.append(dots[i].animate.set_color(color))
+        
+        self.play(*color_animations, run_time=1.5)
+        self.wait(1)
+        
+        # Create ELLIPSES around each cluster
+        clusters_data = [
+            (cluster1, RED, "Cluster 1"),
+            (cluster2, GREEN, "Cluster 2"), 
+            (cluster3, BLUE, "Cluster 3")
+        ]
+        
+        shapes = []
+        labels = []
+        
+        for cluster_points, color, label_text in clusters_data:
+            # Convert to axes coordinates
+            axes_points = [axes.c2p(x, y) for x, y in cluster_points]
+            points_array = np.array([[p[0], p[1]] for p in axes_points])
+            centroid = np.mean(points_array, axis=0)
+            
+            # Calculate the spread of points to determine ellipse size
+            x_spread = np.max(points_array[:, 0]) - np.min(points_array[:, 0])
+            y_spread = np.max(points_array[:, 1]) - np.min(points_array[:, 1])
+            
+            # Create ellipse with some padding around the points
+            ellipse_width = x_spread * 1.4 + 0.5  
+            ellipse_height = y_spread * 1.4 + 0.5  
+            
+            # Create the ellipse
+            ellipse = Ellipse(
+                width=ellipse_width,
+                height=ellipse_height,
+                fill_color=color,
+                fill_opacity=0.25,
+                stroke_color=color,
+                stroke_width=3
+            )
+            ellipse.move_to(np.array([centroid[0], centroid[1], 0]))
+            shapes.append(ellipse)
+            
+            # Add cluster label
+            label = Text(label_text, font_size=20, weight=BOLD).set_color(color)
+            label.move_to(np.array([centroid[0], centroid[1], 0]))
+            label.shift(DOWN * 1.5)  
+            label.scale(2)  
+            labels.append(label)
+        
+        # Show ellipses and labels
+        self.play(*[FadeIn(shape) for shape in shapes], run_time=1.5)
+        self.play(*[Write(label) for label in labels], run_time=1)
+        self.wait(2)
+        
+class KMeansClusteringNonMathematical(VGroup):
     """
     Minimal first-quadrant axes with a c2p mapper.
     Draws only positive x/y arrows starting at origin.
