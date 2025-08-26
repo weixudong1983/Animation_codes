@@ -515,5 +515,87 @@ class KMeansIntroduction(Scene):
         self.wait(2)
 
 
+class kmeansMath(Scene):
+
+    def construct(self):
+
+        datapoint = Tex(r"X = \{x^{(1)}, x^{(2)}, x^{(3)}, \dots, x^{(n)}\}, \; \ x^{(i)} \in \mathbb{R}^d").to_edge(UP).shift(DOWN*0.66).set_color_by_gradient(RED, ORANGE, BLUE)
+        
+        self.play(ShowCreation(datapoint))
+        self.wait(2)
+
+        centroids = Tex(r"\mu_1, \ \mu_2, \ \mu_3, \ \dots, \ \mu_K").next_to(datapoint, DOWN).shift(DOWN*0.5).scale(1.2).set_color_by_gradient(RED, ORANGE, BLUE)
+        self.play(ShowCreation(centroids))
+        self.wait(2)
+
+        self.play(Transform(centroids, Tex(r"\mu_1^{(0)}, \ \mu_2^{(0)}, \ \mu_3^{(0)}, \ \dots, \ \mu_K^{(0)}").scale(1.02).move_to(centroids).set_color_by_gradient(RED, ORANGE, BLUE)))
+        self.wait(2)
+
+        assignment = Tex(r"c_i = \arg\min_{k \in \{1,\dots,K\}} \left\lVert x^{(i)} - \mu_k^{(0)} \right\rVert^2").next_to(centroids, DOWN).shift(DOWN*0.5).scale(1.2).set_color_by_gradient(RED, ORANGE, BLUE)
+
+        self.play(ShowCreation(assignment))
+        self.wait(2)
+
+        brace = Brace(assignment[-16:], DOWN).shift(DOWN*0.15).set_color(YELLOW)
+        self.play(ShowCreation(brace))
+        self.wait(2)
+
+        self.play(Transform(brace, Brace(assignment[-30:-17], DOWN).shift(DOWN*0.15).set_color(YELLOW)))
+        self.wait(2)
+
+        self.play(Transform(brace, SurroundingRectangle(assignment[:2]).scale(1.12)))
+        self.wait(2)
+
+        self.play(FadeOut(brace))
+
+
+        update = Tex(r"\mu_k^{(t+1)} = \frac{1}{|C_k|} \sum_{i \in C_k} x^{(i)}").next_to(assignment, DOWN).shift(DOWN*0.76).scale(1.2).set_color_by_gradient(RED, ORANGE, BLUE)
+
+        self.play(ShowCreation(update))
+        self.play(self.camera.frame.animate.shift(DOWN*2.2).scale(0.8), FadeOut(Group(datapoint, centroids, assignment)))
+
+        rect = SurroundingRectangle(update[:7], color=YELLOW).scale(1.12)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(update[8:], color=YELLOW).scale(1.02)))
+        self.wait(2)
+
+        a = Tex(r"d(x, \mu) = \sqrt{(x_1 - \mu_1)^2 + (x_2 - \mu_2)^2}").scale(1.12).shift(RIGHT*18+DOWN*2.22).set_color_by_gradient(RED, ORANGE, BLUE)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*18), ShowCreation(a))
+        self.wait(2)
+
+        self.play(Transform(a, Tex(r"d(x, \mu) = (x_1 - \mu_1)^2 + (x_2 - \mu_2)^2").scale(1.22).move_to(a).set_color_by_gradient(RED, ORANGE, BLUE)))
+
+        self.wait(2)
+
+        self.play(a.animate.shift(UP*0.94))
+
+        b = Tex(r"\arg\min_k \lVert x^{(i)} - \mu_k \rVert \ = \ \arg\min_k \lVert x^{(i)} - \mu_k \rVert^2").set_color_by_gradient(RED, ORANGE, BLUE)
+
+        b.next_to(a, DOWN).shift(DOWN*1.3)
+
+        self.play(ShowCreation(b))
+        self.wait(2)
+
+        rect = SurroundingRectangle(b[:16], color=YELLOW).scale(1.02)
+        rect1 = SurroundingRectangle(b[17:], color=YELLOW).scale(1.02)
+
+        self.play(ShowCreation(rect))
+        self.play(ShowCreation(rect1))
+        self.wait(2)
+
+        self.play(FadeOut(Group(rect, rect1)), b.animate.shift(UP*0.52), self.camera.frame.animate.shift(DOWN*0.7))
+        self.wait(2)
+
+        c = Tex(r"if \ a < b \Rightarrow \sqrt{a} < \sqrt{b}").scale(1.2).set_color_by_gradient(RED, ORANGE, BLUE)
+        c.next_to(b, DOWN).shift(DOWN*0.4)
+
+        self.play(ShowCreation(c))
+        self.wait(2)
+
+        self.embed()
+
 
 
