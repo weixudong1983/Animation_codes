@@ -1018,3 +1018,263 @@ class CitiesExample(Scene):
         
         self.play(*[Write(label) for label in cluster_labels_5] ,FadeOut(k5_label))
         self.wait(3)
+
+
+class CitiesKMeansWithInitialization(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.08)
+
+        
+        # Tunables
+        DOT_RADIUS = 0.12
+        CENTROID_RADIUS = 0.25
+        CENTROID_STROKE = 4
+        MAX_ITERS = 8
+        TOL = 1e-6
+        
+        # Colors
+        DOT_RED = RED
+        DOT_GREEN = GREEN  
+        DOT_YELLOW = YELLOW
+        PURE_RED = "#FF0000"
+        PURE_GREEN = "#00FF00"
+        PURE_YELLOW = "#FFFF00"
+        
+        # Z-index layering
+        Z_DOTS = 0
+        Z_CENTROIDS = 3
+        Z_CENTROID_LABELS = 4
+        
+        # Helper functions
+        def color_for(assign):
+            if assign == "red":
+                return DOT_RED
+            elif assign == "green":
+                return DOT_GREEN
+            else:
+                return DOT_YELLOW
+        
+        def dist(p, q):
+            return np.linalg.norm(p - q)
+        
+        # Create axes
+        axes = SimpleAxes(
+            x_max=5000, y_max=80,
+            x_length=8.8, y_length=5.2,
+            origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+            stroke_width=2, tip=True
+        )
+        
+        x_label = Tex("Population")
+        y_label = Tex("GDP")
+        x_label.next_to(axes.x_axis.get_end(), DOWN, buff=0.28)
+        y_label.next_to(axes.y_axis.get_end(), LEFT, buff=0.28)
+        
+        a = VGroup(axes, x_label, y_label).scale(1.17)
+        self.play(ShowCreation(a))
+        
+        # Create cities data (shifted down)
+        np.random.seed(42)
+        cities_data = []
+        shift_down = 12
+        
+        # Generate data clusters
+        for i in range(8):
+            x = np.random.uniform(100, 600)
+            y = np.random.uniform(22, 35) - shift_down
+            cities_data.append((x, y))
+        
+        for i in range(10):
+            x = np.random.uniform(600, 1800)
+            y = np.random.uniform(35, 50) - shift_down
+            cities_data.append((x, y))
+        
+        for i in range(12):
+            x = np.random.uniform(1800, 3200)
+            y = np.random.uniform(50, 65) - shift_down
+            cities_data.append((x, y))
+        
+        for i in range(10):
+            x = np.random.uniform(3200, 4200)
+            y = np.random.uniform(62, 75) - shift_down
+            cities_data.append((x, y))
+        
+        for i in range(8):
+            x = np.random.uniform(4200, 4800)
+            y = np.random.uniform(70, 78) - shift_down
+            cities_data.append((x, y))
+        
+        # Create dots
+        dots = VGroup(*[
+            Dot(point=axes.c2p(x, y), radius=DOT_RADIUS, color=GREY).scale(0.7).set_z_index(Z_DOTS)
+            for x, y in cities_data
+        ])
+        
+        self.play(FadeIn(dots, lag_ratio=0.02, run_time=1.5))
+        self.wait(1)
+        
+        # INITIALIZATION: Select 3 points for moderate iterations
+        selected_indices = [5, 25, 40]  # From different clusters for good spread
+        
+        # Create smaller circles around selected dots (scaled by 0.5)
+        init_circles = []
+        circle_colors = [PURE_RED, PURE_GREEN, PURE_YELLOW]
+        
+        for i, (dot_idx, color) in enumerate(zip(selected_indices, circle_colors)):
+            circle = Circle(radius=0.4, stroke_color=color, stroke_width=6, fill_opacity=0).scale(0.5)
+            circle.move_to(dots[dot_idx].get_center())  # Move to exact dot position
+            init_circles.append(circle)
+        
+        # Show circles around selected dots
+        self.play(*[ShowCreation(circle) for circle in init_circles], run_time=1.5)
+        self.wait(2)
+        
+        # Create centroids at EXACT same positions as the selected dots (inside circles)
+        red_centroid = Circle(
+            radius=CENTROID_RADIUS,
+            stroke_color=PURE_RED, fill_color=PURE_RED,
+            stroke_width=CENTROID_STROKE, fill_opacity=1.0
+        ).move_to(dots[selected_indices[0]].get_center()).set_z_index(Z_CENTROIDS)  # EXACT position
+        
+        green_centroid = Circle(
+            radius=CENTROID_RADIUS,
+            stroke_color=PURE_GREEN, fill_color=PURE_GREEN,
+            stroke_width=CENTROID_STROKE, fill_opacity=1.0
+        ).move_to(dots[selected_indices[1]].get_center()).set_z_index(Z_CENTROIDS)  # EXACT position
+        
+        yellow_centroid = Circle(
+            radius=CENTROID_RADIUS,
+            stroke_color=PURE_YELLOW, fill_color=PURE_YELLOW,
+            stroke_width=CENTROID_STROKE, fill_opacity=1.0
+        ).move_to(dots[selected_indices[2]].get_center()).set_z_index(Z_CENTROIDS)  # EXACT position
+        
+        # Create larger X marks inside centroids
+        red_X = Text("×", weight=BOLD, font_size=42).move_to(red_centroid.get_center()).set_color(WHITE).set_z_index(Z_CENTROID_LABELS)
+        green_X = Text("×", weight=BOLD, font_size=42).move_to(green_centroid.get_center()).set_color(WHITE).set_z_index(Z_CENTROID_LABELS)
+        yellow_X = Text("×", weight=BOLD, font_size=42).move_to(yellow_centroid.get_center()).set_color(BLACK).set_z_index(Z_CENTROID_LABELS)  # BLACK text for yellow
+
+
+        
+        red_centroid.add(red_X)
+        green_centroid.add(green_X)
+        yellow_centroid.add(yellow_X)
+
+        red_centroid.move_to(init_circles[0])
+        green_centroid.move_to(init_circles[1])
+        yellow_centroid.move_to(init_circles[2])
+
+        
+        centroids = [red_centroid, green_centroid, yellow_centroid]
+        centroid_Xs = [red_X, green_X, yellow_X]
+        centroid_colors = [DOT_RED, DOT_GREEN, DOT_YELLOW]
+        
+        # Fade in centroids (INSIDE the circles), fade out circles
+        self.play(
+            FadeIn(Group(red_centroid, green_centroid, yellow_centroid)),
+            *[FadeOut(circle) for circle in init_circles],
+            run_time=2
+        )
+        self.wait(1)
+        
+        # K-means iterations (NO DOTTED LINES)
+        for iteration in range(MAX_ITERS):
+            # Assign all points to nearest centroid (no line demonstrations)
+            assignments = []
+            for i, (x, y) in enumerate(cities_data):
+                p = axes.c2p(x, y)
+                distances = [dist(p, c.get_center()) for c in centroids]
+                closest_idx = distances.index(min(distances))
+                assignments.append(["red", "green", "yellow"][closest_idx])
+            
+            # Color all dots based on assignments
+            color_animations = []
+            for i, assignment in enumerate(assignments):
+                color_animations.append(dots[i].animate.set_color(color_for(assignment)))
+            
+            self.play(*color_animations, run_time=0.77)
+            self.wait(0.333)
+            
+            # Compute new centroids
+            cluster_points = {"red": [], "green": [], "yellow": []}
+            for i, assignment in enumerate(assignments):
+                x, y = cities_data[i]
+                cluster_points[assignment].append(axes.c2p(x, y))
+            
+            new_positions = []
+            for cluster_name in ["red", "green", "yellow"]:
+                if len(cluster_points[cluster_name]) > 0:
+                    mean_pos = np.mean(np.vstack(cluster_points[cluster_name]), axis=0)
+                    mean_pos[2] = 0  # Zero z-coordinate
+                    new_positions.append(mean_pos)
+                else:
+                    # Keep current position if no points assigned
+                    current_idx = ["red", "green", "yellow"].index(cluster_name)
+                    new_positions.append(centroids[current_idx].get_center())
+            
+            # Check convergence
+            old_positions = [c.get_center() for c in centroids]
+            converged = all(dist(old_pos, new_pos) < TOL 
+                           for old_pos, new_pos in zip(old_positions, new_positions))
+            
+            if converged:
+                break
+            
+            # Move centroids and reset dots to grey for next iteration
+            move_animations = []
+            for i, new_pos in enumerate(new_positions):
+                move_animations.append(centroids[i].animate.move_to(new_pos))
+                move_animations.append(centroid_Xs[i].animate.move_to(new_pos))
+            
+            reset_animations = [dot.animate.set_color(GREY) for dot in dots]
+            
+            self.play(*move_animations, *reset_animations, run_time=1.2)
+            self.wait(0.33)
+        
+        # Final assignment and coloring
+        final_assignments = []
+        for i, (x, y) in enumerate(cities_data):
+            p = axes.c2p(x, y)
+            distances = [dist(p, c.get_center()) for c in centroids]
+            closest_idx = distances.index(min(distances))
+            final_assignments.append(["red", "green", "yellow"][closest_idx])
+        
+        final_colors = []
+        for i, assignment in enumerate(final_assignments):
+            final_colors.append(dots[i].animate.set_color(color_for(assignment)))
+        
+        self.play(*final_colors, run_time=1.0)
+        
+        # Remove centroids
+        self.play(FadeOut(Group(red_centroid, green_centroid, yellow_centroid)), run_time=0.8)
+        self.wait(1)
+        
+        # ADD CONVEX HULL FILLS AT THE END
+        shapes = []
+        
+        for cluster_id, cluster_color in enumerate([DOT_RED, DOT_GREEN, DOT_YELLOW]):
+            cluster_points = []
+            cluster_name = ["red", "green", "yellow"][cluster_id]
+            
+            for i, assignment in enumerate(final_assignments):
+                if assignment == cluster_name:
+                    x, y = cities_data[i]
+                    screen_point = axes.c2p(x, y)
+                    cluster_points.append(screen_point[:2])
+            
+            if len(cluster_points) >= 3:
+                points_array = np.array(cluster_points)
+                hull = ConvexHull(points_array)
+                vertices = points_array[hull.vertices]
+                vertices_3d = [np.array([x, y, 0]) for x, y in vertices]
+                
+                # Convex hull with only fill, no stroke, scaled by 1.3
+                shape = Polygon(*vertices_3d, 
+                              fill_color=cluster_color, fill_opacity=0.3, 
+                              stroke_width=0).scale(1.3).set_z_index(-1)
+                shapes.append(shape)
+        
+        # Show convex hulls
+        if shapes:
+            self.play(*[FadeIn(shape) for shape in shapes], run_time=1.5)
+        
+        self.wait(3)
