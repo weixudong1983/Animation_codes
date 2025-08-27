@@ -831,3 +831,190 @@ class ElbowMethod(Scene):
         
         self.play(Write(k3_label), run_time=1)
         self.wait(3)
+
+
+class CitiesExample(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.05)
+        # Create axes
+        axes = SimpleAxes(
+            x_max=5000, y_max=80,
+            x_length=8.8, y_length=5.2,
+            origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+            stroke_width=2, tip=True
+        )
+        
+        x_label = Tex("Population")
+        y_label = Tex("GDP")
+        x_label.next_to(axes.x_axis.get_end(), DOWN, buff=0.28)
+        y_label.next_to(axes.y_axis.get_end(), LEFT, buff=0.28)
+        
+        a = VGroup(axes, x_label, y_label).scale(1.17)
+        self.play(ShowCreation(a))
+        
+        # Create cleaner scattered data with clear patterns (shifted DOWN)
+        np.random.seed(42)
+        cities_data = []
+        
+        # Shift all GDP values down by 12 to move datapoints lower
+        shift_down = 12
+        
+        # Generate cleaner data clusters with less noise
+        # Cluster 1: Rural (low population, low GDP) - shifted down
+        for i in range(8):
+            x = np.random.uniform(100, 600)
+            y = np.random.uniform(22, 35) - shift_down
+            cities_data.append((x, y))
+        
+        # Cluster 2: Small (low-medium population, medium GDP) - shifted down
+        for i in range(10):
+            x = np.random.uniform(600, 1800)
+            y = np.random.uniform(35, 50) - shift_down
+            cities_data.append((x, y))
+        
+        # Cluster 3: Medium (medium population, higher GDP) - shifted down
+        for i in range(12):
+            x = np.random.uniform(1800, 3200)
+            y = np.random.uniform(50, 65) - shift_down
+            cities_data.append((x, y))
+        
+        # Cluster 4: Large (high population, high GDP) - shifted down
+        for i in range(10):
+            x = np.random.uniform(3200, 4200)
+            y = np.random.uniform(62, 75) - shift_down
+            cities_data.append((x, y))
+        
+        # Cluster 5: Mega (very high population, very high GDP) - shifted down
+        for i in range(8):
+            x = np.random.uniform(4200, 4800)
+            y = np.random.uniform(70, 78) - shift_down
+            cities_data.append((x, y))
+        
+        # Create dots
+        dots = VGroup(*[
+            Dot(point=axes.c2p(x, y), radius=0.12, color=GREY).scale(0.7)
+            for x, y in cities_data
+        ])
+        
+        self.play(FadeIn(dots, lag_ratio=0.05), run_time=2)
+        self.wait(1)
+        
+        # Show K=3 text first - SCALED BY 2
+        k3_label = Text("K = 3", font_size=48, weight=BOLD).to_edge(UP).shift(DOWN*0.5).scale(2)
+        self.play(Write(k3_label))
+        self.wait(1)
+        
+        # K=3 clustering
+        data_array = np.array(cities_data)
+        kmeans_3 = KMeans(n_clusters=3, random_state=42, n_init=10)
+        labels_3 = kmeans_3.fit_predict(data_array)
+        
+        k3_colors = [BLUE, GREEN, RED]
+        k3_names = ["SMALL", "MEDIUM", "LARGE"]
+        
+        # Color dots for K=3
+        color_animations_3 = []
+        for i, label in enumerate(labels_3):
+            color_animations_3.append(dots[i].animate.set_color(k3_colors[label]))
+        
+        self.play(*color_animations_3, run_time=1.5)
+        self.wait(1)
+        
+        # Create convex hull shapes for K=3
+        shapes_3 = []
+        
+        for cluster_id in range(3):
+            cluster_points = []
+            for i, label in enumerate(labels_3):
+                if label == cluster_id:
+                    x, y = cities_data[i]
+                    screen_point = axes.c2p(x, y)
+                    cluster_points.append(screen_point[:2])
+            
+            if len(cluster_points) >= 3:
+                points_array = np.array(cluster_points)
+                hull = ConvexHull(points_array)
+                vertices = points_array[hull.vertices]
+                vertices_3d = [np.array([x, y, 0]) for x, y in vertices]
+                
+                # Convex hull with only fill, no stroke, scaled by 1.3
+                shape = Polygon(*vertices_3d, 
+                              fill_color=k3_colors[cluster_id], fill_opacity=0.3, 
+                              stroke_width=0).scale(1.3).set_z_index(-1)
+                shapes_3.append(shape)
+        
+        # Show convex hulls
+        self.play(*[FadeIn(shape) for shape in shapes_3], run_time=1.0)
+        
+        # Add cluster labels ABOVE (next_to UP) their respective convex hulls
+        cluster_labels_3 = []
+        for i, (color, name, shape) in enumerate(zip(k3_colors, k3_names, shapes_3)):
+            label = Text(name, color=color, font_size=24, weight=BOLD).scale(2).set_color(color)
+            label.next_to(shape, UP, buff=0.2)
+            cluster_labels_3.append(label)
+        
+        self.play(*[Write(label) for label in cluster_labels_3], FadeOut(k3_label), )
+        self.wait(2)
+        
+        # Transition to K=5
+        self.play(
+            
+            *[FadeOut(label) for label in cluster_labels_3],
+            *[FadeOut(shape) for shape in shapes_3]
+        )
+        
+        # Show K=5 text first - SCALED BY 2
+        k5_label = Text("K = 5", font_size=48, weight=BOLD).to_edge(UP).shift(DOWN*0.5).scale(2)
+        self.play(Write(k5_label))
+        self.wait(1)
+        
+        # K=5 clustering
+        kmeans_5 = KMeans(n_clusters=5, random_state=42, n_init=10)
+        labels_5 = kmeans_5.fit_predict(data_array)
+        
+        k5_colors = [PURPLE, BLUE, GREEN, RED, ORANGE]
+        k5_names = ["MEGA", "SMALL", "MEDIUM", "RURAL", "LARGE"]
+        
+        # Color dots for K=5
+        color_animations_5 = []
+        for i, label in enumerate(labels_5):
+            color_animations_5.append(dots[i].animate.set_color(k5_colors[label]))
+        
+        self.play(*color_animations_5, run_time=1.5)
+        self.wait(1)
+        
+        # Create convex hull shapes for K=5
+        shapes_5 = []
+        
+        for cluster_id in range(5):
+            cluster_points = []
+            for i, label in enumerate(labels_5):
+                if label == cluster_id:
+                    x, y = cities_data[i]
+                    screen_point = axes.c2p(x, y)
+                    cluster_points.append(screen_point[:2])
+            
+            if len(cluster_points) >= 3:
+                points_array = np.array(cluster_points)
+                hull = ConvexHull(points_array)
+                vertices = points_array[hull.vertices]
+                vertices_3d = [np.array([x, y, 0]) for x, y in vertices]
+                
+                # Convex hull with only fill, no stroke, scaled by 1.3
+                shape = Polygon(*vertices_3d, 
+                              fill_color=k5_colors[cluster_id], fill_opacity=0.3, 
+                              stroke_width=0).scale(1.3).set_z_index(-1)
+                shapes_5.append(shape)
+        
+        # Show convex hulls
+        self.play(*[FadeIn(shape) for shape in shapes_5], run_time=1.0)
+        
+        # Add cluster labels ABOVE (next_to UP) their respective convex hulls
+        cluster_labels_5 = []
+        for i, (color, name, shape) in enumerate(zip(k5_colors, k5_names, shapes_5)):
+            label = Text(name, color=color, font_size=20, weight=BOLD).scale(2).set_color(color)
+            label.next_to(shape, UP, buff=0.34)
+            cluster_labels_5.append(label)
+        
+        self.play(*[Write(label) for label in cluster_labels_5] ,FadeOut(k5_label))
+        self.wait(3)
