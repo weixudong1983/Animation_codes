@@ -1278,3 +1278,326 @@ class CitiesKMeansWithInitialization(Scene):
             self.play(*[FadeIn(shape) for shape in shapes], run_time=1.5)
         
         self.wait(3)
+
+
+
+
+class GridKMeansComparison(Scene):
+    
+    def construct(self):
+
+        self.camera.frame.shift(UP*0.96 + +RIGHT*2)
+
+        # Tunables
+        DOT_RADIUS = 0.08
+        CENTROID_RADIUS = 0.15
+        CENTROID_STROKE = 3
+        MAX_ITERS = 10
+        TOL = 1e-6
+        
+        # Colors
+        DOT_RED = RED
+        DOT_GREEN = GREEN  
+        DOT_YELLOW = YELLOW
+        PURE_RED = "#FF0000"
+        PURE_GREEN = "#00FF00"
+        PURE_YELLOW = "#FFFF00"
+        
+        # Grid positions
+        positions = [
+            LEFT * 3.0 + UP * 2,      # Top-left
+            RIGHT * 3.0 + UP * 2,     # Top-right  
+            LEFT * 3.0 + DOWN * 2,    # Bottom-left
+            RIGHT * 3.0 + DOWN * 2    # Bottom-right
+        ]
+        
+        # Helper functions
+        def color_for(assign):
+            if assign == "red":
+                return DOT_RED
+            elif assign == "green":
+                return DOT_GREEN
+            else:
+                return DOT_YELLOW
+        
+        def dist(p, q):
+            return np.linalg.norm(p - q)
+        
+        def calculate_loss(assignments, centroids, data, axes):
+            """Calculate Within-Cluster Sum of Squares (WCSS)"""
+            total_loss = 0
+            for i, (x, y) in enumerate(data):
+                point_pos = axes.c2p(x, y)
+                cluster_idx = ["red", "green", "yellow"].index(assignments[i])
+                centroid_pos = centroids[cluster_idx].get_center()
+                total_loss += dist(point_pos, centroid_pos) ** 2
+            return total_loss
+        
+        # Create NEW "S-curve snake" dataset - produces VERY different losses
+        np.random.seed(2024)
+        cities_data = []
+        
+        # Create an S-shaped curve that can be clustered in dramatically different ways
+        # Bottom-left dense cluster
+        for i in range(18):
+            x = np.random.uniform(800, 1200)
+            y = np.random.uniform(20, 30)
+            x += np.random.normal(0, 60)
+            y += np.random.normal(0, 3)
+            cities_data.append((max(600, min(3500, x)), max(15, min(65, y))))
+        
+        # S-curve: flowing from bottom-left, up to middle-top, then down to bottom-right
+        # Middle transition region (creates major ambiguity)
+        for i in range(22):
+            t = i / 21.0  # 0 to 1
+            x = 1200 + t * 800  # 1200 to 2000
+            y = 30 + np.sin(t * np.pi * 2) * 20  # Oscillating height
+            x += np.random.normal(0, 80)
+            y += np.random.normal(0, 4)
+            cities_data.append((max(600, min(3500, x)), max(15, min(65, y))))
+        
+        # Top dense cluster
+        for i in range(16):
+            x = np.random.uniform(2000, 2400)
+            y = np.random.uniform(50, 60)
+            x += np.random.normal(0, 70)
+            y += np.random.normal(0, 3)
+            cities_data.append((max(600, min(3500, x)), max(15, min(65, y))))
+        
+        # Final curve down to bottom-right
+        for i in range(20):
+            t = i / 19.0  # 0 to 1
+            x = 2400 + t * 800  # 2400 to 3200
+            y = 55 - t * 35  # 55 to 20
+            x += np.random.normal(0, 90)
+            y += np.random.normal(0, 4)
+            cities_data.append((max(600, min(3500, x)), max(15, min(65, y))))
+        
+        # Bottom-right dense cluster
+        for i in range(14):
+            x = np.random.uniform(3000, 3400)
+            y = np.random.uniform(18, 28)
+            x += np.random.normal(0, 60)
+            y += np.random.normal(0, 3)
+            cities_data.append((max(600, min(3500, x)), max(15, min(65, y))))
+        
+        # STRATEGIC initializations designed to produce VERY different final losses
+        initialization_scenarios = [
+            [2, 20, 45],    # Natural end points + middle - should produce LOW loss
+            [8, 12, 16],    # All clustered at start - should produce HIGH loss
+            [55, 60, 65],   # All clustered at end - should produce HIGH loss  
+            [25, 35, 50]    # Mixed strategic - should produce MEDIUM loss
+        ]
+        
+        # Create all 4 grid elements
+        all_axes = []
+        all_dots = []
+        all_centroids = []
+        all_centroid_Xs = []
+        
+        for grid_idx, (pos, selected_indices) in enumerate(zip(positions, initialization_scenarios)):
+            # Create axes for this grid position
+            axes = SimpleAxes(
+                x_max=4000, y_max=70,
+                x_length=4.0, y_length=2.5,
+                origin=pos,
+                stroke_width=2, tip=True
+            )
+            all_axes.append(axes)
+            
+            # Create dots for this grid
+            dots = VGroup(*[
+                Dot(point=axes.c2p(x, y), radius=DOT_RADIUS, color=GREY).scale(0.6)
+                for x, y in cities_data
+            ])
+            all_dots.append(dots)
+            
+            # Create centroids at selected positions
+            red_centroid = Circle(
+                radius=CENTROID_RADIUS,
+                stroke_color=PURE_RED, fill_color=PURE_RED,
+                stroke_width=CENTROID_STROKE, fill_opacity=1.0
+            ).move_to(dots[selected_indices[0]].get_center())
+            
+            green_centroid = Circle(
+                radius=CENTROID_RADIUS,
+                stroke_color=PURE_GREEN, fill_color=PURE_GREEN,
+                stroke_width=CENTROID_STROKE, fill_opacity=1.0
+            ).move_to(dots[selected_indices[1]].get_center())
+            
+            yellow_centroid = Circle(
+                radius=CENTROID_RADIUS,
+                stroke_color=PURE_YELLOW, fill_color=PURE_YELLOW,
+                stroke_width=CENTROID_STROKE, fill_opacity=1.0
+            ).move_to(dots[selected_indices[2]].get_center())
+            
+            # Create X marks
+            red_X = Text("×", weight=BOLD, font_size=32).move_to(red_centroid.get_center()).set_color(WHITE)
+            green_X = Text("×", weight=BOLD, font_size=32).move_to(green_centroid.get_center()).set_color(WHITE)
+            yellow_X = Text("×", weight=BOLD, font_size=32).move_to(yellow_centroid.get_center()).set_color(BLACK)
+            
+            red_centroid.add(red_X)
+            green_centroid.add(green_X)
+            yellow_centroid.add(yellow_X)
+            
+            centroids = [red_centroid, green_centroid, yellow_centroid]
+            centroid_Xs = [red_X, green_X, yellow_X]
+            
+            all_centroids.append(centroids)
+            all_centroid_Xs.append(centroid_Xs)
+        
+        # Show all axes and dots simultaneously
+        self.play(*[ShowCreation(axes) for axes in all_axes])
+        self.play(*[FadeIn(dots, lag_ratio=0.01) for dots in all_dots], run_time=2)
+        
+
+        # Show all initial centroids
+        self.play(*[FadeIn(Group(*centroids)) for centroids in all_centroids], run_time=1.5)
+        self.wait(1)
+        
+        # Run K-means on all 4 grids simultaneously
+        for iteration in range(MAX_ITERS):
+            all_assignments = []
+            all_converged = True
+            
+            # Calculate assignments for all grids
+            for grid_idx in range(4):
+                assignments = []
+                for i, (x, y) in enumerate(cities_data):
+                    p = all_axes[grid_idx].c2p(x, y)
+                    distances = [dist(p, c.get_center()) for c in all_centroids[grid_idx]]
+                    closest_idx = distances.index(min(distances))
+                    assignments.append(["red", "green", "yellow"][closest_idx])
+                all_assignments.append(assignments)
+            
+            # Color all dots simultaneously
+            color_animations = []
+            for grid_idx in range(4):
+                for i, assignment in enumerate(all_assignments[grid_idx]):
+                    color_animations.append(all_dots[grid_idx][i].animate.set_color(color_for(assignment)))
+            
+            self.play(*color_animations, run_time=0.8)
+            self.wait(0.3)
+            
+            # Calculate new centroids for all grids
+            move_animations = []
+            reset_animations = []
+            
+            for grid_idx in range(4):
+                cluster_points = {"red": [], "green": [], "yellow": []}
+                for i, assignment in enumerate(all_assignments[grid_idx]):
+                    x, y = cities_data[i]
+                    cluster_points[assignment].append(all_axes[grid_idx].c2p(x, y))
+                
+                new_positions = []
+                for cluster_name in ["red", "green", "yellow"]:
+                    if len(cluster_points[cluster_name]) > 0:
+                        mean_pos = np.mean(np.vstack(cluster_points[cluster_name]), axis=0)
+                        mean_pos[2] = 0
+                        new_positions.append(mean_pos)
+                    else:
+                        current_idx = ["red", "green", "yellow"].index(cluster_name)
+                        new_positions.append(all_centroids[grid_idx][current_idx].get_center())
+                
+                # Check convergence for this grid
+                old_positions = [c.get_center() for c in all_centroids[grid_idx]]
+                grid_converged = all(dist(old_pos, new_pos) < TOL 
+                                   for old_pos, new_pos in zip(old_positions, new_positions))
+                
+                if not grid_converged:
+                    all_converged = False
+                
+                # Move centroids
+                for i, new_pos in enumerate(new_positions):
+                    move_animations.append(all_centroids[grid_idx][i].animate.move_to(new_pos))
+                    move_animations.append(all_centroid_Xs[grid_idx][i].animate.move_to(new_pos))
+                
+                # Reset dots to grey
+                for dot in all_dots[grid_idx]:
+                    reset_animations.append(dot.animate.set_color(GREY))
+            
+            if all_converged:
+                break
+            
+            self.play(*move_animations, *reset_animations, run_time=1.2)
+            self.wait(0.3)
+        
+        # Final coloring for all grids
+        final_color_animations = []
+        for grid_idx in range(4):
+            for i, assignment in enumerate(all_assignments[grid_idx]):
+                final_color_animations.append(all_dots[grid_idx][i].animate.set_color(color_for(assignment)))
+        
+        self.play(*final_color_animations, run_time=1.0)
+        
+        # Remove all centroids
+        self.play(*[FadeOut(Group(*centroids)) for centroids in all_centroids], run_time=0.8)
+        
+        # Add convex hulls for all grids
+        all_shapes = []
+        shape_animations = []
+        
+        for grid_idx in range(4):
+            for cluster_id, cluster_color in enumerate([DOT_RED, DOT_GREEN, DOT_YELLOW]):
+                cluster_points = []
+                cluster_name = ["red", "green", "yellow"][cluster_id]
+                
+                for i, assignment in enumerate(all_assignments[grid_idx]):
+                    if assignment == cluster_name:
+                        x, y = cities_data[i]
+                        screen_point = all_axes[grid_idx].c2p(x, y)
+                        cluster_points.append(screen_point[:2])
+                
+                if len(cluster_points) >= 3:
+                    points_array = np.array(cluster_points)
+                    hull = ConvexHull(points_array)
+                    vertices = points_array[hull.vertices]
+                    vertices_3d = [np.array([x, y, 0]) for x, y in vertices]
+                    
+                    shape = Polygon(*vertices_3d, 
+                                  fill_color=cluster_color, fill_opacity=0.25, 
+                                  stroke_width=0).scale(1.15).set_z_index(-1)
+                    all_shapes.append(shape)
+                    shape_animations.append(FadeIn(shape))
+        
+        # Show all convex hulls simultaneously
+        if shape_animations:
+            self.play(*shape_animations, run_time=1.5)
+        
+        self.wait(1)
+        
+        # Calculate and display loss function values - MOVED UP MORE
+        loss_texts = []
+        loss_animations = []
+        
+        for grid_idx in range(4):
+            # Calculate final loss (WCSS - Within-Cluster Sum of Squares)
+            final_loss = calculate_loss(all_assignments[grid_idx], all_centroids[grid_idx], 
+                                      cities_data, all_axes[grid_idx])
+            
+            # Create loss text below each graph - MOVED UP from 1.1 to 0.9
+            loss_text = Text(
+                f"Loss: {final_loss:.1f}",
+                font_size=24,
+                color=WHITE
+            ).move_to(positions[grid_idx] + DOWN * 0.5 + RIGHT*1.98).scale(1.66) # Changed from 1.1 to 0.9
+            
+            loss_texts.append(loss_text)
+            loss_animations.append(FadeIn(loss_text))
+        
+        # Show all loss values simultaneously
+        self.play(*loss_animations, run_time=1.5)
+        
+        self.wait(2)
+
+
+        sq = Rectangle(height=2.96, width=4.5, fill_color="#00ff00", fill_opacity=0.055, stroke_width=0.00000000001)
+        sq.shift(LEFT+DOWN).scale(1.24)
+        self.play(FadeIn(sq))
+
+        self.wait(2)
+
+        self.play(FadeOut(sq))
+
+
+
