@@ -737,3 +737,97 @@ class ChoosingK(Scene):
         
         self.wait(2)
 
+class ElbowMethod(Scene):
+    def construct(self):
+        # REDUCED RANGES to bring graph closer to axes
+        
+        self.camera.frame.scale(1.2).shift(UP*0.6)
+
+        axes = SimpleAxes(
+            x_max=9.5, y_max=12,          # Reduced from x_max=10, y_max=16
+            x_length=9, y_length=6,
+            origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+            stroke_width=3, tip=True,
+            include_ticks=True,
+            tick_size=0.12
+        ).set_color(WHITE)
+        
+        # Labels
+        x_label = Tex("K", font_size=48).next_to(axes.x_axis.get_end(), DOWN, buff=0.3)
+        y_label = Tex("J", font_size=48).next_to(axes.y_axis.get_end(), LEFT, buff=0.3)
+        
+        axes_group = VGroup(axes, x_label, y_label).scale(1.17)
+        self.play(ShowCreation(axes_group), run_time=2)
+        self.wait(1)
+        
+        # ADJUSTED elbow method data - scaled to fit better in the new range
+        k_values = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        j_values = np.array([11.5, 8.2, 5.8, 4.5, 3.8, 3.4, 3.1, 2.95, 2.85])
+        
+        # Create points using your axes.c2p() method - COLORED YELLOW
+        points = VGroup(*[
+            Dot(axes.c2p(k, j), radius=0.12, color=YELLOW)
+            for k, j in zip(k_values, j_values)
+        ])
+        
+        # Set all dots to yellow color
+        for dot in points:
+            dot.set_color(YELLOW).shift(DOWN)
+        
+        # Create curve by connecting points
+        curve_points = []
+        for i in range(len(k_values)):
+            curve_points.append(axes.c2p(k_values[i], j_values[i]))
+        
+        curve = VMobject()
+        curve.set_points_smoothly(curve_points)
+        curve.set_stroke(BLUE, width=4).shift(DOWN)
+        
+        # Animate the curve and points
+        self.play(ShowCreation(curve), run_time=2.5)
+        self.play(FadeIn(points, lag_ratio=0.15), run_time=2)
+        self.wait(1)
+        
+        # Highlight the elbow point (K=3)
+        elbow_k = 3
+        elbow_j = j_values[elbow_k - 1]  # K=3 is at index 2
+        elbow_point = axes.c2p(elbow_k, elbow_j)
+        
+        # Create highlighted elbow point
+        elbow_dot = Dot(elbow_point, radius=0.18, color=RED, stroke_width=3).shift(DOWN).set_color(RED)
+        elbow_circle = Circle(radius=0.35, color=RED, stroke_width=3).move_to(elbow_dot)
+        
+        # Arrow pointing to elbow point
+        arrow_start = elbow_point + UP * 2.5 + RIGHT * 1.5
+        arrow = Arrow(
+            start=arrow_start,
+            end=elbow_point + UP * 0.3 + RIGHT * 0.2,
+            buff=0,
+            color=RED,
+            stroke_width=4,
+        ).set_color(RED).shift(RIGHT*0.1+DOWN*0.88)
+        
+        # "Elbow Point" text
+        elbow_text = Text("Elbow Point", font_size=56, weight=BOLD, color=RED)
+        elbow_text.next_to(arrow_start, UP, buff=0.14).shift(DOWN*0.5)
+        
+        # Animate elbow highlighting
+        self.play(
+            FadeIn(elbow_dot),
+            ShowCreation(elbow_circle),
+            run_time=1.5
+        )
+        self.wait(0.5)
+        
+        self.play(
+            GrowArrow(arrow),
+            Write(elbow_text),
+            run_time=1.5
+        )
+        
+        # Add K=3 label
+        k3_label = Text("K = 3", font_size=62, color=RED, weight=BOLD)
+        k3_label.next_to(elbow_point, DOWN + RIGHT, buff=1.2).shift(UP*1.2)
+        
+        self.play(Write(k3_label), run_time=1)
+        self.wait(3)
