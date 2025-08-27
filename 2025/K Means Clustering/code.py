@@ -597,5 +597,143 @@ class kmeansMath(Scene):
 
         self.embed()
 
-
+class ChoosingK(Scene):
+    def construct(self):
+        # Create axes
+        axes = SimpleAxes(
+            x_max=10, y_max=7,
+            x_length=8.8, y_length=5.2,
+            origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+            stroke_width=2, tip=True
+        )
+        
+        x_label = Tex("x_{1}")
+        y_label = Tex("x_{2}")
+        x_label.next_to(axes.x_axis.get_end(), DOWN, buff=0.28)
+        y_label.next_to(axes.y_axis.get_end(), LEFT, buff=0.28)
+        
+        axes_group = VGroup(axes, x_label, y_label).scale(1.17)
+        self.play(ShowCreation(axes_group))
+        
+        # Create dispersed dataset shifted UP slightly from previous version
+        base_dataset = [
+            # Left region - shifted up a bit
+            (0.8, 2.9), (1.9, 2.5), (0.5, 3.5), (1.4, 3.1), (1.8, 2.2),
+            (0.6, 3.8), (2.3, 2.7), (1.2, 3.4), (0.8, 2.6), (2.1, 3.2),
+            (1.1, 4.2), (1.7, 4.5), (0.9, 3.9), (2.0, 4.1), (0.4, 4.4),
+            
+            # Center-top region - shifted up  
+            (3.8, 4.9), (4.9, 4.5), (3.5, 4.2), (5.1, 4.8), (3.6, 5.4),
+            (4.2, 4.3), (4.0, 5.1), (4.8, 4.7), (4.5, 4.0), (3.7, 4.7),
+            
+            # Center-bottom region - shifted up
+            (4.6, 2.5), (3.9, 2.1), (4.8, 2.9), (3.7, 2.4), (5.0, 2.2),
+            (4.1, 3.1), (4.9, 1.8), (3.8, 2.7), (4.3, 2.3), (4.2, 3.0),
+            
+            # Right region - shifted up
+            (7.2, 1.9), (8.6, 2.5), (7.0, 1.6), (8.2, 2.2), (8.1, 2.8),
+            (8.7, 1.7), (7.4, 2.4), (8.4, 2.0), (7.8, 2.6), (8.5, 1.8),
+            (6.9, 3.9), (7.9, 4.6), (7.1, 3.5), (8.3, 4.3), (7.5, 3.7),
+            (8.4, 4.5), (6.8, 4.2), (8.0, 3.4), (8.2, 4.1), (7.2, 3.6),
+        ]
+        
+        # Create dots
+        dots = VGroup(*[
+            Dot(point=axes.c2p(x, y), radius=0.12, color=GREY).scale(0.7)
+            for x, y in base_dataset
+        ])
+        
+        self.play(FadeIn(dots, lag_ratio=0.05), run_time=2)
+        self.wait(1)
+        
+        # Colors for different K values
+        colors_k2 = [RED, BLUE]
+        colors_k3 = [RED, GREEN, BLUE] 
+        colors_k4 = [RED, GREEN, BLUE, YELLOW]
+        colors_k5 = [RED, GREEN, BLUE, YELLOW, PURPLE]
+        
+        # Function to create convex hull shapes - NO STROKE, ONLY FILL
+        def create_cluster_shapes(points_coords, labels, colors, axes):
+            shapes = []
+            unique_labels = list(set(labels))
+            
+            for i, label in enumerate(unique_labels):
+                cluster_points = []
+                for j, point_label in enumerate(labels):
+                    if point_label == label:
+                        x, y = points_coords[j]
+                        screen_point = axes.c2p(x, y)
+                        cluster_points.append(screen_point[:2])
+                
+                if len(cluster_points) >= 3:
+                    points_array = np.array(cluster_points)
+                    try:
+                        hull = ConvexHull(points_array)
+                        vertices = points_array[hull.vertices]
+                        vertices_3d = [np.array([x, y, 0]) for x, y in vertices]
+                        
+                        # NO STROKE - only fill, scaled by 1.30
+                        shape = Polygon(*vertices_3d, 
+                                      fill_color=colors[i], fill_opacity=0.25, 
+                                      stroke_width=0).scale(1.30).set_z_index(-1)
+                        shapes.append(shape)
+                    except:
+                        continue
+            
+            return shapes
+        
+        k_values = [2, 3, 4, 5]
+        all_colors = [colors_k2, colors_k3, colors_k4, colors_k5]
+        
+        # K label - larger scale and positioned DOWN*0.5 + LEFT*0.5
+        k_label = None
+        final_shapes = None  # Keep track of final shapes for question marks
+        
+        for idx, k in enumerate(k_values):
+            # Create K label with larger scale and shifted DOWN*0.5 + LEFT*0.5
+            new_k_label = Text(f"K = {k}", font_size=48, weight=BOLD, color=WHITE)
+            new_k_label.scale(1.6)  # Larger scale
+            new_k_label.to_edge(UP + RIGHT, buff=0.8)
+            new_k_label.shift(DOWN * 0.5 + LEFT * 0.5)  # Shift as requested
+            
+            if idx == 0:
+                k_label = new_k_label
+                self.play(Write(k_label))
+            else:
+                # Transform the existing label to new K value
+                self.play(Transform(k_label, new_k_label))
+            
+            # Use scikit-learn KMeans to cluster the data
+            data_array = np.array(base_dataset)
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(data_array)
+            
+            # Color the dots based on clustering
+            color_animations = []
+            for i, label in enumerate(labels):
+                color = all_colors[idx][label]
+                color_animations.append(dots[i].animate.set_color(color))
+            
+            self.play(*color_animations, run_time=1.5)
+            self.wait(0.5)
+            
+            # Create and show cluster shapes
+            shapes = create_cluster_shapes(base_dataset, labels, all_colors[idx], axes)
+            if shapes:
+                self.play(*[FadeIn(shape) for shape in shapes], run_time=1.0)
+                self.wait(2)
+                
+                # Store final shapes for question marks
+                if idx == len(k_values) - 1:
+                    final_shapes = shapes
+                    final_labels = labels
+                    final_colors = all_colors[idx]
+                
+                # Remove shapes before next iteration (except for last one)
+                if idx < len(k_values) - 1:
+                    self.play(*[FadeOut(shape) for shape in shapes], run_time=0.5)
+                    # Reset dots to grey
+                    self.play(*[dot.animate.set_color(GREY) for dot in dots], run_time=0.5)
+        
+        self.wait(2)
 
