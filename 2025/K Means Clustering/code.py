@@ -1,5 +1,7 @@
 from manimlib import *
 import numpy as np
+from scipy.spatial import ConvexHull
+from scipy.cluster.vq import whiten, kmeans, vq
 
 class SimpleAxes(VGroup):
     """
