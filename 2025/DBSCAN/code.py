@@ -1,0 +1,436 @@
+from manimlib import *
+import numpy as np
+from scipy.spatial import ConvexHull
+
+class SimpleAxes(VGroup):
+    """
+    Minimal first-quadrant axes with a c2p mapper.
+    Draws only positive x/y arrows starting at origin.
+    """
+    def __init__(
+        self,
+        x_max=10, y_max=7,           
+        x_length=8.8, y_length=5.2,  
+        origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+        stroke_width=2,
+        tip=True,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.x_max = float(x_max)
+        self.y_max = float(y_max)
+        self.x_length = float(x_length)
+        self.y_length = float(y_length)
+        self.origin = origin
+        self.x_unit = self.x_length / self.x_max
+        self.y_unit = self.y_length / self.y_max
+
+        # Positive axes only
+        x_end = self.origin + np.array([self.x_length, 0, 0])
+        y_end = self.origin + np.array([0, self.y_length, 0])
+        if tip:
+            self.x_axis = Arrow(start=self.origin, end=x_end, buff=0, stroke_width=stroke_width)
+            self.y_axis = Arrow(start=self.origin, end=y_end, buff=0, stroke_width=stroke_width)
+        else:
+            self.x_axis = Line(self.origin, x_end, stroke_width=stroke_width)
+            self.y_axis = Line(self.origin, y_end, stroke_width=stroke_width)
+
+        self.add(self.x_axis, self.y_axis)
+
+    def c2p(self, x, y, z=0.0):
+        return self.origin + np.array([x * self.x_unit, y * self.y_unit, 0.0])
+
+    def get_x_end(self):
+        return self.x_axis.get_end()
+
+    def get_y_end(self):
+        return self.y_axis.get_end()
+
+class KMeans(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.08)
+        self.camera.frame.scale(1.05)
+        
+        # Tunables
+        DOT_RADIUS = 0.044
+        CENTROID_RADIUS = 0.28
+        CENTROID_STROKE = 4
+        MAX_ITERS = 10
+        TOL = 1e-6
+
+        # Colors - 3 PURE COLORS
+        DOT_RED = RED
+        DOT_GREEN = GREEN
+        DOT_BLUE = BLUE
+        PURE_RED = "#FF0000"
+        PURE_GREEN = "#00FF00"
+        PURE_BLUE = "#0000FF"
+
+        # Z-index layering
+        Z_DOTS = 0
+        Z_CENTROIDS = 3
+        Z_CENTROID_LABELS = 4
+
+        # Helper functions
+        def color_for(assign):
+            if assign == "red":
+                return DOT_RED
+            elif assign == "green":
+                return DOT_GREEN
+            else:
+                return DOT_BLUE
+
+        def dist(p, q):
+            return np.linalg.norm(p - q)
+
+        def make_X():
+            try:
+                t = Text("X", weight=BOLD)
+            except Exception:
+                t = Tex("\\mathbf{X}")
+            t.set_stroke(width=1)
+            return t
+
+        # Create axes
+        axes = SimpleAxes(
+            x_max=10, y_max=7,
+            x_length=8.8, y_length=5.2,
+            origin=ORIGIN + 2.5*DOWN + 4.4*LEFT,
+            stroke_width=2, tip=True
+        ).set_color(WHITE)
+        x_label = Tex("x_{1}")
+        y_label = Tex("x_{2}")
+        x_label.next_to(axes.get_x_end(), DOWN, buff=0.28)
+        y_label.next_to(axes.get_y_end(), LEFT, buff=0.28)
+
+        a = VGroup(axes, x_label, y_label).scale(1.17)
+        a.scale(1.2)
+        self.play(ShowCreation(a))
+
+        # Create multi-concentric dataset with MANY MORE OUTLIERS
+        np.random.seed(42)
+        points_coords = []
+        
+        center_x, center_y = 5.0, 3.5
+        
+        # Generous boundary conditions
+        def in_bounds(x, y):
+            return 0.8 <= x <= 9.5 and -0.3 <= y <= 7.3
+
+        # 1. Central cluster (increased noise)
+        central_cluster = []
+        for i in range(30):
+            angle = np.random.uniform(0, 2*np.pi)
+            radius = np.random.uniform(0, 0.6)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.075)  # increased from 0.05
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.075)  # increased from 0.05
+            if in_bounds(x, y):
+                central_cluster.append((x, y))
+
+        # 2. First ring (middle ring) - increased noise
+        first_ring = []
+        ring1_radius = 2.2
+        ring1_thickness = 0.25
+        
+        # All 5 methods for dense coverage with increased noise
+        for i in range(60):
+            angle = (2 * np.pi * i) / 60
+            radius = ring1_radius + np.random.uniform(-ring1_thickness, ring1_thickness)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+            if in_bounds(x, y):
+                first_ring.append((x, y))
+        
+        for layer in [-0.15, 0, 0.15]:
+            for i in range(40):
+                angle = (2 * np.pi * i) / 40 + np.random.uniform(-0.03, 0.03)
+                radius = ring1_radius + layer + np.random.uniform(-0.06, 0.06)
+                x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                if in_bounds(x, y):
+                    first_ring.append((x, y))
+        
+        for i in range(40):
+            angle = (2 * np.pi * i) / 40 + np.pi/40
+            radius = ring1_radius + np.random.uniform(-ring1_thickness*0.8, ring1_thickness*0.8)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.038)  # increased from 0.025
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.038)  # increased from 0.025
+            if in_bounds(x, y):
+                first_ring.append((x, y))
+        
+        for quadrant in range(4):
+            for i in range(15):
+                base_angle = quadrant * np.pi/2
+                angle = base_angle + (np.pi/2 * i / 15) + np.random.uniform(-0.02, 0.02)
+                radius = ring1_radius + np.random.uniform(-ring1_thickness*0.7, ring1_thickness*0.7)
+                x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                if in_bounds(x, y):
+                    first_ring.append((x, y))
+        
+        for i in range(50):
+            angle = np.random.uniform(0, 2*np.pi)
+            radius = ring1_radius + np.random.uniform(-ring1_thickness, ring1_thickness)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.045)  # increased from 0.03
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.045)  # increased from 0.03
+            if in_bounds(x, y):
+                first_ring.append((x, y))
+
+        # 3. Second ring (outer ring) - increased noise
+        second_ring = []
+        ring2_radius = 3.6
+        ring2_thickness = 0.3
+        
+        # All 5 methods for dense coverage with increased noise
+        for i in range(60):
+            angle = (2 * np.pi * i) / 60
+            radius = ring2_radius + np.random.uniform(-ring2_thickness/2, ring2_thickness/2)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+            if in_bounds(x, y):
+                second_ring.append((x, y))
+        
+        for layer_offset in [-0.15, 0, 0.15]:
+            for i in range(40):
+                angle = (2 * np.pi * i) / 40 + np.random.uniform(-0.03, 0.03)
+                radius = ring2_radius + layer_offset + np.random.uniform(-0.06, 0.06)
+                x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                if in_bounds(x, y):
+                    second_ring.append((x, y))
+        
+        for i in range(40):
+            angle = (2 * np.pi * i) / 40 + np.pi/40
+            radius = ring2_radius + np.random.uniform(-ring2_thickness*0.8, ring2_thickness*0.8)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.038)  # increased from 0.025
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.038)  # increased from 0.025
+            if in_bounds(x, y):
+                second_ring.append((x, y))
+        
+        for quadrant in range(4):
+            for i in range(15):
+                base_angle = quadrant * np.pi/2
+                angle = base_angle + (np.pi/2 * i / 15) + np.random.uniform(-0.02, 0.02)
+                radius = ring2_radius + np.random.uniform(-ring2_thickness*0.7, ring2_thickness*0.7)
+                x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.03)  # increased from 0.02
+                if in_bounds(x, y):
+                    second_ring.append((x, y))
+        
+        for i in range(50):
+            angle = np.random.uniform(0, 2*np.pi)
+            radius = ring2_radius + np.random.uniform(-ring2_thickness, ring2_thickness)
+            x = center_x + radius * np.cos(angle) + np.random.normal(0, 0.045)  # increased from 0.03
+            y = center_y + radius * np.sin(angle) + np.random.normal(0, 0.045)  # increased from 0.03
+            if in_bounds(x, y):
+                second_ring.append((x, y))
+
+        # 4. EXPANDED outlier collection with increased noise
+        outliers = []
+        
+        # Original distant outliers (20 points)
+        outlier_regions = [
+            (0.8, 1.8, 0.0, 1.0),    # Bottom left corner
+            (8.2, 9.5, 0.0, 1.0),    # Bottom right corner  
+            (0.8, 1.8, 6.0, 7.3),    # Top left corner
+            (8.2, 9.5, 6.0, 7.3),    # Top right corner
+            (0.8, 2.0, 2.0, 5.0),    # Left edge
+            (8.0, 9.5, 2.0, 5.0),    # Right edge
+            (3.0, 7.0, 6.5, 7.3),    # Top edge
+            (3.0, 7.0, -0.3, 0.5),   # Bottom edge
+        ]
+        
+        for i in range(20):
+            region = outlier_regions[i % len(outlier_regions)]
+            x_min, x_max, y_min, y_max = region
+            x = np.random.uniform(x_min, x_max)
+            y = np.random.uniform(y_min, y_max)
+            dist_to_center = np.sqrt((x-center_x)**2 + (y-center_y)**2)
+            if dist_to_center > 4.5:
+                if in_bounds(x, y):
+                    outliers.append((x, y))
+        
+        # NEW: Outliers INSIDE the rings but away from dense clusters with increased noise
+        for i in range(7):
+            angle = np.random.uniform(0, 2*np.pi)
+            radius_choice = np.random.choice([
+                np.random.uniform(0.8, 1.3),   # Between center and inner ring
+                np.random.uniform(3.0, 3.3)    # Between inner and outer ring
+            ])
+            x = center_x + radius_choice * np.cos(angle) + np.random.normal(0, 0.12)  # increased from 0.08
+            y = center_y + radius_choice * np.sin(angle) + np.random.normal(0, 0.12)  # increased from 0.08
+            if in_bounds(x, y):
+                outliers.append((x, y))
+        
+        # NEW: Additional far-away outliers (6 points)
+        extreme_regions = [
+            (0.0, 1.0, 0.0, 0.6),     # Very far bottom left
+            (9.0, 10.0, 0.0, 7.3),    # Very far right
+            (0.0, 10.0, 7.3, 8.0),    # Very far top
+            (9.0, 10.0, -1.0, 0.0),   # Very far bottom right
+            (0.0, 0.8, -0.3, 7.3),    # Extreme left edge
+            (9.5, 10.0, -0.3, 7.3),   # Extreme right edge
+        ]
+        
+        for i in range(6):
+            region = extreme_regions[i % len(extreme_regions)]
+            x_min, x_max, y_min, y_max = region
+            x = np.random.uniform(x_min, x_max)
+            y = np.random.uniform(y_min, y_max)
+            # Even further requirement
+            dist_to_center = np.sqrt((x-center_x)**2 + (y-center_y)**2)
+            if dist_to_center > 5.0:  # Even more distant
+                outliers.append((x, y))
+
+        # Combine all points
+        points_coords = central_cluster + first_ring + second_ring + outliers
+        
+        points = VGroup(*[
+            Dot(axes.c2p(x, y), radius=DOT_RADIUS, color=GREY).set_z_index(Z_DOTS)
+            for x, y in points_coords
+        ])
+
+        self.play(FadeIn(points, lag_ratio=0.02, run_time=1.0))
+
+        # Initialize 3 CENTROIDS with PURE COLORS and crosses
+        red_centroid = Circle(
+            radius=CENTROID_RADIUS,
+            stroke_color=PURE_RED, fill_color=PURE_RED,
+            stroke_width=CENTROID_STROKE, fill_opacity=1.0
+        ).move_to(axes.c2p(2.5, 5.2)).set_z_index(Z_CENTROIDS)
+        red_X = make_X().move_to(red_centroid.get_center()).set_z_index(Z_CENTROID_LABELS)
+        red_centroid = VGroup(red_centroid, red_X).scale(0.75)
+
+        green_centroid = Circle(
+            radius=CENTROID_RADIUS,
+            stroke_color=PURE_GREEN, fill_color=PURE_GREEN,
+            stroke_width=CENTROID_STROKE, fill_opacity=1.0
+        ).move_to(axes.c2p(7.5, 1.8)).set_z_index(Z_CENTROIDS)
+        green_X = make_X().move_to(green_centroid.get_center()).set_z_index(Z_CENTROID_LABELS)
+        green_centroid = VGroup(green_centroid, green_X).scale(0.75)
+
+        blue_centroid = Circle(
+            radius=CENTROID_RADIUS,
+            stroke_color=PURE_BLUE, fill_color=PURE_BLUE,
+            stroke_width=CENTROID_STROKE, fill_opacity=1.0
+        ).move_to(axes.c2p(5.0, 3.5)).set_z_index(Z_CENTROIDS)
+        blue_X = make_X().move_to(blue_centroid.get_center()).set_z_index(Z_CENTROID_LABELS)
+        blue_centroid = VGroup(blue_centroid, blue_X).scale(0.75)
+
+        self.play(
+            ShowCreation(red_centroid),
+            ShowCreation(green_centroid),
+            ShowCreation(blue_centroid)
+        )
+        self.wait(1)
+
+        # K-means iterations with 3 CLUSTERS
+        for iteration in range(MAX_ITERS):
+            assignments = []
+            for i, (x, y) in enumerate(points_coords):
+                p = axes.c2p(x, y)
+                r_dist = dist(p, red_centroid.get_center())
+                g_dist = dist(p, green_centroid.get_center())
+                b_dist = dist(p, blue_centroid.get_center())
+                
+                min_dist = min(r_dist, g_dist, b_dist)
+                if min_dist == r_dist:
+                    assignments.append("red")
+                elif min_dist == g_dist:
+                    assignments.append("green")
+                else:
+                    assignments.append("blue")
+
+            color_animations = []
+            for i, assignment in enumerate(assignments):
+                color_animations.append(points[i].animate.set_color(color_for(assignment)))
+            
+            self.play(*color_animations, run_time=0.66)
+            self.wait(0.1)
+
+            # Calculate new centroids
+            red_pts = [axes.c2p(*points_coords[i]) for i, a in enumerate(assignments) if a == "red"]
+            green_pts = [axes.c2p(*points_coords[i]) for i, a in enumerate(assignments) if a == "green"]
+            blue_pts = [axes.c2p(*points_coords[i]) for i, a in enumerate(assignments) if a == "blue"]
+
+            if len(red_pts) > 0:
+                red_mean = np.mean(np.vstack(red_pts), axis=0); red_mean[2] = 0
+            else:
+                red_mean = red_centroid.get_center()
+            if len(green_pts) > 0:
+                green_mean = np.mean(np.vstack(green_pts), axis=0); green_mean[2] = 0
+            else:
+                green_mean = green_centroid.get_center()
+            if len(blue_pts) > 0:
+                blue_mean = np.mean(np.vstack(blue_pts), axis=0); blue_mean[2] = 0
+            else:
+                blue_mean = blue_centroid.get_center()
+
+            r_old = red_centroid.get_center()
+            g_old = green_centroid.get_center()
+            b_old = blue_centroid.get_center()
+            
+            converged = (dist(r_old, red_mean) < TOL and 
+                        dist(g_old, green_mean) < TOL and 
+                        dist(b_old, blue_mean) < TOL)
+
+            if converged:
+                break
+
+            self.play(
+                red_centroid.animate.move_to(red_mean),
+                red_X.animate.move_to(red_mean),
+                green_centroid.animate.move_to(green_mean),
+                green_X.animate.move_to(green_mean),
+                blue_centroid.animate.move_to(blue_mean),
+                blue_X.animate.move_to(blue_mean),
+                *[pt.animate.set_color(GREY) for pt in points],
+                run_time=0.67
+            )
+            self.wait(0.1)
+
+        # Final coloring
+        final_assignments = []
+        for i, (x, y) in enumerate(points_coords):
+            p = axes.c2p(x, y)
+            r_dist = dist(p, red_centroid.get_center())
+            g_dist = dist(p, green_centroid.get_center())
+            b_dist = dist(p, blue_centroid.get_center())
+            
+            min_dist = min(r_dist, g_dist, b_dist)
+            if min_dist == r_dist:
+                final_assignments.append("red")
+            elif min_dist == g_dist:
+                final_assignments.append("green")
+            else:
+                final_assignments.append("blue")
+
+        final_colors = []
+        for i, assignment in enumerate(final_assignments):
+            final_colors.append(points[i].animate.set_color(color_for(assignment)))
+
+        self.play(*final_colors, run_time=1.0)
+
+        # Remove centroids
+        self.play(
+            FadeOut(red_centroid), FadeOut(red_X),
+            FadeOut(green_centroid), FadeOut(green_X),
+            FadeOut(blue_centroid), FadeOut(blue_X),
+            run_time=0.8
+        )
+        self.wait(3)
+
+        arrow = Arrow(start=red_centroid.get_center(), end=green_centroid.get_center()+LEFT*1.8, color=YELLOW, stroke_width=7).set_color(YELLOW)
+        arrow.shift(LEFT*3.7+DOWN*0.87)
+        self.play(GrowArrow(arrow))
+        self.play(arrow.animate.shift(UP*4.7+RIGHT*0.45))
+        self.play(arrow.animate.shift(RIGHT*9).flip())
+        self.play(arrow.animate.shift(DOWN*4.7+RIGHT*0.45))
+
+        self.wait(2)
+
+        self.play(FadeOut(arrow))
+
+        self.play(*[pt.animate.set_color(GREY_A) for pt in points])
+
+        self.wait(2)
