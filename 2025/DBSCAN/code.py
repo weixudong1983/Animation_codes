@@ -773,3 +773,284 @@ class DBSCAN(Scene):
             animate_point_individually1(point_idx, RED)
         
         self.wait(2)
+
+class DBSCANVisualization(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.644)
+
+        # Data points
+        cluster_1_points = [
+            [-1.5, 0.5, 0], [-0.5, 0.8, 0], [-1.4, -0.2, 0], [-0.6, -0.1, 0], 
+            [-1.0, 0.9, 0], [-1.2, 0.1, 0], [-0.9, 0.2, 0], [-1.3, 0.3, 0],
+            [-1.1, 0.0, 0], [-0.7, 0.7, 0], [-1.05, -0.3, 0], [-0.95, -0.5, 0],
+            [-1.25, 0.7, 0], [-0.75, -0.6, 0], [-1.4, 0.4, 0]
+        ]
+        
+        cluster_2_points = [
+            [0.5, 0.5, 0], [1.5, 0.8, 0], [0.4, -0.2, 0], [1.6, -0.1, 0],
+            [1.0, 0.9, 0], [1.2, 0.1, 0], [0.9, 0.2, 0], [1.3, 0.3, 0],
+            [1.1, 0.0, 0], [0.7, 0.7, 0], [1.05, -0.3, 0], [0.95, -0.5, 0],
+            [1.25, 0.7, 0], [0.75, -0.6, 0], [1.4, 0.4, 0]
+        ]
+        
+        outlier_points = [
+            [2.5, 2, 0], [-2.5, -2, 0], [3, 0, 0], [-3, 0, 0], [-2, 1, 0]
+        ]
+        
+        all_points = cluster_1_points + cluster_2_points + outlier_points
+        
+        # Create dots (initially all WHITE)
+        dots = VGroup(*[
+            Dot(point=point, color=WHITE, radius=0.08)
+            for point in all_points
+        ])
+        
+        self.add(dots)
+        self.wait(1)
+        
+        # DBSCAN parameters
+        epsilon = 0.66
+        min_pts = 4
+        
+        # Create epsilon circle
+        epsilon_circle = Circle(
+            radius=epsilon, 
+            color=YELLOW, 
+            stroke_width=4,
+            fill_color=YELLOW,
+            fill_opacity=0.1
+        ).move_to(all_points[0])
+        self.play(ShowCreation(epsilon_circle))
+
+        
+        # Add epsilon text below the clusters
+        epsilon_text = Tex(f"epsilon = {epsilon}").set_color(ORANGE)
+        epsilon_text.move_to([0, -2, 0]).shift(RIGHT*0.67)  # Position below the clusters
+        self.play(Write(epsilon_text), run_time=1)
+        self.wait(2)
+        
+
+        
+        # Fade out epsilon text and fade in midpoint text
+        midpoint_text = Tex(r"Min \  point \geq 4").set_color(ORANGE)
+        midpoint_text.move_to([0, -2, 0]).shift(RIGHT*0.67)  # Same position as epsilon text
+
+        self.play(
+            ReplacementTransform(epsilon_text, midpoint_text),
+            run_time=1
+        )
+        self.wait(2)
+        
+        # Fade out midpoint text
+        self.play(FadeOut(midpoint_text), run_time=1)
+        
+        # Algorithm state
+        visited = [False] * len(all_points)
+        cluster_assignments = [-1] * len(all_points)  # -1 = unclassified, -2 = noise
+        current_cluster_id = 0
+        cluster_colors = [BLUE, GREEN, PURPLE, PINK]
+        
+        def get_neighbors(point_idx):
+            """Find neighbors within ε → call this set N(P)"""
+            neighbors = []
+            current_point = all_points[point_idx]
+            for i, other_point in enumerate(all_points):
+                if i != point_idx:
+                    distance = np.sqrt(sum((a - b) ** 2 for a, b in zip(current_point, other_point)))
+                    if distance <= epsilon:
+                        neighbors.append(i)
+            return neighbors
+        
+        def get_current_color(point_idx):
+            """Get the current color a point should have based on its cluster assignment"""
+            if cluster_assignments[point_idx] == -2:  # Noise
+                return RED
+            elif cluster_assignments[point_idx] >= 0:  # In cluster
+                return cluster_colors[cluster_assignments[point_idx] % len(cluster_colors)]
+            else:  # Unclassified
+                return WHITE
+        
+        def reset_colors(point_indices):
+            """Reset colors to their current classification state"""
+            if len(point_indices) > 0:
+                color_updates = []
+                for idx in point_indices:
+                    current_color = get_current_color(idx)
+                    color_updates.append(dots[idx].animate.set_color(current_color))
+                
+                if color_updates:
+                    self.play(*color_updates, run_time=0.3)
+        
+        def expand_cluster(core_point_idx, cluster_id):
+            """Expand cluster from a core point using the specified algorithm"""
+            cluster_color = cluster_colors[cluster_id % len(cluster_colors)]
+            
+            # Step 1: Find neighbors of the core point
+            neighbors = get_neighbors(core_point_idx)
+            
+            # Step 2: Add core point to cluster
+            cluster_assignments[core_point_idx] = cluster_id
+            self.play(dots[core_point_idx].animate.set_color(cluster_color), run_time=0.5)
+            
+            # Step 3: Add ALL neighbors to the cluster (including those marked as noise)
+            neighbor_updates = []
+            unclassified_neighbors = []
+            
+            for neighbor_idx in neighbors:
+                if cluster_assignments[neighbor_idx] <= -1:  # Unclassified or noise
+                    cluster_assignments[neighbor_idx] = cluster_id
+                    neighbor_updates.append(dots[neighbor_idx].animate.set_color(cluster_color))
+                    if cluster_assignments[neighbor_idx] != -2:  # Only add to queue if wasn't noise
+                        unclassified_neighbors.append(neighbor_idx)
+                    else:
+                        unclassified_neighbors.append(neighbor_idx)  # Add noise points too for expansion check
+            
+            if neighbor_updates:
+                self.play(*neighbor_updates, run_time=0.8)
+                self.wait(0.5)
+            
+            # Step 4: For each neighbor, check if it's also a core point
+            expansion_queue = unclassified_neighbors.copy()
+            
+            for neighbor_idx in expansion_queue:
+                if not visited[neighbor_idx]:
+                    visited[neighbor_idx] = True
+                    
+                    # Store original color
+                    original_color = get_current_color(neighbor_idx)
+                    
+                    # Make it orange to show it's being processed
+                    self.play(
+                        epsilon_circle.animate.move_to(all_points[neighbor_idx]),
+                        dots[neighbor_idx].animate.set_color(ORANGE),
+                        run_time=0.4
+                    )
+                    
+                    # Find neighbors of this neighbor
+                    neighbor_neighbors = get_neighbors(neighbor_idx)
+                    
+                    # Highlight ALL neighbors as YELLOW (regardless of current assignment)
+                    if neighbor_neighbors:
+                        yellow_dots = VGroup(*[dots[j] for j in neighbor_neighbors])
+                        self.play(yellow_dots.animate.set_color(YELLOW), run_time=0.4)
+                        self.wait(0.6)
+                    
+                    # Check if this neighbor is also a core point
+                    if len(neighbor_neighbors) >= min_pts:
+                        # It's a core point! Recursively expand
+                        # Add its neighbors to the cluster
+                        new_additions = []
+                        for nn in neighbor_neighbors:
+                            if cluster_assignments[nn] <= -1:  # Unclassified or noise
+                                cluster_assignments[nn] = cluster_id
+                                new_additions.append(dots[nn].animate.set_color(cluster_color))
+                                expansion_queue.append(nn)  # Add to queue for potential expansion
+                        
+                        if new_additions:
+                            self.play(*new_additions, run_time=0.5)
+                    
+                    # Restore the point to its cluster color
+                    self.play(dots[neighbor_idx].animate.set_color(original_color), run_time=0.3)
+                    
+                    # Reset ALL neighbor highlights to their proper colors
+                    if neighbor_neighbors:
+                        reset_colors(neighbor_neighbors)
+                    
+                    self.wait(0.3)
+        
+        # Main algorithm loop
+        for point_idx in range(len(all_points)):
+            if visited[point_idx]:
+                continue
+            
+            # Store original color (if already classified)
+            original_color = get_current_color(point_idx)
+            
+            # Step 1: Color current point ORANGE and move circle
+            self.play(
+                epsilon_circle.animate.move_to(all_points[point_idx]),
+                dots[point_idx].animate.set_color(ORANGE),
+                run_time=0.6
+            )
+            
+            visited[point_idx] = True
+            
+            # Step 2: Find neighbors within ε → call this set N(P)
+            neighbors = get_neighbors(point_idx)
+            
+            # Highlight ALL neighbors in YELLOW (regardless of current assignment)
+            if len(neighbors) > 0:
+                neighbor_dots = VGroup(*[dots[j] for j in neighbors])
+                self.play(neighbor_dots.animate.set_color(YELLOW), run_time=0.6)
+                self.wait(1)
+            
+            # Step 3: Check if P is a core point (|N(P)| ≥ minPts)
+            if len(neighbors) >= min_pts:
+                # P is a core point: Start/expand a cluster (only if not already classified)
+                if cluster_assignments[point_idx] <= -1:  # Unclassified or noise
+                    expand_cluster(point_idx, current_cluster_id)
+                    current_cluster_id += 1
+                else:
+                    # Already classified, just restore its color
+                    self.play(dots[point_idx].animate.set_color(original_color), run_time=0.3)
+            else:
+                # Not a core point - mark as temporary noise (RED) if unclassified
+                if cluster_assignments[point_idx] == -1:  # Only if unclassified
+                    self.play(dots[point_idx].animate.set_color(RED), run_time=0.6)
+                    cluster_assignments[point_idx] = -2  # Mark as noise
+                else:
+                    # Already classified, restore its color
+                    self.play(dots[point_idx].animate.set_color(original_color), run_time=0.3)
+            
+            # Reset ALL neighbor highlights to their proper colors
+            if len(neighbors) > 0:
+                reset_colors(neighbors)
+            
+            self.wait(0.8)
+        
+        # Remove circle
+        self.play(FadeOut(epsilon_circle))
+        self.wait(1)
+        
+        # Create convex hulls for final clusters
+        cluster_hulls = []
+        
+        for cluster_id in range(current_cluster_id):
+            # Get all points in this cluster
+            cluster_points = []
+            for i, assignment in enumerate(cluster_assignments):
+                if assignment == cluster_id:
+                    cluster_points.append([all_points[i][0], all_points[i][1]])
+            
+            if len(cluster_points) >= 3:
+                cluster_points = np.array(cluster_points)
+                
+                # Calculate convex hull
+                hull = ConvexHull(cluster_points)
+                hull_vertices = cluster_points[hull.vertices]
+                
+                # Scale hull by 1.3 around centroid
+                centroid = np.mean(hull_vertices, axis=0)
+                scaled_hull_vertices = centroid + 1.3 * (hull_vertices - centroid)
+                
+                # Convert to 3D points
+                hull_points_3d = [[p[0], p[1], 0] for p in scaled_hull_vertices]
+                
+                # Create polygon with fill only
+                hull_polygon = Polygon(
+                    *hull_points_3d,
+                    fill_color=cluster_colors[cluster_id],
+                    fill_opacity=0.3,
+                    stroke_width=0
+                )
+                
+                cluster_hulls.append(hull_polygon)
+        
+        # Fade in convex hulls
+        if cluster_hulls:
+            self.play(*[FadeIn(hull) for hull in cluster_hulls], run_time=1.5)
+            self.wait(2)
+        
+        self.wait(2)
+
