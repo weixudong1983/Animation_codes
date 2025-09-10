@@ -538,7 +538,7 @@ class PCA(Scene):
         self.wait(2)
 
 
-        cov_tex = Tex(r"\mathrm{Cov}(X, Y) = \frac{1}{n - 1} \sum_{i=1}^{n} (X_i - \bar{X})(Y_i - \bar{Y})",font_size=48).set_color(BLACK).shift(UP*0.9)
+        cov_tex = Tex(r"\mathrm{Cov}(X, Y) = \frac{1}{n} \sum_{i=1}^{n} (X_i - \bar{X})(Y_i - \bar{Y})",font_size=48).set_color(BLACK).shift(UP*0.9)
 
         self.play(FadeOut(VGroup(x_brace, y_brace,y_projection_dots, x_projection_dots, grid, cell_bgs, cell_txts, title)),
                   self.camera.frame.animate.shift(LEFT*14),
@@ -557,29 +557,32 @@ class PCA(Scene):
         self.wait(2)
 
 
-        expanded_corr_tex = Tex(r"\rho_{XY} = \frac{\frac{1}{n-1} \sum_{i=1}^{n} (X_i - \bar{X})(Y_i - \bar{Y})}"r"{\sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (X_i - \bar{X})^2} \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (Y_i - \bar{Y})^2}}",font_size=30).move_to(VGroup(cov_tex, mean_tex).get_center()).set_color(BLACK)
+        expanded_corr_tex = Tex(r"\rho_{XY} = \frac{\frac{1}{n} \sum_{i=1}^{n} (X_i - \bar{X})(Y_i - \bar{Y})}"r"{\sqrt{\frac{1}{n} \sum_{i=1}^{n} (X_i - \bar{X})^2} \sqrt{\frac{1}{n} \sum_{i=1}^{n} (Y_i - \bar{Y})^2}}",font_size=30).move_to(VGroup(cov_tex, mean_tex).get_center()).set_color(BLACK)
         
         expanded_corr_tex.scale(1.25*1.1)
 
         self.play(ReplacementTransform(VGroup(cov_tex, mean_tex), expanded_corr_tex),)
         self.wait(0.66)
 
-        brace = Brace(expanded_corr_tex[4:28], UP, buff=0.3).set_color(GREEN_E)
+
+        self.embed()
+
+        brace = Brace(expanded_corr_tex[4:26], UP, buff=0.3).set_color(GREEN_E)
         text = Text("Cov(X, Y)", font_size=46, weight=BOLD).set_color(GREEN_E).next_to(brace, UP, buff=0.23)
         self.play(GrowFromCenter(brace), Write(text), run_time=1)
         self.wait(2)
 
-        brace1 = Brace(expanded_corr_tex[29:34], DOWN, buff=0.3).set_color(BLUE_E)
+        brace1 = Brace(expanded_corr_tex[27:34], DOWN, buff=0.3).set_color(BLUE_E)
         text1 = Text("S.D. Of X", font_size=46, weight=BOLD).set_color(BLUE_E).next_to(brace1, DOWN, buff=0.23)
         self.play(GrowFromCenter(brace1), Write(text1), run_time=1)
 
-        brace2 = Brace(expanded_corr_tex[49:], DOWN, buff=0.3).set_color(RED_E)
+        brace2 = Brace(expanded_corr_tex[45:], DOWN, buff=0.3).set_color(RED_E)
         text2 = Text("S.D. Of Y", font_size=46, weight=BOLD).set_color(RED_E).next_to(brace2, DOWN, buff=0.23)
         self.play(GrowFromCenter(brace2), Write(text2), run_time=1)
 
         self.wait(2)
 
-        cov_tex = Tex(r"\rho_{XY} = \frac{\mathrm{Cov}(X, Y)}{\sigma_X \sigma_Y}", font_size=56).set_color(BLACK).move_to(expanded_corr_tex.get_center())
+        cov_tex = Tex(r"\rho_{XY} = \frac{\mathrm{Cov}(X, Y)}{\sigma_X \sigma_Y}", font_size=56).set_color(BLACK).move_to(expanded_corr_tex.get_center()).scale(1.2)
 
         self.play(ReplacementTransform(VGroup(expanded_corr_tex, brace, text, brace1, text1, brace2, text2), cov_tex), run_time=1.13)
         self.wait(2)
@@ -998,14 +1001,14 @@ class PCA(Scene):
 
         self.wait(2)
 
-        text = Text("For N dimentions -> N PCs", weight=BOLD).next_to(pc1_line, UP).set_color(BLACK).shift(DOWN*0.23)
+        text = Text("For D dimentions -> D PCs", weight=BOLD).next_to(pc1_line, UP).set_color(BLACK).shift(DOWN*0.23)
 
         self.play(self.camera.frame.animate.rotate(-PI/7.85).shift(LEFT*0.2), ShowCreation(text), FadeOut(VGroup(pc1, a), ),
                   *[FadeOut(dd) for dd in pc1_proj_dots],)
         
         self.wait(2)
 
-        text1 = Text("Pick Top K PCs", weight=BOLD).next_to(text, DOWN).shift(DOWN*0.4).set_color(BLACK).scale(0.9)
+        text1 = Text("Pick Top k PCs", weight=BOLD).next_to(text, DOWN).shift(DOWN*0.4).set_color(BLACK).scale(0.9)
         self.play(ShowCreation(text1))
         text2 = Text("That Captures Most varience", weight=BOLD).set_color(BLACK).next_to(text1, DOWN, buff=0.44).scale(0.9)
         self.play(ShowCreation(text2))
