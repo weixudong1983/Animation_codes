@@ -1,5 +1,7 @@
-from manimlib import *
 PURE_RED = "#FF0000"
+from manimlib import *
+import numpy as np
+from scipy.spatial import ConvexHull
 
 
 class PCA(Scene):
@@ -1599,3 +1601,199 @@ class PCA_MATH(Scene):
 
 
         self.wait(2)
+
+
+
+
+class PCA_MultiplePoints(Scene):
+    def construct(self):
+        # Camera frame adjustment
+        self.camera.frame.scale(0.88)
+
+        # Generate 5x more data points (150) spread diagonally
+        np.random.seed(42)
+        n_points = 150  # 5x more than 30
+        
+        # Create diagonal spread from corner to corner, already centered at origin
+        # Diagonal from (-2.5, -2) to (2.5, 2) 
+        x_vals = np.linspace(-2.5, 2.5, n_points)
+        y_vals = np.linspace(-2, 2, n_points)
+        
+        # Add slight noise for realistic spread
+        noise_x = np.random.normal(scale=0.1, size=n_points)
+        noise_y = np.random.normal(scale=0.1, size=n_points)
+        
+        x_vals += noise_x
+        y_vals += noise_y
+        
+        data_points = list(zip(x_vals, y_vals))
+
+        # Create axes with same style as before
+        axes = Axes(
+            x_range=[-4, 4, 1],
+            y_range=[-3, 3, 1],
+            axis_config={
+                "stroke_width": 6,
+                "include_tip": True,
+                "include_ticks": False,
+                "numbers_to_exclude": [0],
+            }
+        ).set_color(GREY_D)
+
+        # Create visible dots - bigger than before
+        dots = VGroup()
+        for x, y in data_points:
+            dot = Dot(axes.c2p(x, y), radius=0.035).set_color(BLUE_D)  # More visible size
+            dots.add(dot)
+
+        # Show axes first
+        self.play(
+            ShowCreation(axes.x_axis),
+            ShowCreation(axes.y_axis),
+            run_time=1.5
+        )
+
+        # Show all data points (already at mean/centered)
+        self.play(
+            LaggedStart(*[GrowFromCenter(dot) for dot in dots], lag_ratio=0.05),
+            run_time=3
+        )
+
+        self.wait(1)
+
+        # Create convex hull cloud - PURE RED AURA with higher opacity
+        points_np = np.array([[x, y] for x, y in data_points])
+        hull = ConvexHull(points_np)
+        hull_points = [axes.c2p(points_np[i][0], points_np[i][1]) for i in hull.vertices]
+
+        # Create RED aura cloud polygon - no stroke, only fill with higher opacity
+        PURE_RED = "#FF0000"
+        cloud_polygon = Polygon(
+            *hull_points,
+            stroke_width=0,  # No outer stroke
+            fill_color=PURE_RED,
+            fill_opacity=0.4  # Higher opacity for more visible aura
+        ).scale(1.3)
+        
+
+
+        # Show the RED aura
+        self.play(FadeIn(cloud_polygon), run_time=1.5)
+        self.wait(2)  # Wait 2 seconds
+
+        # Fade out the red aura
+        self.play(FadeOut(cloud_polygon), run_time=1.5)
+        self.wait(1)
+
+        # Since data is already centered, calculate PCA directly
+        centered_coords = [[x, y] for x, y in data_points]
+
+        # Calculate PCA using covariance matrix
+        data_matrix = np.array(centered_coords).T
+        cov_matrix = np.cov(data_matrix)
+        eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+
+        # Sort by eigenvalues (descending order)
+        sorted_indices = np.argsort(eigenvalues)[::-1]
+        eigenvalues = eigenvalues[sorted_indices]
+        eigenvectors = eigenvectors[:, sorted_indices]
+
+        # Get principal components
+        pc1_vector = eigenvectors[:, 0]  # Higher variance
+        pc2_vector = eigenvectors[:, 1]  # Lower variance
+
+        # Create PC vectors
+        PURE_BLUE = "#0000FF"
+        vector_length = 1.8
+
+        pc1_arrow = Arrow(
+            start=axes.c2p(0, 0),
+            end=axes.c2p(pc1_vector[0] * vector_length, pc1_vector[1] * vector_length),
+            buff=0,
+            stroke_width=4
+        ).set_color(PURE_RED)
+
+        pc2_arrow = Arrow(
+            start=axes.c2p(0, 0),
+            end=axes.c2p(pc2_vector[0] * vector_length, pc2_vector[1] * vector_length),
+            buff=0,
+            stroke_width=4
+        ).set_color(PURE_BLUE)
+
+        # Create dotted lines along both PC vectors
+        pc1_dotted_line = DashedLine(
+            axes.c2p(-pc1_vector[0] * 3, -pc1_vector[1] * 3),
+            axes.c2p(pc1_vector[0] * 3, pc1_vector[1] * 3),
+            stroke_width=3
+        ).set_color(PURE_RED)
+
+        pc2_dotted_line = DashedLine(
+            axes.c2p(-pc2_vector[0] * 3, -pc2_vector[1] * 3),
+            axes.c2p(pc2_vector[0] * 3, pc2_vector[1] * 3),
+            stroke_width=3
+        ).set_color(PURE_BLUE)
+
+        # Show dotted lines first
+        self.play(
+            ShowCreation(pc1_dotted_line),
+            ShowCreation(pc2_dotted_line),
+            run_time=1.5
+        )
+
+        # Show PC vectors (no labels)
+        self.play(
+            GrowFromCenter(pc1_arrow),
+            GrowFromCenter(pc2_arrow),
+            run_time=2
+        )
+
+        self.wait(1)
+
+        # Create projections for both PCs with respective colors
+        pc1_projections = VGroup()
+        pc2_projections = VGroup()
+
+        for x, y in data_points:
+            # Project onto PC1 - RED dots
+            proj_length_1 = np.dot([x, y], pc1_vector)
+            proj_x1 = proj_length_1 * pc1_vector[0]
+            proj_y1 = proj_length_1 * pc1_vector[1]
+            proj_dot1 = Dot(axes.c2p(proj_x1, proj_y1), radius=0.025).set_color(PURE_RED)  # RED for PC1
+            pc1_projections.add(proj_dot1)
+
+            # Project onto PC2 - BLUE dots
+            proj_length_2 = np.dot([x, y], pc2_vector)
+            proj_x2 = proj_length_2 * pc2_vector[0]
+            proj_y2 = proj_length_2 * pc2_vector[1]
+            proj_dot2 = Dot(axes.c2p(proj_x2, proj_y2), radius=0.025).set_color(PURE_BLUE)  # BLUE for PC2
+            pc2_projections.add(proj_dot2)
+
+        # First projection: Transform original data to PC1
+        self.play(
+            ReplacementTransform(dots.copy(), pc1_projections),
+            run_time=2
+        )
+
+        self.wait(1)
+
+        # Second projection: Transform original data to PC2
+        self.play(
+            ReplacementTransform(dots.copy(), pc2_projections),
+            run_time=2
+        )
+
+        self.wait(2)
+
+        # Add both projections as separate objects
+        self.add(pc1_projections, pc2_projections)
+
+        # Fade out PC2 everything AND original dots
+        self.play(
+            FadeOut(pc2_arrow),
+            FadeOut(pc2_dotted_line),
+            FadeOut(pc2_projections),
+            FadeOut(dots),
+            run_time=2
+        )
+
+        self.wait(3)
