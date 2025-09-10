@@ -1015,3 +1015,587 @@ class PCA(Scene):
 
         self.wait(2)
 
+
+
+
+
+class PCA_MATH(Scene):
+    def construct(self):
+
+        self.camera.frame.scale(0.88)
+
+        
+        # 8 data points spread widely across quadrants with rough linear correlation (not perfect)
+        data_points = [
+               [0.5, 0.46],   # 1st quadrant - rotated lower left
+               [1, -0.12],   # 1st quadrant - rotated lower right
+               [4, 3],   # 1st quadrant - rotated lower right
+               [2.69, 1.69],   # 1st quadrant - rotated upper right
+               [3.14, 1.05]     ]
+
+        
+        # Create axes extending beyond all quadrants for wide spread
+        axes = Axes(
+            x_range=[-4, 4, 1],
+            y_range=[-3, 3, 1],
+            axis_config={
+                "stroke_width": 6,
+                "include_tip": True,
+                "include_ticks": False,
+                "numbers_to_exclude": [0],
+            }
+        ).set_color(GREY_D)
+        
+        # Scale factor for wider positioning
+        scale_factor = 1.0  # Full scale for maximum spread
+        
+        # Scale all data points
+        scaled_points = [[x * scale_factor, y * scale_factor] for x, y in data_points]
+        
+        # Create blue dots for data points
+        dots = VGroup()
+        for x, y in scaled_points:
+            dot = Dot(axes.c2p(x, y), radius=0.12)
+            dot.set_color(BLUE_D)
+            dots.add(dot)
+        
+        # Calculate mean position precisely
+        mean_x = sum(x for x, y in scaled_points) / len(scaled_points)
+        mean_y = sum(y for x, y in scaled_points) / len(scaled_points)
+        mean_point = axes.c2p(mean_x, mean_y)
+        
+        # Create mean point
+        PURE_BLUE = "#0000FF"
+        mean_dot = Dot(mean_point, radius=0.19).set_color(PURE_BLUE)
+        mean_text = Text("X", font_size=36, weight=BOLD).set_color(WHITE).move_to(mean_point)
+        mean_group = VGroup(mean_dot, mean_text)
+        
+        # Show axes first
+        self.play(
+            ShowCreation(axes.x_axis),
+            ShowCreation(axes.y_axis),
+            run_time=1.5
+        )
+        
+        # Show data points spread widely
+        self.play(
+            LaggedStart(*[GrowFromCenter(dot) for dot in dots], lag_ratio=0.2),
+            run_time=2.5
+        )
+        
+        self.wait(1)
+        
+        # Show mean point
+        self.play(GrowFromCenter(mean_group), run_time=1.2)
+        
+        self.wait(2)
+        
+        # Center the data precisely - move mean to exact center
+        centered_dots = VGroup()
+        for i, (x, y) in enumerate(scaled_points):
+            # Subtract mean to center each point
+            new_x = x - mean_x
+            new_y = y - mean_y
+            new_position = axes.c2p(new_x, new_y)
+            new_dot = Dot(new_position, radius=0.12).set_color(BLUE_D)
+            centered_dots.add(new_dot)
+        
+        # Mean goes to exact axes origin
+        centered_mean = VGroup(
+            Dot(axes.c2p(0, 0), radius=0.19).set_color(PURE_BLUE),
+            Text("X", font_size=36, weight=BOLD).set_color(WHITE).move_to(axes.c2p(0, 0))
+        )
+        
+        # Animate precise centering
+        self.play(
+            Transform(dots, centered_dots),
+            Transform(mean_group, centered_mean),
+            run_time=2.5
+        )
+        
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*3.2))
+
+        mean = Tex(r"\bar{x} = \frac{1}{n} \sum_{i=1}^n x_i").next_to(axes, RIGHT, buff=1.5).set_color(BLACK).scale(1.23).shift(UP*0.3)
+        center = Tex(r"x_i \;\leftarrow\; x_i - \bar{x}").next_to(mean, DOWN).set_color(BLACK).scale(1.23).shift(DOWN*0.3)
+
+        self.play(ShowCreation(mean))
+        self.wait()
+        self.play(ShowCreation(center))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(LEFT*3.2), FadeOut(VGroup(mean, center , mean_group)))
+        self.wait(2)
+
+
+
+        # Calculate which dot is the upper one in first quadrant (after centering)
+        # From your centered data: [2.69, 1.69] is the upper-right point (index 2)
+        upper_dot_index = 2
+        
+        # Keep only the upper-right dot, fade out others
+        dots_to_remove = VGroup()
+        for i, dot in enumerate(dots):
+            if i != upper_dot_index:
+                dots_to_remove.add(dot)
+        
+        self.play(FadeOut(dots_to_remove), run_time=1.5)
+        
+        # Get the remaining dot position (centered coordinates)
+        remaining_x = 2.69 - mean_x
+        remaining_y = 1.69 - mean_y
+        remaining_dot = dots[upper_dot_index]
+        
+        self.wait(1)
+        
+        # Create unit vector in PURE_RED with smaller angle for clear separation
+        PURE_RED = "#FF0000"
+        unit_length = 1.8  # Slightly longer for better visibility
+        unit_angle = PI/10  # Smaller angle (18 degrees) for clear separation
+        
+        # Unit vector components
+        u_x = np.cos(unit_angle)
+        u_y = np.sin(unit_angle)
+        
+        # Create unit vector arrow with stroke_width = 4
+        unit_vector = Arrow(
+            start=axes.c2p(0, 0),
+            end=axes.c2p(u_x * unit_length, u_y * unit_length),
+            buff=0,
+            stroke_width=4
+        ).set_color(PURE_RED)
+        
+        # Unit vector label
+        u_label = Tex(r"\vec{u}", font_size=52).set_color(PURE_RED)
+        u_label.next_to(unit_vector.get_end(), UR, buff=0.1)
+        
+        # Show unit vector
+        self.play(
+            GrowFromCenter(unit_vector),
+            ShowCreation(u_label),
+            run_time=2
+        )
+        
+        self.wait(1)
+        
+        # Create purple vector for the data point with stroke_width = 4
+        PURPLE = "#800080"
+        data_vector = Arrow(
+            start=axes.c2p(0, 0),
+            end=remaining_dot.get_center(),
+            buff=0,
+            stroke_width=4
+        ).set_color(PURPLE).set_z_index(1)
+        
+        # Data vector label
+        x_label = Tex(r"\vec{x_i}", font_size=42).set_color(PURPLE)
+        x_label.next_to(data_vector.get_end(), UL, buff=0.1)
+        
+        # Show data vector
+        self.play(
+            GrowFromCenter(data_vector),
+            ShowCreation(x_label),
+            run_time=2
+        )
+        
+        self.wait(1)
+        
+        # Calculate projection length (dot product)
+        dot_product = u_x * remaining_x + u_y * remaining_y
+        
+        # Projection point coordinates on the unit vector
+        proj_x = dot_product * u_x
+        proj_y = dot_product * u_y
+        proj_point = axes.c2p(proj_x, proj_y)
+        
+        # Create a copy of the data vector to rotate
+        rotating_vector = data_vector
+        
+        # Calculate angles for rotation
+        data_angle = np.arctan2(remaining_y, remaining_x)
+        rotation_angle = unit_angle - data_angle
+        
+        # Rotate the purple vector to align with unit vector
+        self.play(
+            rotating_vector.animate.rotate(
+                rotation_angle,
+                about_point=axes.c2p(0, 0)
+            ).rotate(PI/50).shift(UP*0.06).set_color(GREEN_D),
+            u_label.animate.shift(UP*0.23),
+            run_time=1
+        )
+        
+        self.wait(2)
+
+        dot_proj = Tex(r"z_i = \vec{u} \cdot \vec{x}_i").next_to(rotating_vector, RIGHT).set_color(GREEN_E).shift(UP*0.5)
+        
+        self.play(ShowCreation(dot_proj))
+
+        self.wait(2)
+
+        self.play(Transform(dot_proj, Tex(r"z_i = u^\top x_i").set_color(GREEN_E).move_to(dot_proj)))
+
+        self.wait(2)
+
+        var = Tex(r"\mathrm{Var}(u) = \frac{1}{n} \sum_{i=1}^n (u^\top x_i)^2").next_to(axes, RIGHT).set_color(BLACK).scale(1.5).shift(RIGHT*1.9)
+        var[-6:-2].set_color(GREEN_E)
+ 
+
+        self.play(self.camera.frame.animate.shift(RIGHT*8.5), ShowCreation(var), FadeOut(VGroup(axes, dot_proj)))
+
+        self.wait(2)
+
+        brace = Brace(var[-6:-2], UP).set_color(BLUE_E).shift(UP*0.3)
+        self.play(GrowFromCenter(brace))
+        self.wait(2)
+
+        self.play(Transform(brace, Brace(var[7:], UP).set_color(BLUE_E).shift(UP*0.3) ))
+        self.wait(2)
+
+        self.play(
+            FadeOut(brace),
+            Transform(var, Tex(r"\mathrm{Var}(u) = \frac{1}{n} \sum_{i=1}^n u^\top x_i x_i^\top u").move_to(var).set_color(BLACK).scale(1.56)))
+        self.wait(2)
+
+        self.play(
+            Transform(var, Tex(r"\mathrm{Var}(u) = u^\top \left[\frac{1}{n} \sum_{i=1}^n x_i x_i^\top \right] u").move_to(var).set_color(BLACK).scale(1.56)))
+        
+        self.wait(2)
+
+        brace = Brace(var[9:-1], UP, ).set_color(BLUE_E).shift(UP*0.3)
+        self.play(GrowFromCenter(brace), self.camera.frame.animate.shift(UP*0.6))
+        tex = Tex(r"\mathrm{Cov}(x, x^\top)").next_to(brace, UP).scale(1.3).set_color(BLACK).shift(UP*0.1)
+        self.play(ShowCreation(tex))
+
+        self.wait(2)
+
+
+        mat = Tex(r"C = \begin{bmatrix} \mathrm{Cov}(x_1, x_1) & \mathrm{Cov}(x_1, x_2) & \cdots & \mathrm{Cov}(x_1, x_d) \\[6pt] \mathrm{Cov}(x_2, x_1) & \mathrm{Cov}(x_2, x_2) & \cdots & \mathrm{Cov}(x_2, x_d) \\[6pt] \vdots & \vdots & \ddots & \vdots \\[6pt] \mathrm{Cov}(x_d, x_1) & \mathrm{Cov}(x_d, x_2) & \cdots & \mathrm{Cov}(x_d, x_d) \end{bmatrix}")
+        mat.next_to(var, RIGHT).set_color(BLACK).shift(RIGHT*1.2).scale(0.8)
+
+
+        self.play(ShowCreation(mat), self.camera.frame.animate.shift(RIGHT*11.5 + DOWN*0.6))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(LEFT*11.5 + UP*0.6), FadeOut(mat))
+        self.wait(2)
+
+        self.play(
+            Transform(var, Tex(r"\mathrm{Var}(u) = u^\top C u").move_to(var).set_color(BLACK).scale(1.8)),
+            FadeOut(brace),
+            FadeOut(tex),
+            self.camera.frame.animate.shift(DOWN*1.2)
+            )
+        
+        self.wait(2)
+
+        self.play(
+            Transform(var, Tex(r"Max \ f(u)=u^\top C u").move_to(var).set_color(BLACK).scale(1.8)),
+            )  
+        self.wait(2)
+        self.play(var.animate.shift(UP*0.8))  
+
+        constraint = Tex(r"s. t. \ u^\top u = 1").set_color(BLACK).next_to(var, DOWN).scale(2).shift(DOWN*0.6)
+        self.play(ShowCreation(constraint))
+        self.wait(2)
+
+        rect11 = SurroundingRectangle(constraint, stroke_width=6, color=BLUE_E).scale(1.2)
+        self.play(ShowCreation(rect11))
+        self.wait(2)
+
+
+        lagrangian = Tex(r"\mathcal{L}(u,\lambda) = u^\top C u - \lambda\big(u^\top u - 1\big)").next_to(VGroup(constraint, rect11), RIGHT).shift(RIGHT*2)
+        
+        lagrangian.shift(RIGHT*1.5+UP*0.48).set_color(BLACK).scale(1.44)
+
+
+        self.play(self.camera.frame.animate.shift(RIGHT*10), ShowCreation(lagrangian))
+        self.wait(2)
+
+        brace = Brace(lagrangian[:6], DOWN, ).set_color(BLUE_E).shift(DOWN*0.17)
+        self.play(GrowFromCenter(brace))
+
+
+        temp = Text("Lagrangian").next_to(brace, DOWN, buff=0.47).set_color(BLUE_E)
+        self.play(ShowCreation(temp))
+
+
+
+        self.wait(2)
+
+
+        self.play(Transform(brace, Brace(lagrangian[7:11], DOWN, ).set_color(BLUE_E).shift(DOWN*0.17) ),
+                  )
+        self.play(Transform(temp, Text("Cost Function").next_to(brace, DOWN, buff=0.47).set_color(BLUE_E)))
+        self.wait(2)
+
+        
+        self.play(Transform(brace, Brace(lagrangian[13:], DOWN, ).set_color(BLUE_E).shift(DOWN*0.17) ))
+        self.play(Transform(temp, Text("Constraint").next_to(brace, DOWN, buff=0.47).set_color(BLUE_E)))
+
+        self.wait(2)
+
+        self.play(Transform(brace, Brace(lagrangian[12], DOWN, ).set_color(BLUE_E).shift(DOWN*0.17) ))
+        self.play(Transform(temp, Text("Lagrange Multiplier").next_to(brace, DOWN, buff=0.47).set_color(BLUE_E)))
+
+        self.wait(2)
+
+
+
+        self.play(FadeOut(brace),FadeOut(temp), Transform(lagrangian, Tex(r"\frac{\partial \mathcal{L}}{\partial u} = 2 C u - 2\lambda u = 0").move_to(lagrangian).set_color(BLACK).scale(1.65)))
+        self.wait(2)
+
+        self.play(Transform(lagrangian, Tex(r"\boxed{C u = \lambda u}").move_to(lagrangian).set_color(BLACK).scale(1.5)))
+
+        self.play(lagrangian.animate.scale(1.7))
+
+        self.wait(2)
+
+        self.play(Transform(lagrangian, Tex(r"(C - \lambda I)\,u = 0").scale(1.7).set_color(BLACK).move_to(lagrangian)))
+        self.wait(2)
+
+        eigen = Tex(r"\det\big(C - \lambda I\big) = 0").set_color(BLACK).move_to(lagrangian).scale(1.7)
+        self.play(ReplacementTransform(lagrangian, eigen))
+        self.wait(2)
+
+        self.play(eigen.animate.shift(UP*0.66))
+
+        lambdas = Tex(r"\lambda_1, \lambda_2, \dots, \lambda_D").set_color(BLACK).next_to(eigen, DOWN, buff=0.84).scale(1.3)
+        self.play(TransformFromCopy(eigen, lambdas))
+        self.wait(2)
+
+        self.play(Transform(eigen, Tex(r"(C - \lambda_i I)\,u = 0").scale(1.7).set_color(BLACK).move_to(eigen)))
+        self.wait(2)
+
+        self.play(lambdas.copy().animate.scale(0.00000000000000001).move_to(eigen))
+        
+        
+
+        unit_vectors = Tex(r"u_1, u_2, \dots, u_D").set_color(BLACK).next_to(lambdas, DOWN, buff=0.84).scale(1.3)
+        self.play(TransformFromCopy(eigen, unit_vectors))
+
+        self.play(self.camera.frame.animate.scale(0.8).shift(DOWN), FadeOut(eigen))
+        self.wait(2)
+
+        rect = SurroundingRectangle(lambdas, color=GREEN_D, stroke_width=7).scale(1.2)
+        self.play(ShowCreation(rect))
+        text = Text("Varience").next_to(rect, UP).shift(UP*0.34).set_color(GREEN_D).scale(1.34)
+        self.play(Write(text))
+        self.wait(2)
+
+        rect1 = SurroundingRectangle(unit_vectors, color=PURPLE_D, stroke_width=7).scale(1.2)
+        self.play(ShowCreation(rect1))
+        text1 = Text("Principle Components").next_to(rect1, DOWN).shift(DOWN*0.34).set_color(PURPLE_D).scale(1.04)
+        self.play(Write(text1))
+        self.wait(2) 
+
+
+
+        final_proj = Tex(r"Z_D = X \, U_D").set_color(BLACK).scale(2).move_to(VGroup(lambdas, unit_vectors))   
+
+        self.play(
+            FadeOut(VGroup(lambdas, unit_vectors, rect, rect1, text, text1 )),
+            FadeIn(final_proj)
+            )
+        
+        rect = SurroundingRectangle(final_proj[:2], color=GREEN_E, stroke_width=9).scale(1.1)
+
+        self.play(ShowCreation(rect))
+
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(final_proj[3], color=GREEN_E, stroke_width=9).scale(1.1)))
+        
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(final_proj[-2:], color=GREEN_E, stroke_width=9).scale(1.1)))
+        
+        self.wait(2)
+
+        self.play(Uncreate(rect))
+
+        self.wait(2)
+
+        self.play(Transform(final_proj, Tex(r"Z_K = X \, U_K").set_color(BLACK).scale(2).move_to(final_proj)))
+        
+        self.play(final_proj.animate.shift(UP*0.8))
+
+        temp = Text("K << D").set_color(BLACK).next_to(final_proj, DOWN, buff=0.667)
+        temp.shift(DOWN*0.6).scale(2)
+        self.play(ShowCreation(temp))
+        self.wait(2)
+
+        self.play(
+            FadeOut(temp),
+            Transform(final_proj, Tex(r"\hat{X} = Z_k \, U_k^T").set_color(BLACK).scale(2).move_to(final_proj).shift(DOWN*0.82))
+                  )
+        
+        self.wait(2)
+
+        self.play(
+            Transform(final_proj, Tex(r"\hat{X} = Z_k \, U_k^T + \mathbf{1} \, \mu^T").set_color(BLACK).scale(1.6).move_to(final_proj))
+                  )        
+        
+        self.wait(2)
+        
+        self.play(
+            Transform(final_proj, Tex(r"\frac{\lambda_1 + \lambda_2 + \dots + \lambda_k}{\lambda_1 + \lambda_2 + \dots + \lambda_D} \ge \phi").set_color(BLACK).move_to(final_proj).scale(1.3))
+                  )        
+        
+        self.wait(2)
+
+        self.play(
+            Transform(final_proj, Tex(r"\frac{\lambda_1 + \lambda_2 + \dots + \lambda_k}{\lambda_1 + \lambda_2 + \dots + \lambda_D} \ge 0.90").set_color(BLACK).move_to(final_proj).scale(1.3))
+                  )    
+
+        self.wait(2)
+
+        self.play(
+            Transform(final_proj, Tex(r"\frac{\lambda_1 + \lambda_2 + \dots + \lambda_k}{\lambda_1 + \lambda_2 + \dots + \lambda_D} \ge 0.95").set_color(BLACK).move_to(final_proj).scale(1.3))
+                  )     
+        
+        self.play(FadeOut(u_label), FadeOut(unit_vector), FadeOut(rotating_vector), FadeOut(x_label), FadeOut(Group(constraint, var, rect11)))
+        self.play(FadeIn(axes), FadeIn(dots))
+
+        self.camera.frame.save_state()
+
+        self.play(self.camera.frame.animate.restore())
+
+
+        self.play(self.camera.frame.animate.shift(LEFT*18.4).scale(1.18).shift(UP*1.54))
+
+        self.wait(2)
+
+
+        # Define PCA1 and PCA2 unit vectors (perpendicular)
+        # PCA1 angle roughly aligned with the data spread
+        PCA1_angle = PI/8  # 22.5 degrees for good visibility
+        PCA1_unit_x = np.cos(PCA1_angle)
+        PCA1_unit_y = np.sin(PCA1_angle)
+        
+        # PCA2 is perpendicular to PCA1
+        PCA2_angle = PCA1_angle + PI/2
+        PCA2_unit_x = np.cos(PCA2_angle)
+        PCA2_unit_y = np.sin(PCA2_angle)
+        
+        # Create PCA1 vector (RED) - half the original size
+        PURE_RED = "#FF0000"
+        PCA1_length = 1.25  # Half of 2.5
+        PCA1_vector = Arrow(
+            start=axes.c2p(0, 0),
+            end=axes.c2p(PCA1_unit_x * PCA1_length, PCA1_unit_y * PCA1_length),
+            buff=0,
+            stroke_width=4  # Reduced from 6
+        ).set_color(PURE_RED)
+        
+        # Create PCA2 vector (PURE_BLUE) - half the original size
+        PURE_BLUE_HEX = "#0000FF"
+        PCA2_length = 1.25  # Half of 2.5
+        PCA2_vector = Arrow(
+            start=axes.c2p(0, 0),
+            end=axes.c2p(PCA2_unit_x * PCA2_length, PCA2_unit_y * PCA2_length),
+            buff=0,
+            stroke_width=4  # Reduced from 6
+        ).set_color(PURE_BLUE_HEX)
+        
+        # Create dotted lines along both vectors
+        PCA1_dotted_line = DashedLine(
+            axes.c2p(-PCA1_unit_x * 3, -PCA1_unit_y * 3),
+            axes.c2p(PCA1_unit_x * 3, PCA1_unit_y * 3),
+            stroke_width=3
+        ).set_color(PURE_RED)
+        
+        PCA2_dotted_line = DashedLine(
+            axes.c2p(-PCA2_unit_x * 3, -PCA2_unit_y * 3),
+            axes.c2p(PCA2_unit_x * 3, PCA2_unit_y * 3),
+            stroke_width=3
+        ).set_color(PURE_BLUE_HEX)
+        
+        # Labels for PCA vectors
+        PCA1_label = Tex(r"PC_1", font_size=48).set_color(PURE_RED)
+        PCA1_label.next_to(PCA1_vector.get_end(), UR, buff=0.15).shift(UP*0.5)
+        
+        PCA2_label = Tex(r"PC_2", font_size=48).set_color(PURE_BLUE_HEX)
+        PCA2_label.next_to(PCA2_vector.get_end(), UL, buff=0.15).shift(LEFT*0.3)
+        
+        # Show dotted lines first (they go behind the vectors)
+        self.play(
+            ShowCreation(PCA1_dotted_line),
+            ShowCreation(PCA2_dotted_line),
+            run_time=1.5
+        )
+        
+        # Show PCA vectors
+        self.play(
+            GrowFromCenter(PCA1_vector),
+            GrowFromCenter(PCA2_vector),
+            ShowCreation(PCA1_label),
+            ShowCreation(PCA2_label),
+            run_time=2
+        )
+        
+        self.wait(1)
+        
+        # Get centered data points coordinates
+        centered_coords = []
+        for x, y in scaled_points:
+            centered_x = x - mean_x
+            centered_y = y - mean_y
+            centered_coords.append([centered_x, centered_y])
+        
+        # Project dots onto PCA1 line using Transform from copy()
+        PCA1_projections = VGroup()
+        for centered_x, centered_y in centered_coords:
+            # Calculate dot product (projection length)
+            proj_length = PCA1_unit_x * centered_x + PCA1_unit_y * centered_y
+            
+            # Project onto PCA1 direction
+            proj_x = proj_length * PCA1_unit_x
+            proj_y = proj_length * PCA1_unit_y
+            
+            proj_dot = Dot(axes.c2p(proj_x, proj_y), radius=0.12)  # Same radius as original dots
+            proj_dot.set_color(RED_D)
+            PCA1_projections.add(proj_dot)
+        
+        # Project dots onto PCA2 line using Transform from copy()
+        PCA2_projections = VGroup()
+        for centered_x, centered_y in centered_coords:
+            # Calculate dot product (projection length)
+            proj_length = PCA2_unit_x * centered_x + PCA2_unit_y * centered_y
+            
+            # Project onto PCA2 direction
+            proj_x = proj_length * PCA2_unit_x
+            proj_y = proj_length * PCA2_unit_y
+            
+            proj_dot = Dot(axes.c2p(proj_x, proj_y), radius=0.12)  # Same radius as original dots
+            proj_dot.set_color(BLUE_E)
+            PCA2_projections.add(proj_dot)
+        
+        # Animate projections onto PCA1 using Transform from copy
+        self.play(
+            ReplacementTransform(dots.copy(), PCA1_projections),
+            run_time=2
+        )
+        
+        self.wait(1)
+        
+        # Animate projections onto PCA2 using Transform from copy
+        self.play(
+            ReplacementTransform(dots.copy(), PCA2_projections),
+            run_time=2
+        )
+        
+        
+
+        self.play(FadeOut(dots))
+
+        self.wait(3)
+
+        self.wait(1)
+
+        self.play(FadeIn(Group(PCA2_dotted_line, PCA2_label, PCA2_vector)))
+
+
+        self.wait(2)
