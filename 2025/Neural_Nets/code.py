@@ -421,13 +421,7 @@ class NeuronsIntro(Scene):
             run_time=0.8
         )
         
-        # Show phi in neuron - scale 1.7 and set_color BLACK
-        phi_in_neuron = Tex(r"\phi(z)", font_size=32).scale(1.7)
-        phi_in_neuron.set_color(BLACK)
-        phi_in_neuron.move_to(neuron.get_center())
-        
-        self.play(Write(phi_in_neuron))
-        
+
         # Output pulse
         output_pulse, output_glow = create_pulse(neuron.get_center(), output_arrow.get_end(), color=BLUE)
         self.add(output_pulse, output_glow)
