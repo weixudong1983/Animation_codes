@@ -979,4 +979,565 @@ class NeuronsIntro(Scene):
 
         self.wait(2)
 
+
+
+class NeuralNetworkFlow(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.18)
         
+        # Create 5 input layer nodes (GREEN, radius=0.36)
+        input_layer = []
+        input_labels = []
+        for i in range(5):
+            node = Circle(radius=0.36, color=GREEN, fill_opacity=1, stroke_width=6, stroke_color=GREEN_B)
+            node.move_to(LEFT * 6 + UP * (2.5 - i * 1.2))
+            input_layer.append(node)
+            
+            # Add input labels with black color
+            label = Tex(f"x_{{{i+1}}}").set_color(BLACK).scale(0.7)
+            label.move_to(node.get_center())
+            input_labels.append(label)
+        
+        # Create hidden layer 1 with 4 neurons
+        hidden_layer1 = []
+        hidden_labels1 = []
+        for i in range(4):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(LEFT * 3 + UP * (2.4 - i * 1.6))
+            hidden_layer1.append(node)
+            
+            # Standard notation: A(Z^[1]_i)
+            label = Tex(f"A(Z^{{[1]}}_{{{i+1}}})").set_color(BLACK).scale(0.45)
+            label.move_to(node.get_center())
+            hidden_labels1.append(label)
+        
+        # Create hidden layer 2 with 5 neurons (reduced from 6)
+        hidden_layer2 = []
+        hidden_labels2 = []
+        for i in range(5):  # Changed from 6 to 5
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(ORIGIN + UP * (3.2 - i * 1.6))  # Adjusted positioning for 5 neurons
+            hidden_layer2.append(node)
+            
+            # Standard notation: A(Z^[2]_i)
+            label = Tex(f"A(Z^{{[2]}}_{{{i+1}}})").set_color(BLACK).scale(0.45)
+            label.move_to(node.get_center())
+            hidden_labels2.append(label)
+        
+        # Create hidden layer 3 with 3 neurons
+        hidden_layer3 = []
+        hidden_labels3 = []
+        for i in range(3):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(RIGHT * 3 + UP * (1.6 - i * 1.6))
+            hidden_layer3.append(node)
+            
+            # Standard notation: A(Z^[3]_i)
+            label = Tex(f"A(Z^{{[3]}}_{{{i+1}}})").set_color(BLACK).scale(0.45)
+            label.move_to(node.get_center())
+            hidden_labels3.append(label)
+        
+        # Create output layer
+        output_node = Circle(radius=0.72, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+        output_node.move_to(RIGHT * 6)
+        
+        # Add output label scaled by 1.8
+        output_label = Tex("\\hat{y}").set_color(BLACK).scale(1.8)
+        output_label.move_to(output_node.get_center())
+        
+        # Create all connections
+        connections = []
+        
+        # Input to Hidden Layer 1
+        for input_node in input_layer:
+            for hidden_node in hidden_layer1:
+                line = Line(input_node.get_center(), hidden_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+        
+        # Hidden Layer 1 to Hidden Layer 2
+        for h1_node in hidden_layer1:
+            for h2_node in hidden_layer2:
+                line = Line(h1_node.get_center(), h2_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+        
+        # Hidden Layer 2 to Hidden Layer 3
+        for h2_node in hidden_layer2:
+            for h3_node in hidden_layer3:
+                line = Line(h2_node.get_center(), h3_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+        
+        # Hidden Layer 3 to Output
+        for h3_node in hidden_layer3:
+            line = Line(h3_node.get_center(), output_node.get_center(), 
+                      stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+            connections.append(line)
+        
+        # Store original line properties (ADD THIS RIGHT AFTER CREATING CONNECTIONS)
+        original_stroke_widths = [line.stroke_width for line in connections]
+        original_colors = [line.get_color() for line in connections]
+        
+        # Show the network structure
+        all_nodes = input_layer + hidden_layer1 + hidden_layer2 + hidden_layer3 + [output_node]
+        
+        self.play(*[ShowCreation(node) for node in all_nodes])
+        self.play(*[ShowCreation(line) for line in connections])
+        self.wait(1.5)
+
+        # Write input labels first
+        self.play(*[Write(label) for label in input_labels])
+        self.wait(1)
+        
+        # Enhanced pulse creation function
+        def create_pulse(start_point, color):
+            pulse = Dot(radius=0.12, color=color, fill_opacity=1)
+            pulse.move_to(start_point)
+            glow = Circle(radius=0.25, color=color, fill_opacity=0.3, stroke_opacity=0)
+            glow.move_to(start_point)
+            return pulse, glow
+        
+        # SINGLE ITERATION WITH ONE PULSE PER WEIGHT CONNECTION
+        
+        # Stage 1: Input to Hidden Layer 1 (5×4 = 20 pulses)
+        input_pulses = []
+        input_glows = []
+
+        # Get the specific connections for this stage
+        input_to_h1_connections = []
+        for input_node in input_layer:
+            for h1_node in hidden_layer1:
+                for line in connections:
+                    start_pos = line.get_start()
+                    input_pos = input_node.get_center()
+                    h1_pos = h1_node.get_center()
+                    if (abs(start_pos[0] - input_pos[0]) < 0.1 and abs(start_pos[1] - input_pos[1]) < 0.1):
+                        end_pos = line.get_end()
+                        if (abs(end_pos[0] - h1_pos[0]) < 0.1 and abs(end_pos[1] - h1_pos[1]) < 0.1):
+                            input_to_h1_connections.append(line)
+
+        for input_node in input_layer:
+            for h1_node in hidden_layer1:
+                pulse, glow = create_pulse(input_node.get_center(), "#ff0000")
+                input_pulses.append(pulse)
+                input_glows.append(glow)
+                self.add(pulse, glow)
+        
+        self.wait(0.3)
+        
+        # Move each pulse along its specific weight connection AND color the connections
+        h1_animations = []
+        for i, (pulse, glow) in enumerate(zip(input_pulses, input_glows)):
+            input_idx = i // len(hidden_layer1)
+            h1_idx = i % len(hidden_layer1)
+            target_pos = hidden_layer1[h1_idx].get_center()
+            
+            h1_animations.extend([
+                pulse.animate.move_to(target_pos),
+                glow.animate.move_to(target_pos)
+            ])
+
+        # Add connection coloring animations
+        for line in input_to_h1_connections:
+            h1_animations.append(line.animate.set_stroke(width=5, color="#ff0000"))
+        
+        self.play(*h1_animations, run_time=1.5)
+        
+        # Fade out and write h1 labels AND reset connection colors
+        reset_animations = []
+        reset_animations.extend([FadeOut(pulse) for pulse in input_pulses])
+        reset_animations.extend([FadeOut(glow) for glow in input_glows])
+        reset_animations.extend([Write(label) for label in hidden_labels1])
+
+        # Reset connection colors and widths
+        for line in input_to_h1_connections:
+            line_idx = connections.index(line)
+            reset_animations.append(
+                line.animate.set_stroke(width=original_stroke_widths[line_idx], 
+                                      color=original_colors[line_idx])
+            )
+
+        self.play(*reset_animations, run_time=1.0)
+        
+        # Stage 2: Hidden Layer 1 to Hidden Layer 2 (4×5 = 20 pulses)
+        h1_pulses = []
+        h1_glows = []
+
+        # Get the specific connections for this stage
+        h1_to_h2_connections = []
+        for h1_node in hidden_layer1:
+            for h2_node in hidden_layer2:
+                for line in connections:
+                    start_pos = line.get_start()
+                    h1_pos = h1_node.get_center()
+                    h2_pos = h2_node.get_center()
+                    if (abs(start_pos[0] - h1_pos[0]) < 0.1 and abs(start_pos[1] - h1_pos[1]) < 0.1):
+                        end_pos = line.get_end()
+                        if (abs(end_pos[0] - h2_pos[0]) < 0.1 and abs(end_pos[1] - h2_pos[1]) < 0.1):
+                            h1_to_h2_connections.append(line)
+        
+        for h1_node in hidden_layer1:
+            for h2_node in hidden_layer2:
+                pulse, glow = create_pulse(h1_node.get_center(), "#ff0000")
+                h1_pulses.append(pulse)
+                h1_glows.append(glow)
+                self.add(pulse, glow)
+        
+        self.wait(0.3)
+        
+        # Move each pulse along its weight connection AND color the connections
+        h2_animations = []
+        for i, (pulse, glow) in enumerate(zip(h1_pulses, h1_glows)):
+            h1_idx = i // len(hidden_layer2)
+            h2_idx = i % len(hidden_layer2)
+            target_pos = hidden_layer2[h2_idx].get_center()
+            
+            h2_animations.extend([
+                pulse.animate.move_to(target_pos),
+                glow.animate.move_to(target_pos)
+            ])
+
+        # Add connection coloring animations
+        for line in h1_to_h2_connections:
+            h2_animations.append(line.animate.set_stroke(width=5, color="#ff0000"))
+        
+        self.play(*h2_animations, run_time=1.5)
+        
+        # Fade out and write h2 labels AND reset connection colors
+        reset_animations = []
+        reset_animations.extend([FadeOut(pulse) for pulse in h1_pulses])
+        reset_animations.extend([FadeOut(glow) for glow in h1_glows])
+        reset_animations.extend([Write(label) for label in hidden_labels2])
+
+        # Reset connection colors and widths
+        for line in h1_to_h2_connections:
+            line_idx = connections.index(line)
+            reset_animations.append(
+                line.animate.set_stroke(width=original_stroke_widths[line_idx], 
+                                      color=original_colors[line_idx])
+            )
+
+        self.play(*reset_animations, run_time=1.0)
+        
+        # Stage 3: Hidden Layer 2 to Hidden Layer 3 (5×3 = 15 pulses)
+        h2_pulses = []
+        h2_glows = []
+
+        # Get the specific connections for this stage
+        h2_to_h3_connections = []
+        for h2_node in hidden_layer2:
+            for h3_node in hidden_layer3:
+                for line in connections:
+                    start_pos = line.get_start()
+                    h2_pos = h2_node.get_center()
+                    h3_pos = h3_node.get_center()
+                    if (abs(start_pos[0] - h2_pos[0]) < 0.1 and abs(start_pos[1] - h2_pos[1]) < 0.1):
+                        end_pos = line.get_end()
+                        if (abs(end_pos[0] - h3_pos[0]) < 0.1 and abs(end_pos[1] - h3_pos[1]) < 0.1):
+                            h2_to_h3_connections.append(line)
+        
+        for h2_node in hidden_layer2:
+            for h3_node in hidden_layer3:
+                pulse, glow = create_pulse(h2_node.get_center(), "#ff0000")
+                h2_pulses.append(pulse)
+                h2_glows.append(glow)
+                self.add(pulse, glow)
+        
+        self.wait(0.3)
+        
+        # Move each pulse along its weight connection AND color the connections
+        h3_animations = []
+        for i, (pulse, glow) in enumerate(zip(h2_pulses, h2_glows)):
+            h2_idx = i // len(hidden_layer3)
+            h3_idx = i % len(hidden_layer3)
+            target_pos = hidden_layer3[h3_idx].get_center()
+            
+            h3_animations.extend([
+                pulse.animate.move_to(target_pos),
+                glow.animate.move_to(target_pos)
+            ])
+
+        # Add connection coloring animations
+        for line in h2_to_h3_connections:
+            h3_animations.append(line.animate.set_stroke(width=5, color="#ff0000"))
+        
+        self.play(*h3_animations, run_time=1.5)
+        
+        # Fade out and write h3 labels AND reset connection colors
+        reset_animations = []
+        reset_animations.extend([FadeOut(pulse) for pulse in h2_pulses])
+        reset_animations.extend([FadeOut(glow) for glow in h2_glows])
+        reset_animations.extend([Write(label) for label in hidden_labels3])
+
+        # Reset connection colors and widths
+        for line in h2_to_h3_connections:
+            line_idx = connections.index(line)
+            reset_animations.append(
+                line.animate.set_stroke(width=original_stroke_widths[line_idx], 
+                                      color=original_colors[line_idx])
+            )
+
+        self.play(*reset_animations, run_time=1.0)
+        
+        # Stage 4: Hidden Layer 3 to Output (3×1 = 3 pulses)
+        h3_pulses = []
+        h3_glows = []
+
+        # Get the specific connections for this stage
+        h3_to_output_connections = []
+        for h3_node in hidden_layer3:
+            for line in connections:
+                start_pos = line.get_start()
+                h3_pos = h3_node.get_center()
+                output_pos = output_node.get_center()
+                if (abs(start_pos[0] - h3_pos[0]) < 0.1 and abs(start_pos[1] - h3_pos[1]) < 0.1):
+                    end_pos = line.get_end()
+                    if (abs(end_pos[0] - output_pos[0]) < 0.1 and abs(end_pos[1] - output_pos[1]) < 0.1):
+                        h3_to_output_connections.append(line)
+        
+        for h3_node in hidden_layer3:
+            pulse, glow = create_pulse(h3_node.get_center(), "#ff0000")
+            h3_pulses.append(pulse)
+            h3_glows.append(glow)
+            self.add(pulse, glow)
+        
+        self.wait(0.3)
+        
+        # Move to output AND color the connections
+        output_animations = []
+        for pulse, glow in zip(h3_pulses, h3_glows):
+            output_animations.extend([
+                pulse.animate.move_to(output_node.get_center()),
+                glow.animate.move_to(output_node.get_center())
+            ])
+
+        # Add connection coloring animations
+        for line in h3_to_output_connections:
+            output_animations.append(line.animate.set_stroke(width=5, color="#ff0000"))
+        
+        self.play(*output_animations, run_time=1.5)
+        
+        # Fade out and write output label AND reset connection colors
+        reset_animations = []
+        reset_animations.extend([FadeOut(pulse) for pulse in h3_pulses])
+        reset_animations.extend([FadeOut(glow) for glow in h3_glows])
+        reset_animations.append(Write(output_label))
+
+        # Reset connection colors and widths
+        for line in h3_to_output_connections:
+            line_idx = connections.index(line)
+            reset_animations.append(
+                line.animate.set_stroke(width=original_stroke_widths[line_idx], 
+                                      color=original_colors[line_idx])
+            )
+
+        self.play(*reset_animations, run_time=1.0)
+        
+        self.wait(3)
+
+        self.camera.frame.save_state()
+        self.camera.frame.restore()
+
+        self.play(self.camera.frame.animate.scale(0.5).shift(LEFT*4))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT+UP*1.33).scale(0.8))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(DOWN*3), run_time=3.6)
+
+        self.wait()
+
+        self.play(self.camera.frame.animate.shift(RIGHT*3+UP*3.8), run_time=2)
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(DOWN*4.44), run_time=5)
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.shift(RIGHT*3.7+UP*2.77))
+        self.wait()
+        self.play(self.camera.frame.animate.shift(DOWN), run_time=2)
+        self.wait()
+
+        self.play(self.camera.frame.animate.shift(RIGHT+UP*0.55))
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.restore().scale(1.14).shift(DOWN*0.8))
+        
+        a = Text("Input layer", weight=BOLD).next_to(input_layer[4], DOWN).scale(1.2).shift(DOWN*0.45)
+        b = Text("Hidden layers", weight=BOLD).next_to(hidden_layer2[4], DOWN).scale(1.3).shift(DOWN*0.55)
+        c = Text("Output layer", weight=BOLD).next_to(output_node, DOWN).scale(1.15).shift(DOWN*0.44)
+
+        self.play(ShowCreation(a), Write(b), Write(c))
+
+        self.wait(2)
+
+        self.play(self.camera.frame.animate.restore() , FadeOut(a), FadeOut(b), FadeOut(c))
+        self.wait(2)
+
+        import random
+
+        # After self.play(*[ShowCreation(line) for line in connections])
+        # Add random flickering effect
+        flicker_colors = [YELLOW, GREEN, PURPLE, ORANGE, PINK, BLUE, RED, TEAL, DARK_BROWN, GREY_B]
+        
+        # Start random flickering
+        for line in connections:
+            line.add_updater(lambda mob: mob.set_color(random.choice(flicker_colors)))
+        
+        self.wait(10)  # Flicker for 10 seconds
+        
+        # Stop flickering and restore original colors
+        for line, original in zip(connections, original_colors):
+            line.clear_updaters()
+            line.set_color(original)
+
+        self.wait(2)
+
+        # Add this code directly inside your construct() method after the forward propagation animation
+        PURPLE_HEX = "#ff0000"
+        PURE_GREEN_HEX = "#8A2BE2"
+        
+        # Organize connections by layer pairs for sequential animation
+        layer_connections = []
+        
+        # Input to Hidden Layer 1 connections
+        input_to_h1 = []
+        for input_node in input_layer:
+            for h1_node in hidden_layer1:
+                for line in connections:
+                    start_pos = line.get_start()
+                    input_pos = input_node.get_center()
+                    h1_pos = h1_node.get_center()
+                    if (abs(start_pos[0] - input_pos[0]) < 0.1 and abs(start_pos[1] - input_pos[1]) < 0.1):
+                        end_pos = line.get_end()
+                        if (abs(end_pos[0] - h1_pos[0]) < 0.1 and abs(end_pos[1] - h1_pos[1]) < 0.1):
+                            input_to_h1.append(line)
+        
+        # Hidden Layer 1 to Hidden Layer 2 connections
+        h1_to_h2 = []
+        for h1_node in hidden_layer1:
+            for h2_node in hidden_layer2:
+                for line in connections:
+                    start_pos = line.get_start()
+                    h1_pos = h1_node.get_center()
+                    h2_pos = h2_node.get_center()
+                    if (abs(start_pos[0] - h1_pos[0]) < 0.1 and abs(start_pos[1] - h1_pos[1]) < 0.1):
+                        end_pos = line.get_end()
+                        if (abs(end_pos[0] - h2_pos[0]) < 0.1 and abs(end_pos[1] - h2_pos[1]) < 0.1):
+                            h1_to_h2.append(line)
+        
+        # Hidden Layer 2 to Hidden Layer 3 connections
+        h2_to_h3 = []
+        for h2_node in hidden_layer2:
+            for h3_node in hidden_layer3:
+                for line in connections:
+                    start_pos = line.get_start()
+                    h2_pos = h2_node.get_center()
+                    h3_pos = h3_node.get_center()
+                    if (abs(start_pos[0] - h2_pos[0]) < 0.1 and abs(start_pos[1] - h2_pos[1]) < 0.1):
+                        end_pos = line.get_end()
+                        if (abs(end_pos[0] - h3_pos[0]) < 0.1 and abs(end_pos[1] - h3_pos[1]) < 0.1):
+                            h2_to_h3.append(line)
+        
+        # Hidden Layer 3 to Output connections
+        h3_to_output = []
+        for h3_node in hidden_layer3:
+            for line in connections:
+                start_pos = line.get_start()
+                h3_pos = h3_node.get_center()
+                output_pos = output_node.get_center()
+                if (abs(start_pos[0] - h3_pos[0]) < 0.1 and abs(start_pos[1] - h3_pos[1]) < 0.1):
+                    end_pos = line.get_end()
+                    if (abs(end_pos[0] - output_pos[0]) < 0.1 and abs(end_pos[1] - output_pos[1]) < 0.1):
+                        h3_to_output.append(line)
+        
+        # Repeat forward-backward cycle 3 times
+        for cycle in range(3):
+            
+            # FORWARD PROPAGATION - Layer by layer
+            layer_groups = [input_to_h1, h1_to_h2, h2_to_h3, h3_to_output]
+            
+            for layer_lines in layer_groups:
+                # Create pulses for this layer's connections
+                layer_pulses = []
+                layer_glows = []
+                
+                for line in layer_lines:
+                    pulse, glow = create_pulse(line.get_start(), PURPLE_HEX)
+                    layer_pulses.append(pulse)
+                    layer_glows.append(glow)
+                    self.add(pulse, glow)
+                
+                # Move pulses and change line properties simultaneously
+                forward_animations = []
+                for i, (pulse, glow, line) in enumerate(zip(layer_pulses, layer_glows, layer_lines)):
+                    forward_animations.extend([
+                        pulse.animate.move_to(line.get_end()),
+                        glow.animate.move_to(line.get_end()),
+                        line.animate.set_stroke(width=5, color=PURPLE_HEX)
+                    ])
+                
+                self.play(*forward_animations, run_time=1.0)
+                
+                # Fade out pulses and reset line properties
+                fadeout_animations = []
+                for pulse, glow in zip(layer_pulses, layer_glows):
+                    fadeout_animations.extend([FadeOut(pulse), FadeOut(glow)])
+                
+                for line in layer_lines:
+                    line_idx = connections.index(line)
+                    fadeout_animations.append(
+                        line.animate.set_stroke(width=original_stroke_widths[line_idx], 
+                                              color=original_colors[line_idx])
+                    )
+                
+                self.play(*fadeout_animations, run_time=0.3)
+            
+            self.wait(0.5)
+            
+            # BACKPROPAGATION - Layer by layer (reverse order)
+            reverse_layer_groups = [h3_to_output, h2_to_h3, h1_to_h2, input_to_h1]
+            
+            for layer_lines in reverse_layer_groups:
+                # Create pulses for this layer's connections (starting from end)
+                layer_pulses = []
+                layer_glows = []
+                
+                for line in layer_lines:
+                    pulse, glow = create_pulse(line.get_end(), PURE_GREEN_HEX)
+                    layer_pulses.append(pulse)
+                    layer_glows.append(glow)
+                    self.add(pulse, glow)
+                
+                # Move pulses backward and change line properties
+                backward_animations = []
+                for pulse, glow, line in zip(layer_pulses, layer_glows, layer_lines):
+                    backward_animations.extend([
+                        pulse.animate.move_to(line.get_start()),
+                        glow.animate.move_to(line.get_start()),
+                        line.animate.set_stroke(width=6, color=PURE_GREEN_HEX)
+                    ])
+                
+                self.play(*backward_animations, run_time=1.0)
+                
+                # Fade out pulses and reset line properties
+                fadeout_animations = []
+                for pulse, glow in zip(layer_pulses, layer_glows):
+                    fadeout_animations.extend([FadeOut(pulse), FadeOut(glow)])
+                
+                for line in layer_lines:
+                    line_idx = connections.index(line)
+                    fadeout_animations.append(
+                        line.animate.set_stroke(width=original_stroke_widths[line_idx], 
+                                              color=original_colors[line_idx])
+                    )
+                
+                self.play(*fadeout_animations, run_time=0.3)
+            
+            self.wait(0.5)
+        
+        self.wait(3)
