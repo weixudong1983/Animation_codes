@@ -1,6 +1,234 @@
 from manimlib import *
 import numpy as np
 
+class NeuronNetwork(Scene):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Colors
+        self.SOMA_COLOR = "#E6A8A8"          
+        self.NUCLEUS_COLOR = "#D4527A"       
+        self.DENDRITE_COLOR = "#E6A8A8"      
+        self.AXON_COLOR = "#F0E68C"          
+        self.TERMINAL_COLOR = "#35FA35"      
+        self.PULSE_COLOR = "#FF0000"
+        self.CONNECTION_COLOR = "#00FFFF"
+        
+    def construct(self):
+        self.create_neuron_network()
+        self.animate_pulse_transmission()
+    
+    def create_neuron_network(self):
+        """Create a network of biological neurons filling the screen"""
+        self.neurons = VGroup()
+        self.connections = VGroup()
+        self.neuron_positions = []
+        
+        # Create more neurons to fill screen better
+        rows = 5
+        cols = 8
+        x_spacing = 2.5
+        y_spacing = 1.8
+        
+        # Calculate starting position to center the grid
+        start_x = -(cols - 1) * x_spacing / 2
+        start_y = (rows - 1) * y_spacing / 2
+        
+        for row in range(rows):
+            for col in range(cols):
+                x = start_x + col * x_spacing
+                y = start_y - row * y_spacing
+                position = np.array([x, y, 0.0])
+                
+                neuron = self.create_biological_neuron()
+                neuron.move_to(position)
+                self.neurons.add(neuron)
+                self.neuron_positions.append(position)
+        
+        # Create connections between nearby neurons
+        self.create_connections()
+    
+    def create_biological_neuron(self):
+        """Create a simplified biological neuron with smaller dendrites, longer axon and nerve endings"""
+        neuron_group = VGroup()
+        
+        # Soma and nucleus (smaller for network view)
+        soma = Circle(radius=0.2, color=self.SOMA_COLOR, fill_opacity=0.9, stroke_width=2)
+        nucleus = Circle(radius=0.08, color=self.NUCLEUS_COLOR, fill_opacity=1.0, stroke_width=1)
+        
+        # SMALLER Dendrites (4 directions only, much shorter)
+        dendrites = VGroup()
+        for angle in [PI/4, 3*PI/4, 5*PI/4, 7*PI/4]:
+            # Much shorter main dendrite
+            start = soma.get_boundary_point(np.array([np.cos(angle), np.sin(angle), 0]))
+            end = start + 0.15 * np.array([np.cos(angle), np.sin(angle), 0])  # Reduced from 0.3
+            main_dendrite = Line(start, end, color=self.DENDRITE_COLOR, stroke_width=1.5)
+            dendrites.add(main_dendrite)
+            
+            # Tiny branches
+            for branch_offset in [-0.4, 0.4]:
+                branch_angle = angle + branch_offset
+                branch_end = end + 0.08 * np.array([np.cos(branch_angle), np.sin(branch_angle), 0])  # Reduced from 0.15
+                branch = Line(end, branch_end, color=self.DENDRITE_COLOR, stroke_width=1)
+                dendrites.add(branch)
+        
+        # LONGER Axon extending right
+        axon_start = soma.get_right()
+        axon_end = axon_start + RIGHT * 0.8  # Increased from 0.4
+        axon = Line(axon_start, axon_end, color=self.AXON_COLOR, stroke_width=3)
+        
+        # LONGER Axon terminals and nerve endings
+        terminals = VGroup()
+        for i in range(5):  # More terminals
+            terminal_angle = -0.3 + i * 0.15
+            terminal_end = axon_end + 0.4 * np.array([np.cos(terminal_angle), np.sin(terminal_angle), 0])  # Increased from 0.2
+            terminal = Line(axon_end, terminal_end, color=self.TERMINAL_COLOR, stroke_width=2)
+            terminals.add(terminal)
+            
+            # Add secondary nerve endings
+            for j in range(2):
+                secondary_angle = terminal_angle + (j - 0.5) * 0.2
+                secondary_end = terminal_end + 0.25 * np.array([np.cos(secondary_angle), np.sin(secondary_angle), 0])
+                secondary_terminal = Line(terminal_end, secondary_end, color=self.TERMINAL_COLOR, stroke_width=1.5)
+                terminals.add(secondary_terminal)
+        
+        neuron_group.add(soma, nucleus, dendrites, axon, terminals)
+        return neuron_group
+    
+    def create_connections(self):
+        """Create synaptic connections between neurons"""
+        for i, pos1 in enumerate(self.neuron_positions):
+            for j, pos2 in enumerate(self.neuron_positions):
+                if i != j:
+                    distance = np.linalg.norm(np.array(pos2) - np.array(pos1))
+                    
+                    # Connect if neurons are close enough
+                    if distance < 3.5:  # Adjusted for new spacing
+                        connection = self.create_synapse(pos1, pos2)
+                        self.connections.add(connection)
+    
+    def create_synapse(self, from_pos, to_pos):
+        """Create a synaptic connection between two neurons"""
+        from_pos = np.array(from_pos, dtype=float)
+        to_pos = np.array(to_pos, dtype=float)
+        
+        # Create curved connection
+        mid_point = (from_pos + to_pos) / 2
+        # Add perpendicular offset for curve
+        direction = to_pos - from_pos
+        if np.linalg.norm(direction) > 0:
+            direction = direction / np.linalg.norm(direction)
+            perpendicular = np.array([-direction[1], direction[0], 0])
+            curve_offset = perpendicular * np.random.uniform(-0.2, 0.2)
+            control_point = mid_point + curve_offset
+        else:
+            control_point = mid_point
+        
+        # Create smooth curve
+        connection = VMobject()
+        connection.set_points_as_corners([
+            from_pos + direction * 0.25,
+            control_point,
+            to_pos - direction * 0.25
+        ])
+        connection.make_smooth()
+        connection.set_stroke(self.CONNECTION_COLOR, width=1, opacity=0.2)
+        
+        return connection
+    
+    def animate_pulse_transmission(self):
+        """Show the network and animate red pulse transmission"""
+        # Show all neurons quickly
+        self.play(
+            LaggedStartMap(FadeIn, self.neurons, lag_ratio=0.02),
+            run_time=2
+        )
+        
+        # Show connections quickly
+        self.play(
+            LaggedStartMap(ShowCreation, self.connections, lag_ratio=0.01),
+            run_time=1.5
+        )
+        
+        self.wait(0.5)
+        
+        # Start MASSIVE continuous pulse activity for 10 seconds
+        self.massive_pulse_activity()
+    
+    def massive_pulse_activity(self):
+        """Create massive continuous red pulse activity for 10 seconds filling entire screen"""
+        
+        # Create initial burst of 60 pulses
+        all_active_pulses = VGroup()
+        
+        for _ in range(60):
+            start_pos = np.array(self.neuron_positions[np.random.randint(0, len(self.neuron_positions))], dtype=float)
+            pulse = self.create_red_pulse(start_pos)
+            all_active_pulses.add(pulse)
+        
+        # Show initial pulses
+        self.play(
+            LaggedStartMap(FadeIn, all_active_pulses, lag_ratio=0.005),
+            run_time=0.5
+        )
+        
+        # Run continuous activity for 10 seconds (20 rounds of 0.5 seconds each)
+        for round_num in range(20):
+            animations = []
+            
+            # Move all existing pulses to new random positions
+            for pulse in all_active_pulses:
+                new_pos = np.array(self.neuron_positions[np.random.randint(0, len(self.neuron_positions))], dtype=float)
+                # Add screen-wide randomness to fill entire space
+                noise = np.random.uniform(-0.3, 0.3, 3)
+                final_pos = new_pos + noise
+                animations.append(pulse.animate.move_to(final_pos))
+            
+            # Add 10-15 new pulses each round to maintain intensity
+            if round_num % 2 == 0:  # Every other round
+                for _ in range(np.random.randint(10, 16)):
+                    new_start_pos = np.array(self.neuron_positions[np.random.randint(0, len(self.neuron_positions))], dtype=float)
+                    new_pulse = self.create_red_pulse(new_start_pos)
+                    all_active_pulses.add(new_pulse)
+                    animations.append(FadeIn(new_pulse))
+            
+            # Remove some old pulses randomly to prevent overcrowding - FIXED VERSION
+            if len(all_active_pulses) > 80:
+                # Convert to list and randomly select indices
+                pulse_list = list(all_active_pulses.submobjects)
+                indices_to_remove = np.random.choice(len(pulse_list), size=min(10, len(pulse_list)), replace=False)
+                
+                # Remove selected pulses
+                for idx in sorted(indices_to_remove, reverse=True):  # Remove from end to avoid index shifting
+                    pulse_to_remove = pulse_list[idx]
+                    all_active_pulses.remove(pulse_to_remove)
+                    animations.append(FadeOut(pulse_to_remove))
+            
+            # Execute all animations
+            if animations:
+                self.play(*animations, run_time=0.5)
+        
+        # Final explosive fade
+        self.play(
+            *[pulse.animate.scale(2.5).set_opacity(0) for pulse in all_active_pulses],
+            run_time=2
+        )
+        
+        self.wait(1)
+    
+    def create_red_pulse(self, position):
+        """Create a red pulse with glow effect at given position"""
+        pulse_size = np.random.uniform(0.04, 0.09)
+        pulse = Dot(radius=pulse_size, color=self.PULSE_COLOR, fill_opacity=1.0)
+        glow = Circle(radius=pulse_size * 3, color=self.PULSE_COLOR, 
+                     fill_opacity=0.3, stroke_opacity=0)
+        
+        pulse_group = VGroup(pulse, glow)
+        pulse_group.move_to(position)
+        
+        return pulse_group
+
+
+
 class BiologicalNeuron(Scene):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
