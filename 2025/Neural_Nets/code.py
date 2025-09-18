@@ -2251,3 +2251,34 @@ class NeuralNetworkFlow(Scene):
             self.wait(0.5)
         
         self.wait(3)
+
+class Brain(Scene):
+
+    def construct(self):
+
+        brain = ImageMobject("brain.png")
+
+        self.play(GrowFromCenter(brain))
+
+        self.wait(1)
+
+        a = Text("Decision Making", weight=BOLD).next_to(brain, LEFT).shift(UP*2.5+RIGHT*0.45)
+        self.play(Write(a))
+        b = Text("Consciousness", weight=BOLD).next_to(brain, RIGHT).shift(UP*2.5+RIGHT*0.45)
+        self.play(Write(b))    
+
+        c = Text("Intelligence", weight=BOLD).next_to(a, DOWN).shift(DOWN*0.65+LEFT*0.14)
+        self.play(Write(c))  
+
+        d = Text("Empathy", weight=BOLD).next_to(b, DOWN).shift(DOWN*0.75)
+        self.play(Write(d))  
+
+        self.wait(3)
+
+        self.play(self.camera.frame.animate.shift(DOWN*0.86), FadeOut(VGroup(a,b,c,d)))
+        
+        text = Text("Can We Mimic It ?", weight=BOLD).next_to(brain, DOWN).scale(2).shift(DOWN*0.86)
+        self.play(GrowFromCenter(text))
+
+        self.wait(2)
+
