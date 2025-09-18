@@ -1,6 +1,488 @@
 from manimlib import *
 import numpy as np
 
+class BiologicalNeuron(Scene):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Colors
+        self.SOMA_COLOR = "#E6A8A8"          
+        self.NUCLEUS_COLOR = "#D4527A"       
+        self.DENDRITE_COLOR = "#E6A8A8"      
+        self.AXON_COLOR = "#F0E68C"          
+        self.MYELIN_COLOR = "#FFE4B5"        
+        self.SCHWANN_COLOR = "#DEB887"       
+        self.NODE_COLOR = "#F0E68C"          
+        self.TERMINAL_COLOR = "#35FA35"      
+        self.LABEL_COLOR = "#000000"
+        self.ELLIPSE_COLOR = "#CD5C5C"       # Indian red for organelles
+        
+    def construct(self):
+        self.camera.frame.shift(RIGHT*3.64)
+        self.create_neuron_structure()
+        self.animate_complete_neuron()
+    
+    def create_neuron_structure(self):
+        # Central soma and nucleus
+        self.soma = Circle(radius=0.6, color=self.SOMA_COLOR, fill_opacity=1.0, stroke_width=2)
+        self.soma.move_to(ORIGIN)
+        
+        self.nucleus = Circle(radius=0.25, color=self.NUCLEUS_COLOR, fill_opacity=1.0, stroke_width=1)
+        self.nucleus.move_to(ORIGIN)
+        
+        # Add tiny ellipses in cytoplasm
+        self.create_cytoplasm_ellipses()
+        
+        # Create shorter dense dendrites
+        self.create_shorter_dense_dendrites()
+        
+        # Create axon system
+        self.create_axon_system()
+        
+        # Create axon dots (NEW)
+        self.create_axon_dots()
+        
+        # Create longer but less dense nerve endings
+        self.create_longer_less_dense_nerve_endings()
+    
+    def create_cytoplasm_ellipses(self):
+        """Add small ellipses inside soma as cytoplasmic organelles"""
+        self.cytoplasm_ellipses = VGroup()
+        
+        # Create various tiny organelles in cytoplasm
+        num_ellipses = 15
+        
+        for _ in range(num_ellipses):
+            # Random size for variety
+            width = np.random.uniform(0.04, 0.08)
+            height = width * np.random.uniform(0.6, 1.2)
+            
+            # Create small ellipse
+            ellipse = Ellipse(width=width, height=height, 
+                            color=self.ELLIPSE_COLOR, 
+                            fill_opacity=0.8, 
+                            stroke_width=1)
+            
+            # Random position in cytoplasm (between nucleus and cell membrane)
+            angle = np.random.uniform(0, 2*PI)
+            radius = np.random.uniform(0.28, 0.55)  # Outside nucleus, inside soma
+            pos = np.array([radius * np.cos(angle), radius * np.sin(angle), 0])
+            
+            ellipse.move_to(pos)
+            ellipse.rotate(np.random.uniform(0, 2*PI))  # Random orientation
+            
+            self.cytoplasm_ellipses.add(ellipse)
+    
+    def create_shorter_dense_dendrites(self):
+        """Create shorter dendrites with dense endings"""
+        self.dendrites = VGroup()
+        
+        main_dendrite_angles = [PI/6, PI/3, 2*PI/3, PI, 4*PI/3, 5*PI/3]
+        
+        for angle in main_dendrite_angles:
+            self.create_short_dense_dendrite_branch(angle)
+    
+    def create_short_dense_dendrite_branch(self, base_angle):
+        """Create shorter dendrite branches with dense endings"""
+        start_point = self.soma.get_boundary_point(np.array([np.cos(base_angle), np.sin(base_angle), 0]))
+        
+        # Shorter main trunk
+        trunk_length = 0.5
+        trunk_end = start_point + trunk_length * np.array([np.cos(base_angle), np.sin(base_angle), 0])
+        
+        main_trunk = Line(start_point, trunk_end, color=self.DENDRITE_COLOR, stroke_width=3)
+        self.dendrites.add(main_trunk)
+        
+        # Create dense branching
+        self.create_dense_dendrite_branching(trunk_end, base_angle, 1, 0.4)
+    
+    def create_dense_dendrite_branching(self, start_point, base_angle, level, length_factor):
+        """Create dense dendrite branching"""
+        if level > 2:
+            return
+        
+        # More branches for density
+        if level == 1:
+            num_branches = 4
+            angle_spread = PI/3
+        else:
+            num_branches = 3
+            angle_spread = PI/4
+        
+        branch_length = 0.3 * length_factor
+        stroke_width = max(1, 4 - level * 2)
+        
+        for i in range(num_branches):
+            branch_angle = base_angle + (i - (num_branches-1)/2) * (angle_spread/(num_branches-1))
+            branch_angle += np.random.uniform(-0.15, 0.15)
+            
+            end_point = start_point + branch_length * np.array([np.cos(branch_angle), np.sin(branch_angle), 0])
+            branch = Line(start_point, end_point, color=self.DENDRITE_COLOR, stroke_width=stroke_width)
+            self.dendrites.add(branch)
+            
+            # Continue branching for density
+            if level < 2:
+                self.create_dense_dendrite_branching(end_point, branch_angle, level + 1, length_factor * 0.7)
+            
+            # Add extra fine branches at final level
+            if level == 2:
+                for j in range(2):
+                    fine_angle = branch_angle + (j - 0.5) * PI/6
+                    fine_end = end_point + 0.15 * np.array([np.cos(fine_angle), np.sin(fine_angle), 0])
+                    fine_branch = Line(end_point, fine_end, color=self.DENDRITE_COLOR, stroke_width=1)
+                    self.dendrites.add(fine_branch)
+    
+    def create_axon_system(self):
+        """Create axon with opaque myelin sheaths"""
+        axon_start = self.soma.get_boundary_point(RIGHT)
+        
+        self.axon_path = [
+            axon_start,
+            axon_start + RIGHT * 1.0,
+            axon_start + RIGHT * 2.0 + DOWN * 0.1,
+            axon_start + RIGHT * 3.0 + DOWN * 0.1,
+            axon_start + RIGHT * 4.0 + DOWN * 0.2,
+            axon_start + RIGHT * 5.5 + DOWN * 0.2
+        ]
+        
+        # Main axon
+        self.axon = VMobject()
+        self.axon.set_points_smoothly(self.axon_path)
+        self.axon.set_stroke(self.AXON_COLOR, width=4)
+        
+        # Create opaque myelin sheaths
+        self.create_opaque_myelin_sheaths()
+    
+    def create_axon_dots(self):
+        """Create small RED_E colored dots inside the axon (NEW METHOD)"""
+        self.axon_dots = VGroup()
+        
+        # Create dots along the axon path
+        num_dots = 20  # Number of dots to distribute along axon
+        
+        for i in range(num_dots):
+            # Calculate position along axon (t from 0 to 1)
+            t = (i + 0.5) / num_dots  # Slight offset so dots don't start exactly at beginning
+            
+            # Get position along axon path
+            dot_position = self.get_axon_position(t)
+            
+            # Add some random offset perpendicular to axon for natural distribution
+            if i < len(self.axon_path) - 1:
+                # Get approximate direction of axon at this point
+                next_t = min(1.0, t + 0.01)
+                direction = self.get_axon_position(next_t) - self.get_axon_position(t)
+                if np.linalg.norm(direction) > 0:
+                    direction = direction / np.linalg.norm(direction)
+                    # Perpendicular direction
+                    perp_direction = np.array([-direction[1], direction[0], 0])
+                    # Small random offset perpendicular to axon
+                    offset = np.random.uniform(-0.1, 0.1) * perp_direction
+                    dot_position += offset
+            
+            # Create elliptical dot with slight randomness
+            dot_width = np.random.uniform(0.03, 0.06)
+            dot_height = np.random.uniform(0.03, 0.05)
+            
+            dot = Ellipse(width=dot_width, height=dot_height, 
+                         color=RED_E, fill_opacity=1, stroke_width=1, fill_color=RED_E)
+            dot.move_to(dot_position)
+            dot.rotate(np.random.uniform(0, PI))  # Random orientation
+            
+            self.axon_dots.add(dot)
+    
+    def create_opaque_myelin_sheaths(self):
+        """Create opaque myelin sheaths"""
+        self.myelin_sheaths = VGroup()
+        self.schwann_cells = VGroup()
+        self.nodes_of_ranvier = VGroup()
+        
+        num_segments = 5
+        segment_length = 0.8
+        gap_length = 0.2
+        
+        for i in range(num_segments):
+            start_t = (i * (segment_length + gap_length)) / 5.5
+            end_t = (i * (segment_length + gap_length) + segment_length) / 5.5
+            
+            if end_t > 1.0:
+                break
+                
+            start_pos = self.get_axon_position(start_t)
+            end_pos = self.get_axon_position(end_t)
+            center_pos = (start_pos + end_pos) / 2
+            
+            # Opaque myelin sheath
+            myelin = Ellipse(width=segment_length, height=0.3, 
+                           color=self.MYELIN_COLOR, fill_opacity=1.0, stroke_width=2)
+            myelin.move_to(center_pos)
+            self.myelin_sheaths.add(myelin)
+            
+            # Opaque Schwann cell
+            schwann = Ellipse(width=segment_length + 0.1, height=0.4,
+                            color=self.SCHWANN_COLOR, fill_opacity=0.8, stroke_width=1)
+            schwann.move_to(center_pos)
+            self.schwann_cells.add(schwann)
+            
+            # Opaque nodes
+            if i < num_segments - 1:
+                gap_pos = self.get_axon_position(end_t + gap_length/2/5.5)
+                node = Circle(radius=0.06, color=self.NODE_COLOR, fill_opacity=1.0)
+                node.move_to(gap_pos)
+                self.nodes_of_ranvier.add(node)
+    
+    def get_axon_position(self, t):
+        """Get position along axon path"""
+        if t <= 0:
+            return np.array(self.axon_path[0])
+        elif t >= 1:
+            return np.array(self.axon_path[-1])
+        else:
+            total_length = len(self.axon_path) - 1
+            segment = int(t * total_length)
+            local_t = (t * total_length) - segment
+            
+            if segment >= len(self.axon_path) - 1:
+                return np.array(self.axon_path[-1])
+            
+            start = np.array(self.axon_path[segment])
+            end = np.array(self.axon_path[segment + 1])
+            return start + local_t * (end - start)
+    
+    def create_longer_less_dense_nerve_endings(self):
+        """Create LONGER nerve endings (1.5x) but LESS DENSE"""
+        self.nerve_endings = VGroup()
+        
+        terminal_start = self.axon_path[-1]
+        
+        # Fewer main terminal angles for less density
+        main_terminal_angles = [
+            0,          # Center
+            PI/12,      # Upper right narrow
+            -PI/12,     # Lower right narrow
+            PI/8,       # Upper right
+            -PI/8,      # Lower right
+            PI/6,       # Upper right wide
+            -PI/6,      # Lower right wide
+            PI/5,       # Upper branch
+            -PI/5       # Lower branch
+        ]
+        
+        # Create LONGER main terminal branches but fewer secondary branches
+        for angle in main_terminal_angles:
+            # LONGER straight roots (1.5x longer)
+            main_length = np.random.uniform(1.2, 1.8)  # 1.5x longer than before
+            main_end = terminal_start + main_length * np.array([np.cos(angle), np.sin(angle), 0])
+            
+            # Main terminal branch - STRAIGHT and LONGER
+            main_branch = Line(terminal_start, main_end, color=self.TERMINAL_COLOR, stroke_width=3)
+            self.nerve_endings.add(main_branch)
+            
+            # Add FEWER secondary branches for less density
+            if np.random.random() > 0.4:  # Only 60% chance instead of 100%
+                num_secondary = 1  # Only 1 secondary branch instead of 3
+                
+                # Position along main branch
+                t = 0.6  # Fixed position instead of multiple
+                secondary_start = terminal_start + t * main_length * np.array([np.cos(angle), np.sin(angle), 0])
+                
+                # Secondary branch angle
+                secondary_angle = angle + np.random.uniform(-PI/6, PI/6)
+                secondary_length = np.random.uniform(0.25, 0.4)
+                secondary_end = secondary_start + secondary_length * np.array([np.cos(secondary_angle), np.sin(secondary_angle), 0])
+                
+                # Secondary branch
+                secondary_branch = Line(secondary_start, secondary_end, color=self.TERMINAL_COLOR, stroke_width=2)
+                self.nerve_endings.add(secondary_branch)
+        
+        # Add fewer fine terminal branches
+        for _ in range(3):  # Reduced from 8 to 3
+            fine_angle = np.random.uniform(-PI/4, PI/4)
+            fine_start = terminal_start + 0.4 * np.array([np.cos(fine_angle), np.sin(fine_angle), 0])
+            fine_length = np.random.uniform(0.2, 0.35)
+            fine_angle_end = fine_angle + np.random.uniform(-0.3, 0.3)
+            
+            fine_end = fine_start + fine_length * np.array([np.cos(fine_angle_end), np.sin(fine_angle_end), 0])
+            fine_branch = Line(fine_start, fine_end, color=self.TERMINAL_COLOR, stroke_width=1)
+            self.nerve_endings.add(fine_branch)
+    
+    def animate_complete_neuron(self):
+        """Animate all components simultaneously"""
+        
+        # Create ALL components at the same time with staggered timing
+        self.play(
+            DrawBorderThenFill(self.soma),
+            DrawBorderThenFill(self.nucleus),
+            LaggedStartMap(FadeIn, self.cytoplasm_ellipses, lag_ratio=0.1),  # Show organelles
+            LaggedStartMap(GrowFromCenter, self.dendrites, lag_ratio=0.05),
+            ShowCreation(self.axon),
+            LaggedStartMap(FadeIn, self.axon_dots, lag_ratio=0.05),  # Show axon dots (NEW)
+            LaggedStartMap(FadeIn, self.schwann_cells, lag_ratio=0.08),
+            LaggedStartMap(FadeIn, self.myelin_sheaths, lag_ratio=0.08),
+            LaggedStartMap(FadeIn, self.nodes_of_ranvier, lag_ratio=0.1),
+            LaggedStartMap(ShowCreation, self.nerve_endings, lag_ratio=0.04),
+            run_time=1.5
+        )
+        
+        self.wait()
+
+        brace = Brace(self.nerve_endings, RIGHT)
+        a = Text("Nerve\nEnding").next_to(brace, RIGHT)
+
+        self.play(GrowFromCenter(brace), ShowCreation(a))
+        
+        self.wait()
+
+        b = Text("Axon").next_to(self.axon, DOWN).shift(DOWN*0.17+LEFT*0.33)
+        self.play(Write(b))
+
+        self.wait(1)
+
+        arrow = Arrow(self.nucleus.get_bottom()+DOWN*1.8, self.nucleus.get_center(), stroke_width=4).set_color(WHITE).shift(DOWN*0.4)
+        self.play(GrowArrow(arrow))
+        c = Text("Soma").next_to(arrow, DOWN).shift(DOWN*0.03)
+        self.play(ShowCreation(c))
+
+        self.wait()
+
+        arrow1 = Arrow(self.nucleus.get_top()+UP*2.3, self.nucleus.get_center()+UP*0.2, stroke_width=4).shift(DOWN*0.4).set_color(TEAL_E)
+        self.play(GrowArrow(arrow1))
+        d = Text("Nucleus").next_to(arrow1, UP).shift(UP*0.03)
+        self.play(ShowCreation(d))
+
+        self.wait()
+
+        arrow3 = Arrow(self.nucleus.get_top()+UP*2.3, self.nucleus.get_center()+UP*0.2, stroke_width=4).set_color(GREY_A)
+        arrow3.rotate(-PI/2.38).shift(RIGHT*2.14+DOWN*0.1)
+
+        self.play(ShowCreation(arrow3))
+
+        e = Text("Dendrites").next_to(arrow3, RIGHT).shift(UP*0.3+RIGHT*0.02)
+        self.play(ShowCreation(e))
+
+        self.wait(2)
+        self.play(FadeOut(VGroup(a,b,c,d,e,arrow3, arrow, arrow1, brace)))
+        self.play(self.camera.frame.animate.shift(LEFT*0.4).scale(0.9))
+
+        # Information flow animation - 3 iterations using your pulse style
+        def create_pulse(start_point, color):
+            pulse = Dot(radius=0.07, color=color, fill_opacity=1)
+            pulse.move_to(start_point)
+            glow = Circle(radius=0.18, color=color, fill_opacity=0.5, stroke_opacity=0)
+            glow.move_to(start_point)
+            return pulse, glow
+
+        for iteration in range(1):
+            pulses = VGroup()
+            glows = VGroup()
+            
+            # Create pulses at dendrite endpoints
+            dendrite_endpoints = []
+            for dendrite in self.dendrites:
+                if isinstance(dendrite, Line):
+                    endpoint = dendrite.get_end()
+                    dendrite_endpoints.append(endpoint)
+            
+            # Select some dendrite endpoints for pulses (not all to avoid clutter)
+            selected_endpoints = dendrite_endpoints[::3]  # Every 3rd endpoint
+            
+            for endpoint in selected_endpoints:
+                pulse, glow = create_pulse(endpoint, "#FF0000")
+                pulses.add(pulse)
+                glows.add(glow)
+            
+            # Show pulses appearing at dendrites
+            self.play(
+                LaggedStartMap(FadeIn, pulses, lag_ratio=0.1),
+                LaggedStartMap(FadeIn, glows, lag_ratio=0.1),
+                run_time=0.5
+            )
+            
+            # Move pulses from dendrites to soma center
+            soma_center = self.soma.get_center()
+            
+            animations = []
+            for pulse, glow in zip(pulses, glows):
+                animations.append(pulse.animate.move_to(soma_center))
+                animations.append(glow.animate.move_to(soma_center))
+            
+            self.play(*animations, run_time=1.2)
+            
+            # Merge pulses at soma and create single pulse for axon
+            self.play(FadeOut(pulses), FadeOut(glows), run_time=0.2)
+            
+            # Create larger pulse at soma
+            soma_pulse, soma_glow = create_pulse(soma_center, "#FF0000")
+            soma_pulse.scale(1.5)  # Make it slightly larger
+            soma_glow.scale(1.2)
+            
+            self.play(FadeIn(soma_pulse), FadeIn(soma_glow), run_time=0.8)
+            
+            # Move pulse along axon path
+            axon_positions = []
+            num_axon_steps = 15
+            for i in range(num_axon_steps + 1):
+                t = i / num_axon_steps
+                pos = self.get_axon_position(t)
+                axon_positions.append(pos)
+            
+            # Animate along axon
+            for pos in axon_positions[1:]:
+                self.play(
+                    soma_pulse.animate.move_to(pos),
+                    soma_glow.animate.move_to(pos),
+                    run_time=0.25
+                )
+            
+            # At nerve endings, split into multiple pulses
+            nerve_ending_positions = []
+            for ending in self.nerve_endings:
+                if isinstance(ending, Line):
+                    nerve_ending_positions.append(ending.get_end())
+            
+            # Select some nerve ending positions
+            selected_nerve_endings = nerve_ending_positions[::2]  # Every 2nd ending
+            
+            # Create multiple pulses at nerve endings
+            nerve_pulses = VGroup()
+            nerve_glows = VGroup()
+            
+            for ending_pos in selected_nerve_endings:
+                pulse, glow = create_pulse(soma_pulse.get_center(), "#FF0606")
+                nerve_pulses.add(pulse)
+                nerve_glows.add(glow)
+            
+            # Hide soma pulse and show nerve pulses
+            self.play(
+                FadeOut(soma_pulse),
+                FadeOut(soma_glow),
+                FadeIn(nerve_pulses),
+                FadeIn(nerve_glows),
+                run_time=0.35
+            )
+            
+            # Move to nerve endings
+            animations = []
+            for i, (pulse, glow) in enumerate(zip(nerve_pulses, nerve_glows)):
+                if i < len(selected_nerve_endings):
+                    animations.append(pulse.animate.move_to(selected_nerve_endings[i]))
+                    animations.append(glow.animate.move_to(selected_nerve_endings[i]))
+            
+            self.play(*animations, run_time=0.6)
+            
+            # Fade out pulses at nerve endings
+            self.play(
+                LaggedStartMap(FadeOut, nerve_pulses, lag_ratio=0.05),
+                LaggedStartMap(FadeOut, nerve_glows, lag_ratio=0.05),
+                run_time=0.5
+            )
+            
+            # Short pause between iterations
+            if iteration < 2:  # Don't wait after last iteration
+                self.wait(0.5)
+        
+        self.wait(2)
+
+
 
 
 class NeuronsIntro(Scene):
