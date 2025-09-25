@@ -560,9 +560,39 @@ class BackPropSimple(Scene):
         self.play(
             Transform(b, b1_expanded.move_to(b)),
             Transform(a, w1_expanded.move_to(a)) )
-        
+
 
         self.wait(2)
+
+        self.play(VGroup(a,b).animate.shift(UP*1))
+
+        # Create the chain elements
+        w2_tex = Tex(r"w_1 / b_1").scale(1.0).set_color(RED_C)
+        arrow1 = Tex(r"\leftarrow").scale(1.0) 
+        z1_tex = Tex(r"z_1").scale(1.0).set_color(MAROON_C)
+        arrow2 = Tex(r"\leftarrow").scale(1.0)
+        fz1_tex = Tex(r"f(z_1)").scale(1.0).set_color(PURPLE_C)
+        arrow25 = Tex(r"\leftarrow").scale(1.0)
+        z2_tex = Tex(r"z_2").scale(1.0).set_color(BLUE_C)
+        arrow26 = Tex(r"\leftarrow").scale(1.0)
+        yhat_tex = Tex(r"\hat{y}").scale(1.0).set_color(GREEN_C)
+        arrow3 = Tex(r"\leftarrow").scale(1.0)
+        loss_tex = Tex(r"L").scale(1.0).set_color(YELLOW)
+        
+        # Arrange horizontally
+        chain = VGroup(loss_tex, arrow3, yhat_tex, arrow26, z2_tex, arrow25,fz1_tex, arrow2, z1_tex, arrow1, w2_tex).arrange(RIGHT, buff=0.4).next_to(b, DOWN, buff=1.26).scale(0.7*1.52)
+        
+        # Add the chain to scene
+        self.play(GrowFromCenter(chain))
+
+        self.wait(2)
+
+        self.play(FadeOut(chain))
+
+        self.play(VGroup(a,b).animate.shift(DOWN*1))
+
+        self.wait(1)
+
 
         self.play(
             Transform(b, Tex(r"\frac{\partial L}{\partial b_1} = (\hat{y} - y) \cdot f'(z_2) \cdot w_2 \cdot f'(z_1)").move_to(b)),
