@@ -3,6 +3,215 @@ import numpy as np
 
 GRAY = GREY
 
+class WhyActivation(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.1).shift(RIGHT*0.05)
+
+
+        # Create 5 input layer nodes (GREEN, radius=0.36)
+        input_layer = []
+        input_labels = []
+        for i in range(5):
+            node = Circle(radius=0.36, color=GREEN, fill_opacity=1, stroke_width=6, stroke_color=GREEN_B)
+            node.move_to(LEFT * 6 + UP * (2.5 - i * 1.2))
+            input_layer.append(node)
+            
+            # Create input labels (x1, x2, x3, x4, x5)
+            label = Tex(f"x_{{{i+1}}}", color=BLACK, font_size=50).set_color(BLACK)
+            label.move_to(node.get_center())
+            input_labels.append(label)
+
+
+        # Create hidden layer 1 with 4 neurons
+        hidden_layer1 = []
+        hidden1_labels = []
+        for i in range(4):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(LEFT * 3 + UP * (2.4 - i * 1.6))
+            hidden_layer1.append(node)
+            
+            # Create activation function labels f(z^(1)_i)
+            label = Tex(f"f(z^{{(1)}}_{{{i+1}}})", color=WHITE, font_size=28).set_color(BLACK)
+            label.move_to(node.get_center())
+            hidden1_labels.append(label)
+
+
+        # Create hidden layer 2 with 5 neurons
+        hidden_layer2 = []
+        hidden2_labels = []
+        for i in range(5):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(ORIGIN + UP * (3.2 - i * 1.6))
+            hidden_layer2.append(node)
+            
+            # Create activation function labels f(z^(2)_i)
+            label = Tex(f"f(z^{{(2)}}_{{{i+1}}})", color=WHITE, font_size=28).set_color(BLACK)
+            label.move_to(node.get_center())
+            hidden2_labels.append(label)
+
+
+        # Create hidden layer 3 with 3 neurons
+        hidden_layer3 = []
+        hidden3_labels = []
+        for i in range(3):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(RIGHT * 3 + UP * (1.6 - i * 1.6))
+            hidden_layer3.append(node)
+            
+            # Create activation function labels f(z^(3)_i)
+            label = Tex(f"f(z^{{(3)}}_{{{i+1}}})", color=WHITE, font_size=28).set_color(BLACK)
+            label.move_to(node.get_center())
+            hidden3_labels.append(label)
+
+
+        # Create output layer
+        output_node = Circle(radius=0.72, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+        output_node.move_to(RIGHT * 6)
+        
+        # Create output label f(z^(4)_1)
+        output_label = Tex(f"f(z^{{(4)}}_1)", color=WHITE, font_size=42).set_color(BLACK)
+        output_label.move_to(output_node.get_center())
+
+
+        # Create all connections
+        connections = []
+
+
+        # Input to Hidden Layer 1
+        for input_node in input_layer:
+            for hidden_node in hidden_layer1:
+                line = Line(input_node.get_center(), hidden_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+
+
+        # Hidden Layer 1 to Hidden Layer 2
+        for h1_node in hidden_layer1:
+            for h2_node in hidden_layer2:
+                line = Line(h1_node.get_center(), h2_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+
+
+        # Hidden Layer 2 to Hidden Layer 3
+        for h2_node in hidden_layer2:
+            for h3_node in hidden_layer3:
+                line = Line(h2_node.get_center(), h3_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+
+
+        # Hidden Layer 3 to Output
+        for h3_node in hidden_layer3:
+            line = Line(h3_node.get_center(), output_node.get_center(), 
+                      stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+            connections.append(line)
+
+
+        # Group all nodes and labels for organized display
+        all_nodes = input_layer + hidden_layer1 + hidden_layer2 + hidden_layer3 + [output_node]
+        all_labels = input_labels + hidden1_labels + hidden2_labels + hidden3_labels + [output_label]
+
+
+        # Animation sequence: First show all nodes, then all labels, then all connections
+        self.play(*[GrowFromCenter(node) for node in all_nodes])
+        self.play(*[Write(label) for label in all_labels])
+        self.play(*[ShowCreation(line) for line in connections])
+
+        self.wait(2)
+        
+        a = Tex(r"f(z) \rightarrow Activation \ function", font_size=64).shift(DOWN*1.28)
+        a.to_edge(DOWN).shift(DOWN*1.29)
+
+        self.play(self.camera.frame.animate.scale(1.1).shift(DOWN*0.62), Write(a))
+        self.wait(2)
+        self.play(self.camera.frame.animate.scale(1/1.1).shift(UP*0.62), Uncreate(a))
+        self.wait(2)
+
+        # CREATE NEW Z-ONLY LABELS FOR BLUE NEURONS
+        # Hidden layer 1 z labels
+        hidden1_z_labels = []
+        for i in range(4):
+            z_label = Tex(f"z^{{(1)}}_{{{i+1}}}", color=BLACK, font_size=40).set_color(BLACK)
+            z_label.move_to(hidden_layer1[i].get_center())
+            hidden1_z_labels.append(z_label)
+
+        # Hidden layer 2 z labels  
+        hidden2_z_labels = []
+        for i in range(5):
+            z_label = Tex(f"z^{{(2)}}_{{{i+1}}}", color=BLACK, font_size=40).set_color(BLACK)
+            z_label.move_to(hidden_layer2[i].get_center())
+            hidden2_z_labels.append(z_label)
+
+        # Hidden layer 3 z labels
+        hidden3_z_labels = []
+        for i in range(3):
+            z_label = Tex(f"z^{{(3)}}_{{{i+1}}}", color=BLACK, font_size=40).set_color(BLACK)
+            z_label.move_to(hidden_layer3[i].get_center())
+            hidden3_z_labels.append(z_label)
+
+        # Output z label
+        output_z_label = Tex(f"z^{{(4)}}_1", color=BLACK, font_size=58).set_color(BLACK)
+        output_z_label.move_to(output_node.get_center())
+
+        # Transform all blue neuron labels from f(z) to just z
+        transform_animations = []
+        
+        # Transform hidden layer 1 labels
+        for old_label, new_label in zip(hidden1_labels, hidden1_z_labels):
+            transform_animations.append(Transform(old_label, new_label))
+            
+        # Transform hidden layer 2 labels
+        for old_label, new_label in zip(hidden2_labels, hidden2_z_labels):
+            transform_animations.append(Transform(old_label, new_label))
+            
+        # Transform hidden layer 3 labels
+        for old_label, new_label in zip(hidden3_labels, hidden3_z_labels):
+            transform_animations.append(Transform(old_label, new_label))
+            
+        # Transform output label
+        transform_animations.append(Transform(output_label, output_z_label))
+
+        # Play all transformations simultaneously
+        self.play(*transform_animations)
+        
+        self.wait(3)
+   
+
+        weighted_sum_formula = Tex(r"z_i^{(l)} = \sum_{j=1}^{n} w_{ij}^{(l-1)} f(z_j^{(l-1)}) + b_i^{(l)}", font_size=76)
+        weighted_sum_formula.shift(RIGHT*15)
+
+        self.play(Write(weighted_sum_formula), self.camera.frame.animate.shift(RIGHT*15))
+        self.wait(2)
+
+        self.play(weighted_sum_formula.animate.shift(UP*1.8))
+
+        b = Tex(r"f(z_i^{(l)}) \rightarrow Non-Linear \ Output", font_size=64).shift(DOWN*1.28)
+        b.next_to(weighted_sum_formula, DOWN).shift(DOWN*1).scale(1.26)
+        self.play(Write(b[:2]), Write(b[7]))
+        self.wait(2)
+
+        self.play(TransformFromCopy(weighted_sum_formula, b[2:7]))
+
+        self.play(GrowArrow(b[8]))
+        self.play(Write(b[9:]))
+
+        self.wait(2)
+
+        self.play(FadeOut(b), weighted_sum_formula.animate.shift(DOWN*1.5))
+
+
+        self.play(
+                  Transform(weighted_sum_formula, Tex(r"\hat{y} = W^{[L]}\Big( W^{[L-1]}\Big( W^{[L-2]}(\cdots (W^{[1]}x + b^{[1]}) + b^{[2]}) \cdots \Big) + b^{[L-1]} \Big) + b^{[L]}").move_to(weighted_sum_formula).scale(0.95)))
+        
+        rect = SurroundingRectangle(weighted_sum_formula, color=YELLOW, buff=0.3, stroke_width=4).scale(1)
+        self.play(ShowCreation(rect))
+
+        a = Text("Just A Big Linear Model", weight=BOLD).next_to(rect, DOWN).shift(DOWN*0.49).scale(1.39).set_color(RED_B)
+        self.play(Write(a), run_time=0.4)
+
+        self.wait(2)
+
 class CleanNeuralNetwork(Scene):
     def construct(self):
         self.camera.frame.scale(1.1).shift(RIGHT*0.05)
