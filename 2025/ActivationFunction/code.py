@@ -3,6 +3,125 @@ import numpy as np
 
 GRAY = GREY
 
+class CleanNeuralNetwork(Scene):
+    def construct(self):
+        self.camera.frame.scale(1.1).shift(RIGHT*0.05)
+
+        # Create 5 input layer nodes (GREEN, radius=0.36)
+        input_layer = []
+        for i in range(5):
+            node = Circle(radius=0.36, color=GREEN, fill_opacity=1, stroke_width=6, stroke_color=GREEN_B)
+            node.move_to(LEFT * 6 + UP * (2.5 - i * 1.2))
+            input_layer.append(node)
+
+        # Create hidden layer 1 with 4 neurons
+        hidden_layer1 = []
+        for i in range(4):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(LEFT * 3 + UP * (2.4 - i * 1.6))
+            hidden_layer1.append(node)
+
+        # Create hidden layer 2 with 5 neurons
+        hidden_layer2 = []
+        for i in range(5):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(ORIGIN + UP * (3.2 - i * 1.6))
+            hidden_layer2.append(node)
+
+        # Create hidden layer 3 with 3 neurons
+        hidden_layer3 = []
+        for i in range(3):
+            node = Circle(radius=0.5, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+            node.move_to(RIGHT * 3 + UP * (1.6 - i * 1.6))
+            hidden_layer3.append(node)
+
+        # Create output layer
+        output_node = Circle(radius=0.72, color=BLUE_C, fill_opacity=1, stroke_width=8, stroke_color=BLUE_B)
+        output_node.move_to(RIGHT * 6)
+
+        # Create all connections
+        connections = []
+
+        # Input to Hidden Layer 1
+        for input_node in input_layer:
+            for hidden_node in hidden_layer1:
+                line = Line(input_node.get_center(), hidden_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+
+        # Hidden Layer 1 to Hidden Layer 2
+        for h1_node in hidden_layer1:
+            for h2_node in hidden_layer2:
+                line = Line(h1_node.get_center(), h2_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+
+        # Hidden Layer 2 to Hidden Layer 3
+        for h2_node in hidden_layer2:
+            for h3_node in hidden_layer3:
+                line = Line(h2_node.get_center(), h3_node.get_center(), 
+                          stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+                connections.append(line)
+
+        # Hidden Layer 3 to Output
+        for h3_node in hidden_layer3:
+            line = Line(h3_node.get_center(), output_node.get_center(), 
+                      stroke_width=2, color=GREY_A, z_index=-1, stroke_opacity=0.6)
+            connections.append(line)
+
+        # Show the network structure
+        all_nodes = input_layer + hidden_layer1 + hidden_layer2 + hidden_layer3 + [output_node]
+
+        # Display everything at once
+        self.play(*[ShowCreation(node) for node in all_nodes])
+        self.play(*[ShowCreation(line) for line in connections])
+        self.wait(2)
+
+
+        self.play(
+            Transform(output_node, Circle(radius=0.72, color=MAROON_C, fill_opacity=1, stroke_width=8, stroke_color=MAROON_B).move_to(output_node)),  
+        )
+
+        self.wait(2)
+
+        a = Tex(r"\sigma", font_size=124).move_to(output_node).set_color(BLACK)
+        self.play(Write(a))
+        self.wait(2)
+
+        self.play(Transform(a, Tex(r"z", font_size=140).move_to(output_node).set_color(BLACK)))
+        self.wait(2)
+
+
+        # Transform hidden layer 1 to PURPLE
+        self.play(
+            *[Transform(node, Circle(radius=0.5, color=PURPLE_C, fill_opacity=1, stroke_width=8, stroke_color=PURPLE_A).move_to(node)) for node in hidden_layer1],
+            *[Transform(node, Circle(radius=0.5, color=TEAL_C, fill_opacity=1, stroke_width=8, stroke_color=TEAL_A).move_to(node)) for node in hidden_layer2],
+            *[Transform(node, Circle(radius=0.5, color=RED_C, fill_opacity=1, stroke_width=8, stroke_color=RED_A).move_to(node)) for node in hidden_layer3]
+
+        )
+
+        self.wait(5)
+
+        
+
+
+        # Transform each neuron in hidden layer 1 to different colors
+        self.play(
+            Transform(hidden_layer1[0], Circle(radius=0.5, color="#F33E3E", fill_opacity=1, stroke_width=8, stroke_color="#F78A8A").move_to(hidden_layer1[0])),
+            Transform(hidden_layer1[1], Circle(radius=0.5, color="#28E2D5", fill_opacity=1, stroke_width=8, stroke_color="#7DE8E0").move_to(hidden_layer1[1])),
+            Transform(hidden_layer1[2], Circle(radius=0.5, color="#22B9DB", fill_opacity=1, stroke_width=8, stroke_color="#73CDF1").move_to(hidden_layer1[2])),
+            Transform(hidden_layer1[3], Circle(radius=0.5, color="#45D692", fill_opacity=1, stroke_width=8, stroke_color="#C8E6D0").move_to(hidden_layer1[3])),
+            Transform(hidden_layer2[0], Circle(radius=0.5, color="#F0CF61", fill_opacity=1, stroke_width=8, stroke_color="#FFF5D6").move_to(hidden_layer2[0])),
+            Transform(hidden_layer2[1], Circle(radius=0.5, color="#F05FF0", fill_opacity=1, stroke_width=8, stroke_color="#EED2EE").move_to(hidden_layer2[1])),
+            Transform(hidden_layer2[2], Circle(radius=0.5, color="#49EBC3", fill_opacity=1, stroke_width=8, stroke_color="#C7EDE7").move_to(hidden_layer2[2])),
+            Transform(hidden_layer2[3], Circle(radius=0.5, color="#E3C240", fill_opacity=1, stroke_width=8, stroke_color="#FBF0C4").move_to(hidden_layer2[3])),
+            Transform(hidden_layer2[4], Circle(radius=0.5, color="#A122D7", fill_opacity=1, stroke_width=8, stroke_color="#D7C4E9").move_to(hidden_layer2[4])),
+            Transform(hidden_layer3[0], Circle(radius=0.5, color="#B8760C", fill_opacity=1, stroke_width=8, stroke_color="#FDE2C7").move_to(hidden_layer3[0])),
+            Transform(hidden_layer3[1], Circle(radius=0.5, color="#19974F", fill_opacity=1, stroke_width=8, stroke_color="#C1F0D4").move_to(hidden_layer3[1])),
+            Transform(hidden_layer3[2], Circle(radius=0.5, color="#164A6C", fill_opacity=1, stroke_width=8, stroke_color="#D6EAF8").move_to(hidden_layer3[2]))
+        )
+        self.wait(2)
+
 class TanhScene(Scene):
     def construct(self):
         
