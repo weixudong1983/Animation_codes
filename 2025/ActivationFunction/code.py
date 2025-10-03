@@ -136,15 +136,54 @@ class ReLUScene(Scene):
         relu_title = Text("ReLU Function", font_size=40, color=GREEN)
         relu_title.to_corner(UL, buff=0.5)
 
-        relu_formula = Tex(r"ReLU(z) = \max(0, z)", font_size=32, color=GREEN)
+        relu_formula = Tex(r"ReLU(z) = \max(0, z)", font_size=32, color=GREEN).set_color(GREEN)
         relu_formula.next_to(relu_title, DOWN, buff=0.2)
         relu_formula.shift(RIGHT*1.8+DOWN*1.5)
       
         # Initial derivative formula
-        derivative_formula_1 = Tex(r"ReLU'(z) = \begin{cases} 1 & if  \ z > 0 \\ 0 & if  \ z \leq 0 \end{cases}", 
-                                 font_size=26, color=ORANGE)
+        derivative_formula_1 = Tex(r"ReLU'(z) = \begin{cases} 1 & \ if \ z > 0 \\ 0 & \ if \ z \leq 0 \end{cases}", 
+                                 font_size=26, color=ORANGE).set_color(ORANGE)
         derivative_formula_1.next_to(relu_formula, DOWN, buff=0.4)
 
+        # Leaky ReLU components (initially hidden)
+        alpha = 0.1  # Leaky ReLU parameter
+        
+        # Leaky ReLU function
+        leaky_relu_points = []
+        for x in x_vals:
+            leaky_relu_val = max(alpha * x, x)  # Leaky ReLU function
+            leaky_relu_points.append(axes.c2p(x, leaky_relu_val))
+
+        leaky_relu_graph = VMobject()
+        leaky_relu_graph.set_points_as_corners(leaky_relu_points)
+        leaky_relu_graph.set_stroke(BLUE, width=6)
+
+        # Leaky ReLU derivative function
+        leaky_relu_derivative_points = []
+        for x in x_vals:
+            derivative_val = 1 if x > 0 else alpha  # Leaky ReLU derivative
+            leaky_relu_derivative_points.append(axes.c2p(x, derivative_val * 0.8))  # Scale for visibility
+
+        leaky_relu_derivative_graph = VMobject()
+        leaky_relu_derivative_graph.set_points_as_corners(leaky_relu_derivative_points)
+        leaky_relu_derivative_graph.set_stroke(RED, width=6).shift(DOWN*0.066)
+
+        # Leaky ReLU title and formulas
+        leaky_relu_title = Text("Leaky ReLU Function", font_size=40, color=BLUE)
+        leaky_relu_title.to_corner(UL, buff=0.5)
+
+        leaky_relu_formula = Tex(r"LReLU(z) = \max(\alpha z, z)", font_size=32, color=BLUE).set_color(BLUE)
+        leaky_relu_formula.move_to(relu_formula)
+
+        alpha_parameter = Tex(r"\alpha = 0.1", font_size=28, color=BLUE).set_color(BLUE)
+        alpha_parameter.next_to(leaky_relu_formula, ORIGIN).shift(DOWN*0.4)
+
+        leaky_derivative_formula = Tex(r"LReLU'(z) = \begin{cases} 1 & \ if \ z > 0 \\ \alpha & \ if \ z \leq 0 \end{cases}", 
+                                     font_size=26, color=RED).set_color(RED)
+        leaky_derivative_formula.move_to(derivative_formula_1).shift(DOWN*0.42)
+
+        # New y-axis label for Leaky ReLU
+        y_label_leaky = Tex("LReLU(z)", font_size=48, color=WHITE).move_to(y_label)
 
         # Animation
         self.play(ShowCreation(axes))
@@ -152,10 +191,25 @@ class ReLUScene(Scene):
         self.wait(1)
 
         self.play(Write(relu_formula))
-        self.play(ShowCreation(relu_graph))
+        self.play(ShowCreation(relu_graph), run_time=2)
         self.wait(2)
 
         self.play(Write(derivative_formula_1))
-        self.play(ShowCreation(relu_derivative_graph))
-        self.wait(5)  # Wait 5 seconds as requested
+        self.play(ShowCreation(relu_derivative_graph) , run_time=2)
+        self.wait(2.8)  # Wait as requested
+
+        # Transform to Leaky ReLU
+        self.play(
+            Transform(relu_formula, leaky_relu_formula),
+            Transform(y_label, y_label_leaky),
+            Transform(relu_graph, leaky_relu_graph),
+            Write(alpha_parameter),
+            Transform(derivative_formula_1, leaky_derivative_formula),
+            Transform(relu_derivative_graph, leaky_relu_derivative_graph),
+
+            run_time=1.2
+        )
+        
+        self.wait(3)
+
 
