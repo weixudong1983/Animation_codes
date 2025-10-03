@@ -1,6 +1,124 @@
 from manimlib import *
 import numpy as np
 
+GRAY = GREY
+
+class TanhScene(Scene):
+    def construct(self):
+        
+        self.camera.frame.scale(0.65).shift(UP*0.34)
+        # Set up axes for Tanh function (no ticks)
+        axes = Axes(
+            x_range=[-3, 3, 1],
+            y_range=[-2, 2, 0.5],
+            axis_config={
+                "stroke_width": 4,
+                "include_tip": True,
+                "include_ticks": False,  # Removed ticks
+                "numbers_to_exclude": [0],
+            },
+        )
+
+        # Create axis labels
+        x_label = Tex("z", font_size=48, color=WHITE).next_to(axes.x_axis.get_end(), RIGHT, buff=0.2)
+        y_label = Tex("tanh(z)", font_size=48, color=WHITE).next_to(axes.y_axis.get_end(), UP, buff=0.2)
+
+        # Tanh function
+        x_vals = np.linspace(-3, 3, 1000)
+        tanh_points = []
+        for x in x_vals:
+            tanh_val = np.tanh(x)  # Tanh function
+            tanh_points.append(axes.c2p(x, tanh_val))
+
+        tanh_graph = VMobject()
+        tanh_graph.set_points_as_corners(tanh_points)
+        tanh_graph.set_stroke(PURPLE, width=6)
+
+        # Tanh derivative function
+        tanh_derivative_points = []
+        for x in x_vals:
+            derivative_val = 1 - np.tanh(x)**2  # Tanh derivative: sech²(x) = 1 - tanh²(x)
+            tanh_derivative_points.append(axes.c2p(x, derivative_val))
+
+        tanh_derivative_graph = VMobject()
+        tanh_derivative_graph.set_points_as_corners(tanh_derivative_points)
+        tanh_derivative_graph.set_stroke(YELLOW, width=6)
+
+        # Tanh title and formula positioned in top left
+        tanh_title = Text("Tanh Function", font_size=40, color=PURPLE)
+        tanh_title.to_corner(UL, buff=0.5)
+
+        tanh_formula = Tex(r"\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}", font_size=32, color=PURPLE).set_color(PURPLE)
+        tanh_formula.next_to(tanh_title, DOWN, buff=0.2)
+        tanh_formula.shift(RIGHT*2.299+DOWN*1)
+
+        # Derivative formula
+        derivative_formula = Tex(r"\tanh'(z) = 1 - \tanh^2(z)", font_size=30, color=YELLOW).set_color(YELLOW)
+        derivative_formula.next_to(tanh_formula, DOWN, buff=0.5)
+
+        # Zero-centered note
+        zero_centered = Tex(r"\text{Zero-centered}", font_size=24, color=GREEN)
+        zero_centered.next_to(derivative_formula, DOWN, buff=0.4)
+
+        # Horizontal asymptotes - visually shifted but labeled as 1 and -1
+        upper_asymptote = DashedLine(
+            start=axes.c2p(-3, 1.03), 
+            end=axes.c2p(3, 1.03), 
+            color=GRAY, 
+            stroke_width=2
+        )
+        lower_asymptote = DashedLine(
+            start=axes.c2p(-3, -1.03), 
+            end=axes.c2p(3, -1.03), 
+            color=GRAY, 
+            stroke_width=2
+        )
+
+        # Asymptote labels - just the numbers
+        upper_label = Tex("1", font_size=30, color=GRAY).next_to(upper_asymptote.get_end(), RIGHT, buff=0.1)
+        lower_label = Tex("-1", font_size=30, color=GRAY).next_to(lower_asymptote.get_end(), RIGHT, buff=0.1)
+        
+        derivative_formula.next_to(upper_label, UP).shift(UP*0.34+LEFT*0.37)
+        # Animation
+        self.play(ShowCreation(axes))
+        self.play(Write(x_label), Write(y_label))
+
+        # Show asymptotes first
+        self.play(
+            ShowCreation(upper_asymptote),
+            ShowCreation(lower_asymptote),
+            Write(upper_label),
+            Write(lower_label)
+        )
+        self.wait(0.5)
+
+        self.play(Write(tanh_formula))
+        self.play(ShowCreation(tanh_graph), run_time=2.5)
+        self.wait(1.5)
+
+        self.play(Write(zero_centered))
+        self.wait(2)
+
+        self.play(Write(derivative_formula))
+        self.play(ShowCreation(tanh_derivative_graph), run_time=2)
+        self.wait(1.5)
+
+        self.wait(3)
+
+        # Highlight key properties with brief animations
+        self.play(
+            tanh_graph.animate.set_stroke(width=8),
+            run_time=0.5
+        )
+        self.play(
+            tanh_graph.animate.set_stroke(width=6),
+            run_time=0.5
+        )
+        self.wait(2)
+
+
+
+
 
 class SigmoidScene(Scene):
     def construct(self):
