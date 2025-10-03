@@ -331,3 +331,104 @@ class ReLUScene(Scene):
         self.wait(3)
 
 
+
+class SwishScene(Scene):
+    def construct(self):
+        
+        self.camera.frame.scale(0.65)
+        # Set up axes for Swish function (no ticks)
+        axes = Axes(
+            x_range=[-3, 3, 1],
+            y_range=[-1, 2.3, 1],
+            axis_config={
+                "stroke_width": 4,
+                "include_tip": True,
+                "include_ticks": False,  # Removed ticks
+                "numbers_to_exclude": [0],
+            },
+        )
+
+        # Create axis labels
+        x_label = Tex("z", font_size=48, color=WHITE).next_to(axes.x_axis.get_end(), RIGHT, buff=0.2)
+        y_label = Tex("Swish(z)", font_size=38, color=WHITE).next_to(axes.y_axis.get_end(), UP, buff=0.2)
+
+        # Swish function
+        x_vals = np.linspace(-3, 3, 1000)
+        swish_points = []
+        for x in x_vals:
+            sigmoid_val = 1 / (1 + np.exp(-x))
+            swish_val = x * sigmoid_val  # Swish function: x * sigmoid(x)
+            swish_points.append(axes.c2p(x, swish_val))
+
+        swish_graph = VMobject()
+        swish_graph.set_points_as_corners(swish_points)
+        swish_graph.set_stroke(MAROON_B, width=6)
+
+        # Swish derivative function
+        swish_derivative_points = []
+        for x in x_vals:
+            sigmoid_val = 1 / (1 + np.exp(-x))
+            derivative_val = sigmoid_val * (1 + x * (1 - sigmoid_val))  # Swish derivative
+            swish_derivative_points.append(axes.c2p(x, derivative_val))
+
+        swish_derivative_graph = VMobject()
+        swish_derivative_graph.set_points_as_corners(swish_derivative_points)
+        swish_derivative_graph.set_stroke(YELLOW_B, width=6)
+
+        # Swish title and formula positioned in top left
+        swish_title = Text("Swish Function", font_size=40, color=MAROON_B)
+        swish_title.to_corner(UL, buff=0.5)
+
+        swish_formula = Tex(r"Swish(z) = z \cdot \sigma(z)", font_size=30, color=MAROON_B).set_color(MAROON_B)
+        swish_formula.next_to(swish_title, DOWN, buff=0.2)
+        swish_formula.shift(RIGHT*2.299+DOWN*1)
+
+        # Alternative formula showing sigmoid explicitly
+        swish_formula_expanded = Tex(r"Swish(z) = \frac{z}{1 + e^{-z}}", font_size=30, color=MAROON_B).set_color(MAROON_B)
+        swish_formula_expanded.next_to(swish_formula, DOWN, buff=0.3)
+
+        # Derivative formula
+        derivative_formula = Tex(r"Swish'(z) = \sigma(z)(1 + z(1-\sigma(z)))", font_size=36, color=YELLOW_B).set_color(YELLOW_B)
+        derivative_formula.next_to(swish_formula_expanded, DOWN, buff=0.5)
+
+
+        # Zero line for reference
+        zero_line = DashedLine(
+            start=axes.c2p(-3, 0), 
+            end=axes.c2p(3, 0), 
+            color=GREY, 
+            stroke_width=1,
+            opacity=0.5
+        )
+
+        derivative_formula.next_to(axes.c2p(1.5, 3.5), ORIGIN)
+        
+        # Animation
+        self.play(ShowCreation(axes))
+        self.play(Write(x_label), Write(y_label))
+
+        # Show zero reference line
+        self.play(ShowCreation(zero_line))
+        self.wait(0.5)
+
+        swish_formula.shift(DOWN*0.75+RIGHT*0.29)
+        swish_formula_expanded.shift(DOWN*0.75+RIGHT*0.29)
+        self.play(Write(swish_formula))
+        self.play(Write(swish_formula_expanded))
+        self.wait(1.5)
+
+        self.play(ShowCreation(swish_graph), run_time=2.5)
+
+        self.wait(1)
+
+        self.embed()
+
+        derivative_formula.next_to(axes, DOWN)
+
+
+        self.play(Write(derivative_formula))
+        self.wait()
+        self.play(ShowCreation(swish_derivative_graph), run_time=2)
+        self.wait(1.5)
+
+        self.wait(3)
