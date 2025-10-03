@@ -298,7 +298,7 @@ class ReLUScene(Scene):
 
         leaky_derivative_formula = Tex(r"LReLU'(z) = \begin{cases} 1 & \ if \ z > 0 \\ \alpha & \ if \ z \leq 0 \end{cases}", 
                                      font_size=26, color=RED).set_color(RED)
-        leaky_derivative_formula.move_to(derivative_formula_1).shift(DOWN*0.42)
+        leaky_derivative_formula.move_to(derivative_formula_1)
 
         # New y-axis label for Leaky ReLU
         y_label_leaky = Tex("LReLU(z)", font_size=48, color=WHITE).move_to(y_label)
