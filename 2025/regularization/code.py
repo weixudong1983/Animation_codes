@@ -1,6 +1,104 @@
 from manimlib import *
 import numpy as np
 
+
+class DropOutMath(Scene):
+    def construct(self):
+
+        a = Tex(r"z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}").scale(1.3).shift(UP*1.2)
+
+        self.play(Write(a))
+        self.wait(2)
+
+        b = Tex(r"a^{(l)} = f\big(z^{(l)}\big)")
+        b.scale(1.3).next_to(a, DOWN, buff=0.8)
+
+        self.play(Write(b))
+        self.wait(2)
+
+        self.play( VGroup(a, b).animate.shift(UP*1.35))
+
+        c = Tex(r"r^{(l)}_i \sim \ Bernoulli(1 - p)")
+        c.scale(1.3).next_to(b, DOWN, buff=1.14)
+
+        d = Tex(r"P(r^{(l)}_i = 1) = 1 - p, \quad P(r^{(l)}_i = 0) = p")
+        d.scale(1.3).next_to(c, DOWN, buff=0.8)
+
+        self.play(Write(c))
+        self.wait()
+
+        self.play(Write(d))
+
+
+        rect = SurroundingRectangle(c, buff=0.3, color=YELLOW)
+        self.play(ShowCreation(rect))
+        self.wait(2)
+
+        self.play(Transform(rect, SurroundingRectangle(d, buff=0.3, color=YELLOW)))
+ 
+        self.wait(2)
+
+        e = Tex(r"\tilde{a}^{(l)} = r^{(l)} \odot a^{(l)}")
+
+        e.scale(1.99)
+
+        self.play(ReplacementTransform(VGroup(c, d, a, b, rect),e ))
+
+        self.wait(2)
+
+        self.play(e[10].animate.set_color(RED))
+        self.wait(2)
+
+        temp = Tex(r"""
+        \tilde{a}^{(l)} =
+        \begin{bmatrix}
+        a^{(l)}_1 \\[7pt]
+        a^{(l)}_2 \\[7pt]
+        a^{(l)}_3 \\[7pt]
+        a^{(l)}_4 \\[7pt]
+        a^{(l)}_5 \\[7pt]
+        a^{(l)}_6 \\[7pt]
+        a^{(l)}_7
+        \end{bmatrix}
+        \odot
+        \begin{bmatrix}
+        1 \\[1pt]
+        0 \\[1pt]
+        1 \\[1pt]
+        1 \\[1pt]
+        0 \\[1pt]
+        1 \\[1pt]
+        1 \\[1pt]
+        0 \\[1pt]
+        1 \\[1pt]
+        0
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+        a^{(l)}_1 \\[7pt]
+        0 \\[7pt]
+        a^{(l)}_3 \\[7pt]
+        a^{(l)}_4 \\[7pt]
+        0 \\[7pt]
+        a^{(l)}_6 \\[7pt]
+        0
+        \end{bmatrix}
+        """).move_to(e)
+
+        aa = e.copy()
+        
+        self.play(Transform(e, temp))
+
+        self.wait(2)
+
+        self.play(Transform(e, aa))
+        self.wait(2)
+
+        aa = Tex(r"\tilde{a}^{(l)} = \frac{r^{(l)} \odot a^{(l)}}{1 - p}").move_to(e).scale(1.99)
+        self.play(Transform(e, aa), run_time=0.9)
+
+        self.wait(2)
+
 class DropoutRegularization(Scene):
     def construct(self):
         # Camera + reproducible RNG
