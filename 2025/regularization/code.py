@@ -2,6 +2,206 @@ from manimlib import *
 import numpy as np
 
 
+class EarlyStoppingAnimation(Scene):
+    def construct(self):
+        
+        self.camera.frame.shift(DOWN*0.63)
+
+        # Create axes without ticks and numbers
+        axes = Axes(
+            x_range=[0, 50, 10],
+            y_range=[0, 1, 0.2],
+            width=10,
+            height=6,
+            axis_config={
+                "include_tip": True,
+                "include_numbers": False,
+                "tick_size": 0,
+                "stroke_width": 6,
+            }
+        )
+        axes.shift(DOWN * 0.5)
+        
+        # Create axis labels
+        x_label = Text("Epochs", font_size=46, weight=BOLD).next_to(axes.x_axis, DOWN)
+        y_label = Text("Loss", font_size=46, weight=BOLD).next_to(axes.y_axis, LEFT).rotate(90 * DEGREES)
+        
+        # Define loss functions - both start at y=0.4
+        def training_loss(x):
+            # Starts at 0.4, decreases and saturates lower
+            return 0.4 * np.exp(-0.08 * x) + 0.15
+        
+        def validation_loss(x):
+            # Starts at 0.4, follows training pattern initially but stays higher
+            # Then slowly increases after x=20 (not too parabolic)
+            base_curve = 0.4 * np.exp(-0.08 * x) + 0.2
+            # Add gentle upward curve after epoch 20
+            if x > 20:
+                upturn = 0.0003 * (x - 20) ** 1.8
+            else:
+                upturn = 0
+            return base_curve + upturn
+        
+        # Create graphs with increased stroke width
+        # RED for training, BLUE for validation
+        training_graph = axes.get_graph(
+            training_loss,
+            x_range=[0, 50],
+            color=RED,
+            stroke_width=6
+        )
+        
+        validation_graph = axes.get_graph(
+            validation_loss,
+            x_range=[0, 50],
+            color=BLUE,
+            stroke_width=6
+        )
+        
+        # Create legend in top right corner
+        legend_box = Rectangle(
+            width=3.5,
+            height=1.2,
+            fill_color=BLACK,
+            fill_opacity=0.8,
+            stroke_color=WHITE,
+            stroke_width=2
+        )
+        legend_box.to_corner(UR, buff=0.5).shift(LEFT*0.45+DOWN*1.2)
+        
+        # Training loss legend line (RED)
+        training_line = Line(
+            LEFT * 0.5,
+            RIGHT * 0.5,
+            color=RED,
+            stroke_width=6
+        )
+        training_line.move_to(legend_box.get_center() + UP * 0.3 + LEFT * 1.2)
+        
+        training_text = Text("Training", font_size=24, color=WHITE)
+        training_text.next_to(training_line, RIGHT, buff=0.2)
+        
+        # Validation loss legend line (BLUE)
+        validation_line = Line(
+            LEFT * 0.5,
+            RIGHT * 0.5,
+            color=BLUE,
+            stroke_width=6
+        )
+        validation_line.move_to(legend_box.get_center() + DOWN * 0.3 + LEFT * 1.2)
+        
+        validation_text = Text("Testing", font_size=24, color=WHITE)
+        validation_text.next_to(validation_line, RIGHT, buff=0.2)
+        
+        legend_group = VGroup(legend_box, training_line, training_text, validation_line, validation_text)
+        legend_box.shift(LEFT*0.5)
+        # Animate axes and labels
+        self.play(
+            FadeIn(axes),
+            Write(x_label),
+            Write(y_label),
+            run_time=1.5
+        )
+        self.wait(0.5)
+        
+        # Show legend
+        self.play(
+            FadeIn(legend_group),
+            run_time=1
+        )
+        self.wait(0.5)
+        
+        # Create both graphs first
+        self.play(
+            ShowCreation(training_graph),
+            ShowCreation(validation_graph),
+            run_time=3
+        )
+        self.wait(1)
+        
+        # Create moving dots
+        training_dot = Dot(color=RED, radius=0.13).set_color("#20FF33")
+        validation_dot = Dot(color=BLUE, radius=0.13).set_color("#20FF33")
+        
+        # Initialize dots at starting position
+        training_dot.move_to(axes.c2p(0, training_loss(0)))
+        validation_dot.move_to(axes.c2p(0, validation_loss(0)))
+        
+        # Create ValueTracker for animation
+        epoch_tracker = ValueTracker(0)
+        
+        # Add updaters for dots to trace along the graphs
+        training_dot.add_updater(
+            lambda m: m.move_to(
+                axes.c2p(epoch_tracker.get_value(), training_loss(epoch_tracker.get_value()))
+            )
+        )
+        
+        validation_dot.add_updater(
+            lambda m: m.move_to(
+                axes.c2p(epoch_tracker.get_value(), validation_loss(epoch_tracker.get_value()))
+            )
+        )
+        
+        # Add dots to scene
+        self.play(
+            FadeIn(training_dot),
+            FadeIn(validation_dot),
+            run_time=0.5
+        )
+        
+        # Animate dots moving along curves up to early stopping point (epoch 20)
+        self.play(
+            epoch_tracker.animate.set_value(20),
+            run_time=3,
+            rate_func=linear
+        )
+        
+        # Pause when validation loss is at minimum
+        self.wait(0.8)
+        
+        # Continue animation to show divergence
+        self.play(
+            epoch_tracker.animate.set_value(45),
+            run_time=2,
+            rate_func=linear
+        )
+        
+        self.wait(0.5)
+        
+        # Remove updaters
+        training_dot.clear_updaters()
+        validation_dot.clear_updaters()
+        
+        # Highlight the early stopping point with just a dotted line
+        # Create vertical dashed line at epoch 20
+        early_stop_line = DashedLine(
+            axes.c2p(20, 0),
+            axes.c2p(20, 0.8),
+            color=YELLOW,
+            stroke_width=5,
+            dash_length=0.15
+        )
+        
+        # Add "Early Stopping" label ABOVE the line (on top)
+        early_stop_label = Text(
+            "Early Stopping",
+            font_size=48,
+            color=YELLOW
+        )
+        early_stop_label.next_to(axes.c2p(20, 0.8), UP, buff=0.2)
+        
+        # Animate the dotted line
+        self.play(
+            ShowCreation(early_stop_line),
+            Write(early_stop_label),
+            run_time=1.5
+        )
+        
+        self.wait(3)
+
+
+
 class DropOutMath(Scene):
     def construct(self):
 
