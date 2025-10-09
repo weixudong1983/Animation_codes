@@ -99,6 +99,11 @@ class DropOutMath(Scene):
 
         self.wait(2)
 
+
+
+
+
+
 class DropoutRegularization(Scene):
     def construct(self):
         # Camera + reproducible RNG
@@ -545,6 +550,112 @@ class DropoutRegularization(Scene):
             self.play(*(pulse_anims + color_anims), run_time=1.2)
             self.play(*[FadeOut(p) for p in final_pulses], run_time=0.3)
 
-        self.play(FadeOut(loss_group), run_time=0.8)
+        self.play(FadeOut(loss_group), FadeOut(p_text), run_time=0.8)
+        self.camera.frame.save_state()
+
+        self.play(self.camera.frame.animate.shift(LEFT*0.69+DOWN*0.65))
         
         self.wait(1.0)
+
+
+        # Layer-specific dropout probability visualization
+        self.wait(0.5)
+        
+        # Start with output layer (p=0)
+        output_rect = SurroundingRectangle(
+            output_node,
+            color="#FF0000",
+            fill_color="#FF0000",
+            fill_opacity=0.4,
+            stroke_width=4,
+            buff=0.15
+        )
+        output_p_label = Text("p = 0", weight=BOLD).next_to(output_rect, DOWN, buff=0.5).scale(1.2)
+        
+        self.play(
+            ShowCreation(output_rect),
+            Write(output_p_label),
+            run_time=0.8
+        )
+        self.wait(1.2)
+        
+        # Transform to hidden layer 3 (3 neurons, p=0.3)
+        h3_group = VGroup(*hidden_layer3)
+        h3_rect = SurroundingRectangle(
+            h3_group,
+            color="#FF0000",
+            fill_color="#FF0000",
+            fill_opacity=0.5,
+            stroke_width=4,
+            buff=0.2
+        )
+        h3_p_label = Text("p = 0.3", weight=BOLD).next_to(h3_rect, DOWN, buff=0.5).scale(1.2)
+        
+        self.play(
+            Transform(output_rect, h3_rect),
+            Transform(output_p_label, h3_p_label),
+            run_time=0.9
+        )
+        self.wait(1.0)
+        
+        # Transform to hidden layer 2 (5 neurons, p=0.5)
+        h2_group = VGroup(*hidden_layer2)
+        h2_rect = SurroundingRectangle(
+            h2_group,
+            color="#FF0000",
+            fill_color="#FF0000",
+            fill_opacity=0.5,
+            stroke_width=4,
+            buff=0.2
+        )
+        h2_p_label = Text("p = 0.5", weight=BOLD).next_to(h2_rect, DOWN, buff=0.5).scale(1.2)
+        
+        self.play(
+            Transform(output_rect, h2_rect),
+            Transform(output_p_label, h2_p_label),
+            run_time=0.9
+        )
+        self.wait(1.0)
+        
+        # Transform to hidden layer 1 (4 neurons, p=0.4)
+        h1_group = VGroup(*hidden_layer1)
+        h1_rect = SurroundingRectangle(
+            h1_group,
+            color="#FF0000",
+            fill_color="#FF0000",
+            fill_opacity=0.6,
+            stroke_width=4,
+            buff=0.2
+        )
+        h1_p_label = Text("p = 0.4", weight=BOLD).next_to(h1_rect, DOWN, buff=0.5).scale(1.2)
+
+        self.play(
+            Transform(output_rect, h1_rect),
+            Transform(output_p_label, h1_p_label),
+            run_time=0.9
+        )
+        self.wait(1.0)
+        
+        # Transform to input layer (5 neurons, p≈0.1)
+        input_group = VGroup(*input_layer)
+        input_rect = SurroundingRectangle(
+            input_group,
+            color="#FF0000",
+            fill_color="#FF0000",
+            fill_opacity=0.6,
+            stroke_width=4,
+            buff=0.2
+        )
+        input_p_label = Text("p ~ 0.1", weight=BOLD).next_to(input_rect, DOWN, buff=0.5).scale(1.2)
+        
+        self.play(
+            Transform(output_rect, input_rect),
+            Transform(output_p_label, input_p_label),
+            run_time=0.9
+        )
+        self.wait(1.5)
+        
+
+        
+        self.wait(1.0)
+        
