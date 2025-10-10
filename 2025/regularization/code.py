@@ -1,7 +1,46 @@
 from manimlib import *
 import numpy as np
 
+class DataAugmentation(Scene):
+    def construct(self):
+        # === Title ===
+        title = Text("Data Augmentation", font="Arial", color=BLUE).scale(0.9).to_edge(UP)
+        self.wait(0.5)
 
+        # === Original image (top center) ===
+        original = ImageMobject("cat.jpg")
+        original.set_height(2.5)
+        original.move_to(UP * 2.2)
+        self.play(FadeIn(original))
+        self.wait(0.5)
+
+        # === Augmented image filenames ===
+        image_names = [
+            "cropped.png", "flipped.png", "grayscale.png", "cropped_gray_flipped.png", "blurred.png",
+            "brightness.png", "contrast.png", "saturation.png", "hue.png", "combined.png"
+        ]
+
+        # === Grid placement (2 rows × 5 columns) ===
+        images = []
+        start_y = -0.3  # vertical offset for top row
+        start_x = -5.0  # horizontal start position
+
+        for i, name in enumerate(image_names):
+            img = ImageMobject(name)
+            img.set_height(1.6)
+            row = i // 5
+            col = i % 5
+            pos = np.array([start_x + col * 2.5, start_y - row * 2.3, 0])
+            img.move_to(pos)
+            images.append(img)
+
+        # === Animate appearance (from original copy to each) ===
+        for img in images:
+            self.play(TransformFromCopy(original, img))
+            self.wait(0.2)
+
+        self.wait(2)
+        
 class EarlyStoppingAnimation(Scene):
     def construct(self):
         
