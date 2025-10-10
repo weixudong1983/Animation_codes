@@ -898,3 +898,117 @@ class DropoutRegularization(Scene):
         
         self.wait(1.0)
         
+
+class OverfittingRegion(Scene):
+    def construct(self):
+
+        self.camera.frame.shift(DOWN * 0.63)
+
+        # Create axes
+        axes = Axes(
+            x_range=[0, 50, 10],
+            y_range=[0, 1, 0.2],
+            width=10,
+            height=6,
+            axis_config={
+                "include_tip": True,
+                "include_numbers": False,
+                "tick_size": 0,
+                "stroke_width": 6,
+            }
+        ).shift(DOWN * 0.5)
+
+        # Axis labels
+        x_label = Text("Epochs", font_size=46, weight=BOLD).next_to(axes.x_axis, DOWN)
+        y_label = Text("Loss", font_size=46, weight=BOLD).next_to(axes.y_axis, LEFT).rotate(90 * DEGREES)
+
+        # Training and validation loss functions
+        def training_loss(x):
+            return 0.4 * np.exp(-0.08 * x) + 0.15
+
+        def validation_loss(x):
+            base_curve = 0.4 * np.exp(-0.08 * x) + 0.2
+            if x > 20:
+                upturn = 0.0003 * (x - 20) ** 1.8
+            else:
+                upturn = 0
+            return base_curve + upturn
+
+        # Graphs
+        training_graph = axes.get_graph(training_loss, x_range=[0, 50], color=RED, stroke_width=6)
+        validation_graph = axes.get_graph(validation_loss, x_range=[0, 50], color=BLUE, stroke_width=6)
+
+        # Legend
+        legend_box = Rectangle(width=3.5, height=1.2, fill_color=BLACK, fill_opacity=0.8,
+                               stroke_color=WHITE, stroke_width=2).to_corner(UR, buff=0.5).shift(LEFT * 0.45 + DOWN * 1.2)
+        training_line = Line(LEFT * 0.5, RIGHT * 0.5, color=RED, stroke_width=6)
+        validation_line = Line(LEFT * 0.5, RIGHT * 0.5, color=BLUE, stroke_width=6)
+        training_line.move_to(legend_box.get_center() + UP * 0.3 + LEFT * 1.2)
+        validation_line.move_to(legend_box.get_center() + DOWN * 0.3 + LEFT * 1.2)
+        training_text = Text("Training", font_size=24, color=WHITE).next_to(training_line, RIGHT, buff=0.2)
+        validation_text = Text("Validation", font_size=24, color=WHITE).next_to(validation_line, RIGHT, buff=0.2)
+        legend_group = VGroup(legend_box, training_line, training_text, validation_line, validation_text)
+
+        legend_box.shift(LEFT*0.3)
+
+        # Animate axes + labels
+        self.play(FadeIn(axes), Write(x_label), Write(y_label), run_time=1.5)
+        self.wait(0.5)
+        self.play(FadeIn(legend_group), run_time=1)
+
+        # Draw curves
+        self.play(ShowCreation(training_graph), ShowCreation(validation_graph), run_time=3)
+        self.wait(1)
+
+        # Moving dots
+        training_dot = Dot(color=RED, radius=0.13).set_color("#20FF33")
+        validation_dot = Dot(color=BLUE, radius=0.13).set_color("#20FF33")
+        training_dot.move_to(axes.c2p(0, training_loss(0)))
+        validation_dot.move_to(axes.c2p(0, validation_loss(0)))
+        epoch_tracker = ValueTracker(0)
+
+        # Updaters
+        training_dot.add_updater(lambda m: m.move_to(
+            axes.c2p(epoch_tracker.get_value(), training_loss(epoch_tracker.get_value()))
+        ))
+        validation_dot.add_updater(lambda m: m.move_to(
+            axes.c2p(epoch_tracker.get_value(), validation_loss(epoch_tracker.get_value()))
+        ))
+
+        self.play(FadeIn(training_dot), FadeIn(validation_dot), run_time=0.5)
+
+        # Animate until overfitting begins
+        self.play(epoch_tracker.animate.set_value(20), run_time=3, rate_func=linear)
+        self.wait(0.8)
+
+        # Continue to show overfitting phase
+        self.play(epoch_tracker.animate.set_value(45), run_time=2, rate_func=linear)
+        self.wait(0.5)
+
+        # Stop updating
+        training_dot.clear_updaters()
+        validation_dot.clear_updaters()
+
+        # 🌟 Highlight "Overfitting Region" (shorter height)
+        # Compute original y coordinates for top and bottom of region
+        x_start = axes.c2p(27, 0)[0]
+        x_end = axes.c2p(50, 0)[0]
+        y_bottom = axes.c2p(0, 0.2)[1]   # Start slightly above x-axis
+        y_top = axes.c2p(0, 0.7)[1]      # Reduced height (half the plot)
+
+        overfit_region = Polygon(
+            [x_start, y_bottom, 0],
+            [x_start, y_top, 0],
+            [x_end, y_top, 0],
+            [x_end, y_bottom, 0],
+            fill_color=YELLOW,
+            fill_opacity=0.15,
+            stroke_width=0
+        ).shift(DOWN)
+
+        overfit_label = Text("Overfitting Region", font_size=46, color=YELLOW)
+        overfit_label.next_to(axes.c2p(35, 0.7), UP, buff=0.1).shift(DOWN+RIGHT*0.7)
+
+        # Animate shaded region and label
+        self.play(FadeIn(overfit_region, run_time=1.5), Write(overfit_label, run_time=1.5))
+        self.wait(3)
