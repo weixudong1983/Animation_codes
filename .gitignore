@@ -1,0 +1,4 @@
+media
+*.pyc
+*.pyo
+__pycache__/
