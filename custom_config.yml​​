@@ -1,0 +1,3 @@
+text:
+  font: "Microsoft YaHei"   # 或 "Noto Sans CJK SC", "SimHei", "PingFang SC" 等
+  alignment: CENTER
