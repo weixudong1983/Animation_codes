@@ -1,6 +1,8 @@
 from manim import *
 
+from lib import InstructionPanel
 from lib.code import CodeHighlight
+from lib.fakeScene import FakeScene
 
 
 
@@ -224,10 +226,6 @@ class CircularQueueVisual(VGroup):
         # 重新更新指针位置（enqueue 已更新）
         self.update_pointer_positions()
 
-# ---------- FakeScene: 用于 set_data 内部写入不产生动画的替代对象 ----------
-class FakeScene:
-    def play(self, *args, **kwargs): pass
-    def wait(self, *args, **kwargs): pass
 
 
 class Queue2_Title(Scene):
@@ -248,6 +246,9 @@ class Queue2_Title(Scene):
         self.play(Write(problem_text), run_time=3)
 
         self.wait(1.8)
+# ---------- InstructionPanel: 可复用的指令列表 + 高亮组件 ----------
+
+
 # ---------- Demo Scene ----------
 class Queue2_Demo(Scene):
     def construct(self):
@@ -417,28 +418,29 @@ class Queue2_End(Scene):
             "q.dequeue()",
             "q.enqueue(40)"
         ]
-        self.add_instructions_and_highlight(instructions_list,
-                                            t2c={"dequeue": RED,"enqueue": RED,"CircularQueue": YELLOW,
-                                                    "5": BLUE,
-                                                  "10": BLUE,"20": BLUE,"30": BLUE,"40": BLUE,"70": BLUE
-                                                  },
-                                             start_index=0)
+        # 使用 InstructionPanel 管理指令列表与高亮框，便于复用
+        panel = InstructionPanel(
+            instructions_list,
+            t2c={"dequeue": RED, "enqueue": RED, "CircularQueue": YELLOW,
+                 "5": BLUE, "10": BLUE, "20": BLUE, "30": BLUE, "40": BLUE, "70": BLUE},
+            start_index=0,
+        )
+        panel.add_to_scene(self)
 
-        #遍历指令列表,解析指令如果是enqueue 运行 qv.enqueue,
-
+        # 遍历指令并执行对应的队列操作，同时移动高亮
         for instr in instructions_list[1:]:
-            self.instructions_next()  # 高亮下一行指令
+            panel.next(self)  # 高亮下一行指令
             if "enqueue" in instr:
-                value = int(instr.split("(")[1].split(")")[0])
-                qv.enqueue(self, value)
-                circular.enqueue(value, self)
+                try:
+                    value = int(instr.split("(")[1].split(")")[0])
+                except Exception:
+                    value = None
+                if value is not None:
+                    qv.enqueue(self, value)
+                    circular.enqueue(value, self)
             elif "dequeue" in instr:
                 qv.dequeue(self)
                 circular.dequeue(self)
-        
-        #self.instructions_next()  # 高亮第0行
-        #self.instructions_next()  # 高亮第0行
-
 
         return
         # 入队
@@ -479,15 +481,13 @@ class Queue2_End(Scene):
         self.start_index += 1
         self.play(self.highlight_box.animate.move_to(self.instructions[self.start_index]), run_time=1)
         self.wait(0.5)  # 短暂暂停
-        
     def add_instructions_and_highlight(self, instructions_list, t2c={},highlight_color=YELLOW, buff=0.1, start_index=0):
-
         self.start_index = start_index
         # 创建指令VGroup，垂直排列
         self.instructions = VGroup(*[Text(instr, font_size=28,font="sans-serif",t2c=t2c) for instr in instructions_list]).arrange(DOWN, aligned_edge=LEFT).to_edge(LEFT, buff=1.5)  # 左侧，buff=1.5以避免与代码重叠
         self.instructions.shift(UP)
         self.add(self.instructions)
-        
+
         # 初始高亮框
         self.highlight_box = SurroundingRectangle(self.instructions[start_index], color=highlight_color, buff=buff, corner_radius=0, stroke_width=2)
         self.add(self.highlight_box)

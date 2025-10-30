@@ -2,9 +2,17 @@ from manim import *
 
 
 class StackElement(VGroup):
-    def __init__(self, value, **kwargs,):
+    def __init__(self, value, **kwargs):
+        """Stack element box. fill_color can be passed via kwargs or positional arg.
+
+        Example: StackElement(5, fill_color=BLUE)
+        """
         super().__init__(**kwargs)
-        self.rect = Rectangle(height=0.5, width=1.08, fill_opacity=1, fill_color=YELLOW, color=BLACK)
+        # allow caller to override via kwargs as well
+        fill_color = YELLOW
+        if "fill_color" in kwargs:
+            fill_color = kwargs.get("fill_color", fill_color)
+        self.rect = Rectangle(height=0.5, width=1.08, fill_opacity=1, fill_color=fill_color, color=BLACK)
         text = Text(str(value), font_size=27, color=BLACK)
         self.add(self.rect, text)
 
@@ -41,19 +49,24 @@ class Stack(VGroup):
         self.add(self.bucket)
 
     def push(self, scene, value, time=1, ):
-        if 5:
-            new_element = StackElement(value)
-            new_element.next_to(self.bucket, UP)
-            scene.play(Create(new_element))
+        #if 5:
+        fill_color = YELLOW
+        if len(self.elements) > self.max_size:
+            fill_color = RED
 
-            if self.elements:
-                target_position = self.elements[-1].get_top() + UP * 0.29
-            else:
-                target_position = self.bucket[0].get_bottom() + UP * 0.3
+    # pass fill_color as a keyword argument (don't pass dict as positional)
+        new_element = StackElement(value, fill_color=fill_color)
+        new_element.next_to(self.bucket, UP)
+        scene.play(Create(new_element))
 
-            scene.play(new_element.animate.move_to(target_position), run_time=time)
-            self.elements.append(new_element)
-            self.add(new_element)
+        if self.elements:
+            target_position = self.elements[-1].get_top() + UP * 0.29
+        else:
+            target_position = self.bucket[0].get_bottom() + UP * 0.3
+
+        scene.play(new_element.animate.move_to(target_position), run_time=time)
+        self.elements.append(new_element)
+        self.add(new_element)
 
     def pop(self, scene):
         if self.elements:
