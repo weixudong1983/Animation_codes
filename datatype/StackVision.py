@@ -48,7 +48,7 @@ class Stack(VGroup):
         self.bucket = VGroup(bucket_interior, bucket_outline).shift(DOWN * 2.3)
         self.add(self.bucket)
 
-    def push(self, scene, value, time=1, ):
+    def push(self, scene, value, time=1 ):
         #if 5:
         fill_color = YELLOW
         if len(self.elements) > self.max_size:
@@ -57,14 +57,20 @@ class Stack(VGroup):
     # pass fill_color as a keyword argument (don't pass dict as positional)
         new_element = StackElement(value, fill_color=fill_color)
         new_element.next_to(self.bucket, UP)
-        scene.play(Create(new_element))
+        if(time!=0):
+            scene.play(Create(new_element))
+        else:
+            scene.add(new_element)
 
         if self.elements:
             target_position = self.elements[-1].get_top() + UP * 0.29
         else:
             target_position = self.bucket[0].get_bottom() + UP * 0.3
 
-        scene.play(new_element.animate.move_to(target_position), run_time=time)
+        if time == 0 :
+            new_element.move_to(target_position)
+        else:
+            scene.play(new_element.animate.move_to(target_position), run_time=time)
         self.elements.append(new_element)
         self.add(new_element)
 

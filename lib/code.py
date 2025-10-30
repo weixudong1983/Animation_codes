@@ -5,7 +5,7 @@ class CodeHighlight:
     def __init__(self, code_string, language="cpp", formatter_style="rrt", 
                  background=None, add_line_numbers=True, 
                  paragraph_config={"font_size": 24, "line_spacing": 0.8}, 
-                 scale_factor=0.9, edge_buff=0.5):
+                 scale_factor=0.9, edge_buff=0.5,shift_top=0):
         # 初始化Code对象，封装大部分参数
         self.code_display = Code(
             code_string=code_string,
@@ -15,6 +15,8 @@ class CodeHighlight:
             formatter_style=formatter_style,
             paragraph_config=paragraph_config,
         ).scale(scale_factor).to_edge(LEFT, buff=edge_buff)
+        if shift_top != 0:
+            self.code_display.shift(UP*shift_top)
         print(self.code_display.get_styles_list())
         # 存储Scene引用，用于动画（在add_to_scene时设置）
         self.scene = None

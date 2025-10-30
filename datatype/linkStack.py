@@ -25,37 +25,45 @@ class Node(VGroup):
 # ===================== 堆栈类 =====================
 class LinkedStack(VGroup):
     """链表堆栈，可视化结构"""
-    def __init__(self, scene: Scene, start_x=-4, **kwargs):
+    def __init__(self, scene: Scene, start_x=-4,start_y=0,scale = 1, **kwargs):
         super().__init__(**kwargs)  # 继承 VGroup 以支持 next_to 等方法
         self.scene = scene
         self.nodes: list[Node] = []
         self.arrows: list[Arrow] = []
         self.start_x = start_x
+        self.start_y = start_y
+        self.scale = scale
 
         self.top_label = None
 
     def build(self, labels):
         """初始化堆栈"""
         for i, label in enumerate(labels):
-            pos = [self.start_x + i * 2, 0, 0]
+            pos = [self.start_x + i * 2*self.scale, self.start_y*self.scale, 0]
+        
+
             node = Node(label, pos)
+            node.scale(self.scale)
             self.nodes.append(node)
             self.add(node)  # 添加到 VGroup
-            self.scene.play(FadeIn(node), run_time=0.5)
+            self.scene.add(node)
+            #self.scene.play(FadeIn(node), run_time=0.5)
 
         # Top 标签
         if self.nodes:
-            self.top_label = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN)
+            self.top_label = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN).scale(self.scale)
         else:
             # 堆栈为空时，将标签放在起始位置下方
-            pos = np.array([self.start_x, -1, 0])
-            self.top_label = Text("Top", font="Microsoft YaHei", color=RED).move_to(pos)
+            pos = np.array([self.start_x, -1+self.start_y, 0])
+            pos *= self.scale
+            self.top_label = Text("Top", font="Microsoft YaHei", color=RED).move_to(pos).scale(self.scale)
         self.add(self.top_label)  # 添加到 VGroup
         self.scene.add(self.top_label)
 
     def push(self, label: str):
         """入栈操作：左边淡入，新元素插入栈顶，然后整体右移已有节点"""
-        new_pos = np.array([self.start_x, 0, 0])
+        new_pos = np.array([self.start_x, self.start_y, 0])
+        new_pos *= self.scale
         new_node = Node(label, new_pos)
         # 先淡入新节点
         self.scene.play(FadeIn(new_node), run_time=1.0)
@@ -72,7 +80,7 @@ class LinkedStack(VGroup):
 
         # 更新 Top 标签到新的栈顶（最左边）
         if self.nodes:
-            new_top = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN)
+            new_top = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN).scale(self.scale)
             self.scene.play(Transform(self.top_label, new_top), run_time=0.8)
         self.scene.wait(0.7)
 
@@ -93,13 +101,14 @@ class LinkedStack(VGroup):
 
         # 更新 Top 标签的位置
         if self.nodes:
-            new_top = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN)
+            new_top = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN).scale(self.scale)
             self.scene.play(Transform(self.top_label, new_top), run_time=0.8)
         else:
             # 堆栈已空，将标签移动回起始位置
-            pos = np.array([self.start_x, -1, 0])
+            pos = np.array([self.start_x, -1+self.start_y, 0])
+            pos*= self.scale
             self.scene.play(
-                Transform(self.top_label, Text("Top", font="Microsoft YaHei", color=RED).move_to(pos)),
+                Transform(self.top_label, Text("Top", font="Microsoft YaHei", color=RED).move_to(pos).scale(self.scale)),
                 run_time=0.8,
             )
         self.scene.wait(1.4)
