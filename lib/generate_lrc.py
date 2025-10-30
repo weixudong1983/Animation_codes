@@ -3,7 +3,7 @@ import sys
 import glob
 
 # words_per_second越大,速度越快
-def generate_lrc_file(input_file, words_per_second=5):
+def generate_lrc_file(input_file, words_per_second=10):
     """
     根据输入的文本文件内容生成带递增编号的LRC格式字幕文件
     :param input_file: 输入的文件名（包含路径）

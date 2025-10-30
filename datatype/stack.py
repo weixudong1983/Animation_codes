@@ -33,6 +33,15 @@ class Stack_2_Demo_1(Scene):
 
         self.wait(0.8)
 
+        title = Text("堆栈 Stack").to_edge(UP).scale(1.3).shift(DOWN*0.3).set_color(GREEN)
+        subTitle = Text("先进后出（LIFO）").next_to(title,DOWN, buff=0.1).scale(0.7).set_color(GREEN)
+
+        title.shift(RIGHT*2)
+        subTitle.shift(RIGHT*2)
+
+        self.play(Write(title))
+        self.play(Write(subTitle))
+
         stack.push(self, 4)
         stack.push(self, 5)
         stack.pop(self)
@@ -44,11 +53,19 @@ class Stack_2_Demo_1(Scene):
         stack.push(self, 5)
         stack.push(self, 6)
         stack.push(self, 7)
+
+        subTitle2 = Text("堆栈溢出").next_to(subTitle,DOWN, buff=1).scale(1.2).set_color(RED)
+        self.play(Write(subTitle2))
+
+
         self.wait(1)
 
         stack.pop(self)
+        self.play(FadeOut(subTitle2))
+
         stack.pop(self)
         stack.pop(self)
+        self.play(FadeOut(title),FadeOut(subTitle))
 
         self.play(stack.animate.shift(LEFT*2))
 
@@ -66,7 +83,7 @@ class Stack_2_Demo_1(Scene):
         linked = LinkedStack(self, start_x=-0.7,scale=0.7,start_y=-0.5)
         initial_labels = [ "4","3", "2", "1",]  # 初始元素，从左到右，左边是栈顶
         linked.build(initial_labels)
-        self.wait(2)
+        self.wait(4)
 
         
 # class Stack_3_Demo_1_EndLinked(Scene):
@@ -249,7 +266,125 @@ class Stack_6_Linked_Demo_1(Scene):
         stack.push(self, 3)
         linked.push( "3")
         
+class Stack_7_Code_Link_1(Scene):
+    def construct(self):
+        # C++代码内容
+        code = '''// 链表节点结构体
+struct Node {
+    int data;
+    Node* next;
+    Node(int val) : data(val), next(nullptr) {}
+};
 
+// 链表栈类
+class Stack {
+private:
+    Node* top;  // 栈顶指针
+    int count;  // 栈大小
+public:
+    // 构造函数
+    Stack() : top(nullptr), count(0) {}'''
+        cl = CodeHighlight(code_string=code,scale_factor=0.9,shift_top=0.5)
+        cl.add_to_scene(self)
+        cl.highlight(1,6)
+        self.wait(1)
+        #cl.highlight(7,12)
+class Stack_7_Code_Link_2(Scene):
+    def construct(self):
+        # C++代码内容
+        code = '''// 判断栈是否为空
+    bool isEmpty() {
+        return top == nullptr;
+    }
+
+    // 判断栈是否满（链表栈通常不限容量）
+    bool isFull() {
+        return false;  // 链表栈不限容量
+    }
+'''
+        cl = CodeHighlight(code_string=code,scale_factor=1,shift_top=0.5)
+        cl.add_to_scene(self)
+        cl.highlight(1,6)
+        self.wait(1)
+class Stack_7_Code_Link_3(Scene):
+    def construct(self):
+        # C++代码内容
+        code = ''' // 入栈
+    void push(int value) {
+        Node* newNode = new Node(value);
+        newNode->next = top;
+        top = newNode;
+        count++;
+    }
+    // 出栈
+    bool pop() {
+        if (isEmpty()) {
+            return false;
+        }
+        Node* temp = top;
+        top = top->next;
+        delete temp;
+        count--;
+        return true;
+    }
+'''
+        cl = CodeHighlight(code_string=code,scale_factor=0.8,shift_top=0.1)
+        cl.add_to_scene(self)
+        cl.highlight(1,7)
+        self.wait(1)
+        cl.highlight(8,18)
+        self.wait(1)
+
+
+class Stack_8_Code_Link_Instruction(Scene):
+    def construct(self):
+        instructions_list = [
+            "Stack stack();",
+            "stack.push(10);",
+            "stack.push(20);",
+            "stack.push(30);",
+            "stack.peek();",
+            "stack.pop();",
+            "stack.pop();",
+        ]
+        # 使用 InstructionPanel 管理指令列表与高亮框，便于复用
+        panel = InstructionPanel(
+            instructions_list,
+            t2c={"push": RED, "pop": RED,  "peek": RED, "Stack": YELLOW,
+                 "5": BLUE, "10": BLUE, "20": BLUE, "30": BLUE},
+            start_index=1,
+        )
+        panel.add_to_scene(self)
+
+        stack = Stack().shift(UP*1.5 ).shift(LEFT*1.5)
+        stack.push(self, 10,time=0)
+        self.play(Create(stack))
+
+
+        linked = LinkedStack(self, start_x=-0,scale=0.7,start_y=-0.5)
+        initial_labels = [ '10']  # 初始元素，从左到右，左边是栈顶
+        linked.build(initial_labels)
+        #self.wait(2)
+
+        #array = LinkedStack(self)
+        #array.shift(RIGHT*3)
+
+        for instr in instructions_list[2:]:
+            panel.next(self)  # 高亮下一行指令
+
+            if "push" in instr:
+                try:
+                    value = int(instr.split("(")[1].split(")")[0])
+                except Exception:
+                    value = None
+                if value is not None:
+                    stack.push(self,value)
+                    linked.push(str(value))
+            elif "pop" in instr:
+                stack.pop(self)
+                linked.pop()
+       
+        self.wait(1)
 
 class Stace_Demo(Scene):
     def construct(self):

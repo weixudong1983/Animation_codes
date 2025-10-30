@@ -25,7 +25,7 @@ class Node(VGroup):
 # ===================== 堆栈类 =====================
 class LinkedStack(VGroup):
     """链表堆栈，可视化结构"""
-    def __init__(self, scene: Scene, start_x=-4,start_y=0,scale = 1, **kwargs):
+    def __init__(self, scene: Scene, start_x=-4, start_y=0, scale=1, **kwargs):
         super().__init__(**kwargs)  # 继承 VGroup 以支持 next_to 等方法
         self.scene = scene
         self.nodes: list[Node] = []
@@ -35,46 +35,70 @@ class LinkedStack(VGroup):
         self.scale = scale
 
         self.top_label = None
+        self.null_label = None
 
     def build(self, labels):
         """初始化堆栈"""
         for i, label in enumerate(labels):
-            pos = [self.start_x + i * 2*self.scale, self.start_y*self.scale, 0]
-        
+            pos = [self.start_x + i * 2 * self.scale, self.start_y * self.scale, 0]
 
             node = Node(label, pos)
             node.scale(self.scale)
             self.nodes.append(node)
             self.add(node)  # 添加到 VGroup
             self.scene.add(node)
-            #self.scene.play(FadeIn(node), run_time=0.5)
+            # self.scene.play(FadeIn(node), run_time=0.5)
 
         # Top 标签
         if self.nodes:
             self.top_label = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN).scale(self.scale)
         else:
             # 堆栈为空时，将标签放在起始位置下方
-            pos = np.array([self.start_x, -1+self.start_y, 0])
+            pos = np.array([self.start_x, -1 + self.start_y, 0])
             pos *= self.scale
             self.top_label = Text("Top", font="Microsoft YaHei", color=RED).move_to(pos).scale(self.scale)
         self.add(self.top_label)  # 添加到 VGroup
         self.scene.add(self.top_label)
 
+        # NULL 标签
+        self.update_null_label()
+
+    def update_null_label(self):
+        """更新 NULL 标签位置"""
+        # if self.null_label:
+        #     self.remove(self.null_label)
+        # if self.nodes:
+        #     # NULL 在最后一个节点的箭头末端
+        #     last_node = self.nodes[-1]
+        #     null_pos = last_node.circle.get_right() + np.array([1, 0, 0])
+        #     self.null_label = Text("NULL", font="Consolas", color=BLUE).move_to(null_pos).scale(self.scale)
+        # else:
+        #     # 堆栈为空，NULL 在起始位置
+        #     pos = np.array([self.start_x + 1, self.start_y, 0])  # 假设在起始节点的箭头位置
+        #     pos *= self.scale
+        #     self.null_label = Text("NULL", font="Consolas", color=BLUE).move_to(pos).scale(self.scale)
+        # self.add(self.null_label)
+        # self.scene.add(self.null_label)
+
     def push(self, label: str):
         """入栈操作：左边淡入，新元素插入栈顶，然后整体右移已有节点"""
-        new_pos = np.array([self.start_x, self.start_y, 0])
+        new_pos = np.array([self.start_x, self.start_y+2, 0])
         new_pos *= self.scale
         new_node = Node(label, new_pos)
+        new_node.scale(self.scale)
         # 先淡入新节点
         self.scene.play(FadeIn(new_node), run_time=1.0)
         self.add(new_node)  # 添加到 VGroup
 
         # 然后整体右移已有节点（每个右移2）
-        shift = 2
+        shift = 2 * self.scale
         move_anims = [node.animate.shift(shift * RIGHT) for node in self.nodes]
+        move_anims.append(new_node.animate.shift(DOWN* 2 * self.scale))
         if move_anims:
             self.scene.play(*move_anims, run_time=0.8)
 
+
+        
         # 更新结构：新节点插入到最左边
         self.nodes.insert(0, new_node)
 
@@ -82,6 +106,10 @@ class LinkedStack(VGroup):
         if self.nodes:
             new_top = Text("Top", font="Microsoft YaHei", color=RED).next_to(self.nodes[0], DOWN).scale(self.scale)
             self.scene.play(Transform(self.top_label, new_top), run_time=0.8)
+
+        # 更新 NULL 标签
+        self.update_null_label()
+
         self.scene.wait(0.7)
 
     def pop(self):
@@ -94,7 +122,7 @@ class LinkedStack(VGroup):
         self.remove(first)  # 从 VGroup 中移除
 
         # 整体左移剩余节点（每个左移2）
-        shift = -2
+        shift = -2 * self.scale
         move_anims = [node.animate.shift(shift * RIGHT) for node in self.nodes]
         if move_anims:
             self.scene.play(*move_anims, run_time=0.8)
@@ -105,10 +133,14 @@ class LinkedStack(VGroup):
             self.scene.play(Transform(self.top_label, new_top), run_time=0.8)
         else:
             # 堆栈已空，将标签移动回起始位置
-            pos = np.array([self.start_x, -1+self.start_y, 0])
-            pos*= self.scale
+            pos = np.array([self.start_x, -1 + self.start_y, 0])
+            pos *= self.scale
             self.scene.play(
                 Transform(self.top_label, Text("Top", font="Microsoft YaHei", color=RED).move_to(pos).scale(self.scale)),
                 run_time=0.8,
             )
+
+        # 更新 NULL 标签
+        self.update_null_label()
+
         self.scene.wait(1.4)
